@@ -372,7 +372,7 @@ const DEF_PARTS = {
 let curType = (()=>{ let t = null; try{ t = localStorage.getItem("type"); }catch(e){} return TYPES.includes(t) ? t : "אופטימיסט"; })();
 let partsByType = {}, fleet = {}, fleetB = {}, allReports = [];
 const BRANCHES = ["ירקון","מרינה תל אביב","נמל יפו"];
-let branch = (()=>{ let b = null; try{ b = localStorage.getItem("branch"); }catch(e){} return BRANCHES.includes(b) ? b : ""; })();
+let branch = (()=>{ let b = null; try{ b = sessionStorage.getItem("branch"); localStorage.removeItem("branch"); }catch(e){} return BRANCHES.includes(b) ? b : ""; })();
 function applyBranch(){
   reports = allReports.filter(r=>(r.branch||"נמל יפו")===branch && !pendingDel.has(r.id));
   fleet = fleetB[branch] || {};
@@ -381,7 +381,7 @@ function applyBranch(){
   $("branches").classList.toggle("need", !branch);
 }
 function setBranch(b){
-  if(!BRANCHES.includes(b)) return; branch = b; store.set("branch", b); $("pick").hidden = true;
+  if(!BRANCHES.includes(b)) return; branch = b; try{ sessionStorage.setItem("branch", b); }catch(e){} $("pick").hidden = true;
   typeFilter = "all"; openCards.clear(); applyBranch(); render();
 }
 const typeOf = r => TYPES.includes(r.type) ? r.type : "אופטימיסט";
