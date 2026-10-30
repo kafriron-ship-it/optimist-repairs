@@ -56,6 +56,15 @@ section{display:flex;flex-direction:column;gap:18px;padding-top:20px}
 .recent button{position:relative;font:600 1.2rem var(--mono);background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:12px 0;cursor:pointer;font-variant-numeric:tabular-nums}
 .recent button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--bg)}
 .recent button i{position:absolute;top:-6px;left:-6px;font:600 .7rem var(--mono);font-style:normal;background:var(--stop);color:#fff;border-radius:999px;min-width:18px;padding:1px 4px;line-height:16px}
+.branches{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1.5px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.branches button{background:none;border:0;color:var(--ink);font:700 .95rem var(--body);padding:12px 4px;cursor:pointer;min-width:0}
+.branches button+button{border-inline-start:1.5px solid var(--line)}
+.branches button[aria-pressed="true"]{background:var(--navy);color:var(--bg)}
+.branches.need{border-color:var(--flag);box-shadow:0 0 0 3px color-mix(in srgb,var(--flag) 35%,transparent)}
+.pick{position:fixed;inset:0;z-index:60;background:rgba(10,20,40,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.pick>div{background:var(--bg);border-radius:16px;padding:20px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:12px}
+.pick h2{margin:0;font-size:1.2rem}
+.pick button{padding:16px;font:700 1.05rem var(--body);border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
 .types{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1.5px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
 .types button{background:none;border:0;color:var(--ink);font:700 .95rem var(--body);padding:12px 4px;cursor:pointer;min-width:0}
 .types button+button{border-inline-start:1.5px solid var(--line)}
@@ -202,7 +211,7 @@ textarea{min-height:64px;resize:vertical}
 <header>
   <div class="brand">
     <svg class="logo" viewBox="0 0 40 40" role="img" aria-label="מרכז דניאל"><rect width="40" height="40" rx="9" fill="#fff"/><path d="M3 20 Q20 16.6 37 20 Q20 23.4 3 20 Z" fill="#ec8f33"/><g fill="#2e6fb7"><path d="M11.7 9 L14.5 9 L13.4 15.5 L12.4 15.5 Z"/><path d="M16.7 9 L19.5 9 L18.4 15.5 L17.4 15.5 Z"/><path d="M21.7 9 L24.5 9 L23.4 15.5 L22.4 15.5 Z"/><path d="M26.7 9 L29.5 9 L28.4 15.5 L27.4 15.5 Z"/><path d="M12.6 24.5 L13.6 24.5 L14.4 31 L11.6 31 Z"/><path d="M17.6 24.5 L18.6 24.5 L19.4 31 L16.6 31 Z"/><path d="M22.6 24.5 L23.6 24.5 L24.4 31 L21.6 31 Z"/><path d="M27.6 24.5 L28.6 24.5 L29.4 31 L26.6 31 Z"/></g></svg>
-    <div><h1>מרכז דניאל · חוג שייט</h1><div class="sub">תקלות בסירות</div></div>
+    <div><h1>מרכז דניאל · חוג שייט</h1><div class="sub">תקלות בסירות<span id="branchSub"></span></div></div>
   </div>
   <nav role="tablist">
     <button role="tab" id="tab-report" data-tab="report" aria-selected="true">דיווח</button>
@@ -215,6 +224,10 @@ textarea{min-height:64px;resize:vertical}
 <!-- REPORT -->
 <section id="view-report">
   <div class="install" id="install" hidden><span id="installText">להוסיף את האפליקציה למסך הבית?</span><span style="display:flex;gap:4px;align-items:center"><button type="button" class="ghost" id="installBtn">הוסף</button><button type="button" class="x" id="installX" aria-label="סגור">✕</button></span></div>
+  <div>
+    <span class="label">סניף</span>
+    <div class="branches" id="branches" role="group" aria-label="סניף"></div>
+  </div>
   <div>
     <span class="label">סוג סירה</span>
     <div class="types" id="types" role="group" aria-label="סוג סירה"></div>
@@ -280,6 +293,7 @@ textarea{min-height:64px;resize:vertical}
 
   <button class="primary" id="send" disabled>שלח דיווח</button>
   <div class="toast" id="toast" role="status"></div>
+  <div class="pick" id="pick" hidden role="dialog" aria-modal="true" aria-labelledby="pickTitle"><div><h2 id="pickTitle">באיזה סניף אתה?</h2><p class="inote" style="margin:0">אפשר להחליף אחר כך בלשונית דיווח.</p><div id="pickList" style="display:flex;flex-direction:column;gap:8px"></div></div></div>
   <div class="snack" id="snack" role="status" hidden><span id="snackMsg"></span><button type="button" id="snackUndo">בטל</button></div>
   <div class="status" id="conn"></div>
 </section>
@@ -356,7 +370,20 @@ const DEF_PARTS = {
   ]
 };
 let curType = (()=>{ let t = null; try{ t = localStorage.getItem("type"); }catch(e){} return TYPES.includes(t) ? t : "אופטימיסט"; })();
-let partsByType = {}, fleet = {};
+let partsByType = {}, fleet = {}, fleetB = {}, allReports = [];
+const BRANCHES = ["ירקון","מרינה תל אביב","נמל יפו"];
+let branch = (()=>{ let b = null; try{ b = localStorage.getItem("branch"); }catch(e){} return BRANCHES.includes(b) ? b : ""; })();
+function applyBranch(){
+  reports = allReports.filter(r=>(r.branch||"נמל יפו")===branch && !pendingDel.has(r.id));
+  fleet = fleetB[branch] || {};
+  $("branchSub").textContent = branch ? " · " + branch : "";
+  $("branches").innerHTML = BRANCHES.map(b=>`<button type="button" data-b="${esc(b)}" aria-pressed="${b===branch}">${esc(b)}</button>`).join("");
+  $("branches").classList.toggle("need", !branch);
+}
+function setBranch(b){
+  if(!BRANCHES.includes(b)) return; branch = b; store.set("branch", b); $("pick").hidden = true;
+  typeFilter = "all"; openCards.clear(); applyBranch(); render();
+}
 const typeOf = r => TYPES.includes(r.type) ? r.type : "אופטימיסט";
 function groupsFor(t){ const g = partsByType[t]; return Array.isArray(g) && g.length ? g : DEF_PARTS[t]; }
 const $ = id => document.getElementById(id);
@@ -517,7 +544,7 @@ $("other").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefaul
 $("customs").addEventListener("click", e=>{ const b=e.target.closest("[data-ci]"); if(!b) return; customs.splice(+b.dataset.ci,1); renderCustoms(); validate(); });
 $("who").value = store.get("who") || "";
 function validate(){
-  const ok = $("boat").value.trim() && (selected.size || customs.length || $("other").value.trim()) && db;
+  const ok = branch && $("boat").value.trim() && (selected.size || customs.length || $("other").value.trim()) && db;
   $("send").disabled = !ok;
 }
 let boatList = [];
@@ -568,12 +595,12 @@ $("send").addEventListener("click", async ()=>{
       const issue = kind==="task" ? "" : (issueOf[part] || "שבור");
       return {part, kind, issue, issueText: issue==="אחר" ? norm(issueText[part]) : ""};
     });
-    const res = await api("add",{type:curType, boat, note:base.note, stop:base.stop, reporter:who, items, photo:photoData||""});
+    const res = await api("add",{branch, type:curType, boat, note:base.note, stop:base.stop, reporter:who, items, photo:photoData||""});
     (res.skipped||[]).forEach(p=>{ if(!skipped.includes(p)) skipped.push(p); });
     if(res.photoError) setTimeout(()=>toast("הדיווח נשמר, אבל התמונה לא נשמרה.", true), 4200);
     parts.length = 0; (res.added||[]).forEach(p=>parts.push(p));
     load();
-    toast(`נשלח: ${curType} ${boat} · ${parts.length} ${parts.length===1?"תקלה":"תקלות"}` + (skipped.length?` (כבר היה: ${skipped.join(", ")})`:""));
+    toast(`נשלח: ${branch} · ${curType} ${boat} · ${parts.length} ${parts.length===1?"תקלה":"תקלות"}` + (skipped.length?` (כבר היה: ${skipped.join(", ")})`:""));
     selected.clear(); document.querySelectorAll("#partGroups .chip").forEach(c=>c.setAttribute("aria-pressed","false"));
     $("other").value=""; issueOf={}; issueText={}; customs=[]; renderCustoms(); $("note").value=""; $("stop").checked=false; $("boat").value=""; clearPhoto(); $("boat").focus();
   }catch(e){
@@ -614,7 +641,7 @@ $("partsList").addEventListener("change",e=>{
 });
 $("copyParts").addEventListener("click", async ()=>{
   const agg = partsAgg().filter(a=>!have.has(a.key));
-  const txt = "חלקים לסירות - מרכז דניאל\n" + TYPES.filter(t=>agg.some(a=>a.type===t)).map(t=>`\n${t}:\n` + agg.filter(a=>a.type===t).map(a=>`• ${a.part} ×${a.qty} (${a.boats.map(b=>b.n).join(", ")})`).join("\n")).join("\n");
+  const txt = `חלקים לסירות - מרכז דניאל ${branch}\n` + TYPES.filter(t=>agg.some(a=>a.type===t)).map(t=>`\n${t}:\n` + agg.filter(a=>a.type===t).map(a=>`• ${a.part} ×${a.qty} (${a.boats.map(b=>b.n).join(", ")})`).join("\n")).join("\n");
   try{ await navigator.clipboard.writeText(txt); $("copyParts").textContent="הועתק ✓"; setTimeout(()=>$("copyParts").textContent="העתק רשימה",2000); }
   catch(e){ const f=$("copyFallback"); f.hidden=false; f.value=txt; f.select(); }
 });
@@ -807,15 +834,20 @@ async function api(action, payload){
   const r = await fetch(API, {method:"POST", body: JSON.stringify({action, ...(payload||{})})});
   const j = await r.json(); if(!j.ok) throw new Error(j.error||"error"); return j;
 }
+$("branches").addEventListener("click", e=>{ const b=e.target.closest("[data-b]"); if(b && b.dataset.b!==branch) setBranch(b.dataset.b); });
+$("pickList").innerHTML = BRANCHES.map(b=>`<button type="button" data-b="${esc(b)}">${esc(b)}</button>`).join("");
+$("pickList").addEventListener("click", e=>{ const b=e.target.closest("[data-b]"); if(b) setBranch(b.dataset.b); });
+applyBranch(); if(!branch) $("pick").hidden = false;
 let loading = false;
 async function load(){
   if(loading) return; loading = true;
   try{
     const j = await api("all");
-    reports = (j.reports || []).filter(r=>!pendingDel.has(r.id));
+    allReports = j.reports || [];
     requests = j.requests || [];
     const c = j.config || {};
-    if(c.fleet && typeof c.fleet==="object") fleet = c.fleet;
+    if(c.fleetB && typeof c.fleetB==="object") fleetB = c.fleetB;
+    applyBranch();
     if(c.partsByType && typeof c.partsByType==="object"){ partsByType = c.partsByType; if($("editPanel").hidden) groups = groupsFor(curType); }
     db = true; $("conn").textContent = ""; render();
   }catch(e){ $("conn").textContent = db ? "אין חיבור כרגע, מנסה שוב…" : "לא מצליח להתחבר לטבלה. בדוק אינטרנט."; }
