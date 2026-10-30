@@ -90,6 +90,32 @@ mark{background:none;color:var(--navy);font-weight:800}
 .stitle{font:700 .85rem var(--body);letter-spacing:.04em;color:var(--muted);margin:0}
 .install{display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--surface);border:1.5px dashed var(--navy);border-radius:12px;padding:10px 12px;font-size:.92rem}
 .install .x{background:none;border:0;color:var(--muted);font:700 1rem var(--body);cursor:pointer;padding:4px 8px}
+.prog{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.prog-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;color:var(--muted);font-weight:600}
+.prog-top b{font:600 1.05rem var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.prog-bar{height:10px;background:var(--chip);border-radius:6px;overflow:hidden}
+.prog-bar i{display:block;height:100%;width:0;margin-left:auto;background:var(--ok);border-radius:6px}
+@media (prefers-reduced-motion:no-preference){.prog-bar i{transition:width .3s}}
+.seg2{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.seg2 button{background:none;border:0;color:var(--ink);font:700 .95rem var(--body);padding:10px 4px;cursor:pointer}
+.seg2 button+button{border-inline-start:1.5px solid var(--line)}
+.seg2 button[aria-pressed="true"]{background:var(--navy);color:var(--bg)}
+.bc{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.bc.stop{border-color:var(--stop);box-shadow:inset 4px 0 0 var(--stop)}
+.bh{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;color:var(--ink);padding:12px 14px;cursor:pointer;text-align:start;font:inherit}
+.bh .nm2{font-weight:800;font-size:1.05rem;white-space:nowrap}
+.bh .pill,.bh .ttag{white-space:nowrap;flex:none}
+.bh .chev{color:var(--muted);transition:transform .2s;flex:none}
+.bh[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.rows{border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .rt{min-width:0;overflow-wrap:anywhere}
+.row.done .rt strong,.row.done .rt .itag{text-decoration:line-through;opacity:.55}
+.fixbtn{background:var(--ok);color:#fff;border:0;border-radius:10px;padding:10px 14px;font:800 .95rem var(--body);cursor:pointer;white-space:nowrap}
+.undo{background:none;color:var(--muted);border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;font:700 .85rem var(--body);cursor:pointer}
+.dots{background:none;border:0;color:var(--muted);font:800 1.2rem var(--body);cursor:pointer;padding:4px 6px;line-height:1}
+.extra{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:.8rem;color:var(--muted)}
 .group{margin-bottom:12px}
 .group h3{font-size:.85rem;margin:0 0 6px;color:var(--muted);font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -138,7 +164,7 @@ textarea{min-height:64px;resize:vertical}
 .boatcard.stop{border-color:var(--stop)}
 .bhead{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line)}
 .sail{font:600 1.6rem var(--mono);color:var(--navy);min-width:3ch}
-.bmeta{color:var(--muted);font-size:.9rem;flex:1}
+.bmeta{color:var(--muted);font-size:.9rem;flex:1;white-space:nowrap}
 .pill{font-size:.75rem;font-weight:700;border-radius:999px;padding:3px 9px;background:var(--stop);color:#fff}
 .pill.ok{background:var(--ok)}
 .issue{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:10px 14px;border-top:1px solid var(--line)}
@@ -168,7 +194,7 @@ textarea{min-height:64px;resize:vertical}
   <nav role="tablist">
     <button role="tab" id="tab-report" data-tab="report" aria-selected="true">דיווח</button>
     <button role="tab" id="tab-parts" data-tab="parts" aria-selected="false">מה להביא <span class="badge" id="partsBadge">0</span></button>
-    <button role="tab" id="tab-boats" data-tab="boats" aria-selected="false">לפי סירה <span class="badge" id="boatsBadge">0</span></button>
+    <button role="tab" id="tab-boats" data-tab="boats" aria-selected="false">תיקונים <span class="badge" id="boatsBadge">0</span></button>
     <button role="tab" id="tab-stats" data-tab="stats" aria-selected="false">נתונים</button>
   </nav>
 </header>
@@ -255,12 +281,17 @@ textarea{min-height:64px;resize:vertical}
 
 <!-- BOATS -->
 <section id="view-boats" hidden>
+  <div class="prog" id="prog" hidden><div class="prog-top"><span>תוקנו היום</span><b id="progTxt"></b></div><div class="prog-bar"><i id="progBar"></i></div></div>
+  <div class="seg2" role="group" aria-label="סידור">
+    <button type="button" id="g-boat" aria-pressed="true">לפי סירה</button>
+    <button type="button" id="g-part" aria-pressed="false">לפי חלק</button>
+  </div>
   <div class="filters">
     <button class="chip" id="f-open" aria-pressed="true">פתוחות</button>
     <button class="chip" id="f-all" aria-pressed="false">הכול כולל מתוקנות</button>
   </div>
   <div class="search" style="margin:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="bsearch" type="search" placeholder="חיפוש סירה או חלק" autocomplete="off" aria-label="חיפוש סירה או חלק"></div>
-  <div id="boatsList" style="display:flex;flex-direction:column;gap:12px"></div>
+  <div id="boatsList" style="display:flex;flex-direction:column;gap:10px"></div>
 </section>
 </div>
 
@@ -537,51 +568,95 @@ $("copyParts").addEventListener("click", async ()=>{
 });
 
 /* ---------- boats view ---------- */
+let groupBy = "boat"; const openCards = new Set(), openMore = new Set();
+function issueLabel(r){ return r.issue ? r.issue + (r.issueText ? ": " + r.issueText : "") : ""; }
+function itemRow(r, title){
+  const done = r.status !== "open", lab = issueLabel(r);
+  const date = r.createdAt ? new Date(r.createdAt).toLocaleDateString("he-IL",{day:"numeric",month:"numeric"}) : "";
+  return `<div class="row ${done?"done":""}">
+    <div class="rt"><strong>${esc(title)}</strong>${lab?` <span class="itag">${esc(lab)}</span>`:""}${r.stop&&!done?` <span class="pill">לא יוצאת</span>`:""}
+      ${r.note?`<div class="inote">${esc(r.note)}</div>`:""}
+      ${r.photo?`<a href="https://drive.google.com/file/d/${encodeURIComponent(r.photo)}/view" target="_blank" rel="noopener"><img class="thumb" loading="lazy" alt="תמונה של התקלה" src="https://drive.google.com/thumbnail?id=${encodeURIComponent(r.photo)}&sz=w320"></a>`:""}
+      ${openMore.has(r.id)?`<div class="extra"><span>דווח ע"י ${esc(r.reporter||"ללא שם")} · ${date}</span><button class="del" data-del="${r.id}">מחק דיווח</button></div>`:""}
+    </div>
+    ${done?`<button class="undo" data-fix="${r.id}" data-st="open">החזר</button>`:`<button class="fixbtn" data-fix="${r.id}" data-st="fixed">תוקן ✓</button>`}
+    <button class="dots" data-more="${r.id}" aria-label="פרטים נוספים" aria-expanded="${openMore.has(r.id)}">⋯</button>
+  </div>`;
+}
+function renderProgress(){
+  const t0 = new Date(); t0.setHours(0,0,0,0);
+  const fixedToday = reports.filter(r=>r.status!=="open" && r.fixedAt && r.fixedAt >= t0.getTime()).length;
+  const open = reports.filter(r=>r.status==="open").length, total = fixedToday + open;
+  $("prog").hidden = !total;
+  if(total){ $("progTxt").textContent = `${fixedToday} מתוך ${total}`; $("progBar").style.width = Math.round(fixedToday/total*100) + "%"; }
+}
 function renderBoats(){
-  const by = new Map(); const bq = $("bsearch").value;
-  for(const r of reports){ if(boatFilter==="open" && r.status!=="open") continue;
-    if(bq.trim() && !(fold(normBoat(r.boat)).includes(fold(bq)) || fold(typeOf(r)).includes(fold(bq)) || matchScore(bq, r.part)>0)) continue;
-    const bn = typeOf(r)+"|"+normBoat(r.boat); if(!by.has(bn)) by.set(bn,[]); const L = by.get(bn);
-    if(r.status==="open" && L.some(x=>x.status==="open" && norm(x.part)===norm(r.part))) continue;
-    L.push(r); }
+  const bq = $("bsearch").value, q = bq.trim();
+  const list = [], seen = new Set();
+  for(const r of reports){
+    if(boatFilter==="open" && r.status!=="open") continue;
+    if(q && !(fold(normBoat(r.boat)).includes(fold(bq)) || fold(typeOf(r)).includes(fold(bq)) || matchScore(bq, r.part)>0)) continue;
+    const k = typeOf(r)+"|"+normBoat(r.boat)+"|"+norm(r.part);
+    if(r.status==="open"){ if(seen.has(k)) continue; seen.add(k); }
+    list.push(r);
+  }
   const openBoats = new Set(reports.filter(r=>r.status==="open").map(r=>typeOf(r)+"|"+normBoat(r.boat)));
   $("boatsBadge").textContent = openBoats.size;
-  const boats = [...by.entries()].sort((a,b)=>{
-    const sa=a[1].some(r=>r.stop&&r.status==="open"), sb=b[1].some(r=>r.stop&&r.status==="open");
-    const [ta,na]=a[0].split("|"), [tb,nb]=b[0].split("|");
-    return (sb-sa) || (TYPES.indexOf(ta)-TYPES.indexOf(tb)) || na.localeCompare(nb,"he",{numeric:true});
-  });
-  if(!boats.length){ $("boatsList").innerHTML = `<div class="empty"><strong>${$("bsearch").value.trim()?"לא נמצאו סירות שמתאימות לחיפוש":boatFilter==="open"?"אין סירות עם תקלות פתוחות":"עוד לא דווח כלום"}</strong>דיווחים חדשים יופיעו כאן לפי מספר סירה.</div>`; return; }
-  $("boatsList").innerHTML = boats.map(([key,list])=>{
-    const [bt,n] = key.split("|");
-    const open = list.filter(r=>r.status==="open"); const stop = open.some(r=>r.stop);
-    list.sort((a,b)=>(a.status==="open"?0:1)-(b.status==="open"?0:1) || (a.createdAt||0)-(b.createdAt||0));
-    return `<div class="boatcard ${stop?"stop":""}">
-      <div class="bhead"><div class="sail">${esc(n)}</div><span class="ttag">${esc(bt)}</span><div class="bmeta">${open.length? open.length+" פתוחות":"הכול תוקן"}</div>
-        ${stop?`<span class="pill">לא יוצאת</span>`:(!open.length?`<span class="pill ok">מוכנה</span>`:"")}</div>
-      ${list.map(r=>`<div class="issue ${r.status!=="open"?"done":""}">
-        <input type="checkbox" aria-label="תוקן" data-fix="${r.id}" ${r.status!=="open"?"checked":""}>
-        <div class="itext"><strong>${esc(r.part)}</strong>${r.issue?`<span class="itag">${esc(r.issue)}${r.issueText?": "+esc(r.issueText):""}</span>`:""}${r.note?`<div class="inote">${esc(r.note)}</div>`:""}${r.photo?`<a href="https://drive.google.com/file/d/${encodeURIComponent(r.photo)}/view" target="_blank" rel="noopener"><img class="thumb" loading="lazy" alt="תמונה של התקלה" src="https://drive.google.com/thumbnail?id=${encodeURIComponent(r.photo)}&sz=w320"></a>`:""}
-          <div class="iby">${esc(r.reporter||"ללא שם")} · ${r.createdAt?new Date(r.createdAt).toLocaleDateString("he-IL",{day:"numeric",month:"numeric"}):""}</div></div>
-        <button class="del" data-del="${r.id}">מחק</button>
-      </div>`).join("")}
+  renderProgress();
+  if(!list.length){ $("boatsList").innerHTML = `<div class="empty"><strong>${q?"לא נמצאו תקלות שמתאימות לחיפוש":boatFilter==="open"?"אין תקלות פתוחות":"עוד לא דווח כלום"}</strong>דיווחים חדשים יופיעו כאן.</div>`; return; }
+  const byOrder = (a,b)=>(a.status==="open"?0:1)-(b.status==="open"?0:1) || (a.createdAt||0)-(b.createdAt||0);
+  const groups = new Map();
+  for(const r of list){
+    const key = groupBy==="boat" ? "b|"+typeOf(r)+"|"+normBoat(r.boat) : "p|"+typeOf(r)+"|"+norm(r.part);
+    if(!groups.has(key)) groups.set(key, []); groups.get(key).push(r);
+  }
+  const multiType = new Set(list.map(typeOf)).size > 1;
+  const cards = [...groups.entries()].map(([key, rs])=>{
+    const [, t, name] = key.split("|");
+    const open = rs.filter(r=>r.status==="open"), stop = open.some(r=>r.stop);
+    return {key, t, name, rs: rs.sort(byOrder), open: open.length, stop};
+  }).sort((a,b)=> groupBy==="boat"
+      ? (b.stop-a.stop) || (TYPES.indexOf(a.t)-TYPES.indexOf(b.t)) || a.name.localeCompare(b.name,"he",{numeric:true})
+      : (b.open-a.open) || a.name.localeCompare(b.name,"he"));
+  $("boatsList").innerHTML = cards.map(c=>{
+    const exp = openCards.has(c.key) || !!q;
+    const title = groupBy==="boat" ? (c.t===MOTOR ? c.name : "סירה "+c.name) : c.name;
+    const unit = groupBy==="boat" ? ["תקלה אחת","תקלות"] : ["סירה אחת","סירות"];
+    const meta = c.open ? (c.open===1 ? unit[0] : c.open+" "+unit[1]) : "הכול תוקן";
+    const pill = groupBy==="part" ? "" : c.stop ? `<span class="pill">לא יוצאת</span>` : (!c.open ? `<span class="pill ok">מוכנה</span>` : "");
+    return `<div class="bc ${c.stop?"stop":""}">
+      <button type="button" class="bh" data-card="${esc(c.key)}" aria-expanded="${exp}">
+        <span class="nm2">${esc(title)}</span>${(multiType||c.t!=="אופטימיסט")?`<span class="ttag">${esc(c.t)}</span>`:""}
+        <span class="bmeta">${meta}</span>${pill}
+        <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      ${exp?`<div class="rows">${c.rs.map(r=>itemRow(r, groupBy==="boat" ? r.part : (typeOf(r)===MOTOR ? normBoat(r.boat) : "סירה "+normBoat(r.boat)))).join("")}</div>`:""}
     </div>`;
   }).join("");
 }
 $("bsearch").addEventListener("input", renderBoats);
+function setGroup(g){ groupBy=g; $("g-boat").setAttribute("aria-pressed", g==="boat"); $("g-part").setAttribute("aria-pressed", g==="part"); renderBoats(); }
+$("g-boat").addEventListener("click", ()=>setGroup("boat"));
+$("g-part").addEventListener("click", ()=>setGroup("part"));
 $("f-open").addEventListener("click",()=>{boatFilter="open";$("f-open").setAttribute("aria-pressed","true");$("f-all").setAttribute("aria-pressed","false");renderBoats();});
 $("f-all").addEventListener("click",()=>{boatFilter="all";$("f-all").setAttribute("aria-pressed","true");$("f-open").setAttribute("aria-pressed","false");renderBoats();});
-$("boatsList").addEventListener("change", async e=>{
-  const id = e.target.dataset.fix; if(!id||!db) return;
-  const r = reports.find(x=>x.id===id); const st = e.target.checked?"fixed":"open";
-  if(r){ r.status = st; render(); }
-  try{ await api("update",{id, status:st}); }
-  catch(err){ if(r){ r.status = st==="fixed"?"open":"fixed"; render(); } toast("השמירה נכשלה",true); }
-});
 $("boatsList").addEventListener("click", async e=>{
+  const card = e.target.closest("[data-card]");
+  if(card){ const k = card.dataset.card; openCards.has(k) ? openCards.delete(k) : openCards.add(k); renderBoats(); return; }
+  const more = e.target.closest("[data-more]");
+  if(more){ const id = more.dataset.more; openMore.has(id) ? openMore.delete(id) : openMore.add(id); renderBoats(); return; }
+  const fx = e.target.closest("[data-fix]");
+  if(fx && db){
+    const id = fx.dataset.fix, st = fx.dataset.st, r = reports.find(x=>x.id===id); if(!r) return;
+    const prev = {status:r.status, fixedAt:r.fixedAt};
+    r.status = st; r.fixedAt = st==="fixed" ? Date.now() : null; render();
+    try{ await api("update",{id, status:st}); }
+    catch(err){ Object.assign(r, prev); render(); toast("השמירה נכשלה", true); }
+    return;
+  }
   const b = e.target.closest("[data-del]"); if(!b||!db) return;
-  if(!b.classList.contains("arm")){ b.classList.add("arm"); b.textContent="בטוח?"; setTimeout(()=>{b.classList.remove("arm");b.textContent="מחק";},3000); return; }
-  const id=b.dataset.del; reports = reports.filter(x=>x.id!==id); render();
+  if(!b.classList.contains("arm")){ b.classList.add("arm"); b.textContent="בטוח? לחץ שוב"; setTimeout(()=>{b.classList.remove("arm");b.textContent="מחק דיווח";},3000); return; }
+  const id=b.dataset.del; reports = reports.filter(x=>x.id!==id); openMore.delete(id); render();
   try{ await api("delete",{id}); }catch(err){ load(); }
 });
 
