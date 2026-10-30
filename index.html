@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123a63">
+<title>תקלות אופטימיסט</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Secular+One&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+body{margin:0}[hidden]{display:none!important}*{-webkit-tap-highlight-color:transparent}
+/* Layout: one narrow column, sticky sail-number header + three tabs (report / parts to bring / by boat) */
+:root{
+  --bg:#eef2f6; --surface:#ffffff; --ink:#0f2236; --muted:#5a6b7d; --line:#d3dce6;
+  --navy:#123a63; --flag:#f2b705; --flag-ink:#1d1600; --ok:#1f8a5b; --stop:#c8341f; --chip:#e4ebf3;
+  --display:"Secular One","Assistant",system-ui,sans-serif;
+  --body:"Assistant",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b1622; --surface:#13212f; --ink:#e7eef6; --muted:#93a4b6; --line:#25384b;
+  --navy:#7fb3ea; --flag:#f5c22b; --flag-ink:#1d1600; --ok:#4cc38a; --stop:#ff6b55; --chip:#1c2e40; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b1622; --surface:#13212f; --ink:#e7eef6; --muted:#93a4b6; --line:#25384b;
+  --navy:#7fb3ea; --flag:#f5c22b; --flag-ink:#1d1600; --ok:#4cc38a; --stop:#ff6b55; --chip:#1c2e40; color-scheme:dark}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:16px;line-height:1.45;direction:rtl}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--navy)}
+.wrap{max-width:640px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--navy);color:#fff;margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:14px max(16px,env(safe-area-inset-right,0px)) 0}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) header{background:#0f2a45}}
+:root[data-theme="dark"] header{background:#0f2a45}
+.brand{display:flex;align-items:center;gap:10px}
+.brand h1{font-family:var(--display);font-weight:400;font-size:1.45rem;margin:0;letter-spacing:.01em}
+.brand .sub{font-size:.85rem;opacity:.75}
+.sailmark{width:30px;height:30px;flex:none}
+nav{display:flex;gap:4px;margin-top:12px}
+nav button{flex:1;background:none;border:0;color:#fff;opacity:.7;font:600 1rem var(--body);padding:10px 4px 12px;border-bottom:3px solid transparent;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:6px}
+nav button[aria-selected="true"]{opacity:1;border-bottom-color:var(--flag)}
+nav .badge{background:var(--flag);color:var(--flag-ink);font:600 .75rem var(--mono);border-radius:999px;padding:1px 7px}
+nav button:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
+section{display:flex;flex-direction:column;gap:18px;padding-top:20px}
+.label{font-weight:700;font-size:.8rem;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;display:block}
+.boatrow{display:flex;gap:12px;align-items:stretch}
+#boat{font:600 2.4rem var(--mono);width:7.5ch;text-align:center;background:var(--surface);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:6px}
+#boat:focus{border-color:var(--navy)}
+.recent{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:8px}
+.recent button{position:relative;font:600 1.2rem var(--mono);background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:12px 0;cursor:pointer;font-variant-numeric:tabular-nums}
+.recent button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--bg)}
+.recent button i{position:absolute;top:-6px;left:-6px;font:600 .7rem var(--mono);font-style:normal;background:var(--stop);color:#fff;border-radius:999px;min-width:18px;padding:1px 4px;line-height:16px}
+.group{margin-bottom:12px}
+.group h3{font-size:.85rem;margin:0 0 6px;color:var(--muted);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--surface);border:1.5px solid var(--line);color:var(--ink);border-radius:999px;padding:8px 14px;font:600 .98rem var(--body);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--bg)}
+.irow{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;flex-wrap:wrap}
+.irow>span{font-weight:700;min-width:0}
+.irow input{flex-basis:100%}
+.more{background:var(--surface);border:1.5px solid var(--line);border-radius:10px}
+.more summary{cursor:pointer;padding:12px;font-weight:600;color:var(--muted)}
+.morebody{display:flex;flex-direction:column;gap:12px;padding:0 12px 12px}
+.seg{display:flex;border:1.5px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:none;border:0;color:var(--ink);font:600 .9rem var(--body);padding:6px 12px;cursor:pointer}
+.seg button+button{border-inline-start:1.5px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--navy);color:var(--bg)}
+.itag{font-weight:600;font-size:.8rem;color:var(--muted);margin-inline-start:6px}
+.chip.reported{border-style:dashed;color:var(--muted);background:var(--chip);cursor:default}
+.chip.reported::after{content:" · כבר דווח";font-weight:400;font-size:.85em}
+input[type=text],textarea{width:100%;box-sizing:border-box;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:1rem var(--body)}
+textarea{min-height:64px;resize:vertical}
+.toggle{display:flex;align-items:center;gap:10px;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;font-weight:600}
+.toggle input{width:22px;height:22px;accent-color:var(--stop)}
+.primary{background:var(--flag);color:var(--flag-ink);border:0;border-radius:12px;padding:16px;font:800 1.15rem var(--body);cursor:pointer}
+.primary:disabled{opacity:.45;cursor:not-allowed}
+.toast{min-height:1.4em;font-weight:600;color:var(--ok);text-align:center}
+.toast.err{color:var(--stop)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.row2{grid-template-columns:1fr}}
+/* parts list */
+.summary{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.summary p{margin:0;color:var(--muted)}
+.ghost{background:var(--surface);color:var(--navy);border:1.5px solid var(--line);border-radius:10px;padding:8px 14px;font:700 .95rem var(--body);cursor:pointer}
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.prow{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
+.prow:first-child{border-top:0}
+.qty{font:600 1.3rem var(--mono);min-width:2.4ch;text-align:center;font-variant-numeric:tabular-nums}
+.pname{font-weight:700;min-width:0}
+.boats{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.bn{font:600 .8rem var(--mono);background:var(--chip);border-radius:6px;padding:1px 6px}
+.bn.stop{background:var(--stop);color:#fff}
+.have{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+.have input{width:20px;height:20px;accent-color:var(--ok)}
+.prow.got .pname,.prow.got .qty{opacity:.45;text-decoration:line-through}
+/* by boat */
+.boatcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.boatcard.stop{border-color:var(--stop)}
+.bhead{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.sail{font:600 1.6rem var(--mono);color:var(--navy);min-width:3ch}
+.bmeta{color:var(--muted);font-size:.9rem;flex:1}
+.pill{font-size:.75rem;font-weight:700;border-radius:999px;padding:3px 9px;background:var(--stop);color:#fff}
+.pill.ok{background:var(--ok)}
+.issue{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:10px 14px;border-top:1px solid var(--line)}
+.issue:first-of-type{border-top:0}
+.issue input{width:22px;height:22px;margin-top:2px;accent-color:var(--ok)}
+.issue.done .itext{opacity:.5;text-decoration:line-through}
+.itext{min-width:0;overflow-wrap:anywhere}
+.inote{color:var(--muted);font-size:.9rem}
+.iby{color:var(--muted);font-size:.78rem}
+.del{background:none;border:0;color:var(--muted);font:600 .8rem var(--body);cursor:pointer;padding:4px}
+.del.arm{color:var(--stop)}
+.empty{background:var(--surface);border:1.5px dashed var(--line);border-radius:12px;padding:28px 18px;text-align:center;color:var(--muted)}
+.empty strong{display:block;color:var(--ink);font-size:1.1rem;margin-bottom:4px}
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.status{font-size:.85rem;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:no-preference){.chip,.primary,nav button{transition:background .15s,opacity .15s,border-color .15s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <div class="brand">
+    <svg class="sailmark" viewBox="0 0 30 30" aria-hidden="true"><path d="M8 3v21" stroke="#fff" stroke-width="2"/><path d="M9 4 L24 20 L9 22 Z" fill="#f2b705"/><path d="M4 25 h22 l-3 3 h-16 z" fill="#fff"/></svg>
+    <div><h1>תקלות אופטימיסט</h1><div class="sub">מרכז דניאל · יום תיקונים</div></div>
+  </div>
+  <nav role="tablist">
+    <button role="tab" id="tab-report" data-tab="report" aria-selected="true">דיווח</button>
+    <button role="tab" id="tab-parts" data-tab="parts" aria-selected="false">מה להביא <span class="badge" id="partsBadge">0</span></button>
+    <button role="tab" id="tab-boats" data-tab="boats" aria-selected="false">לפי סירה <span class="badge" id="boatsBadge">0</span></button>
+  </nav>
+</header>
+
+<!-- REPORT -->
+<section id="view-report">
+  <div>
+    <label class="label" for="boat">מספר סירה</label>
+    <div class="recent" id="recent"></div>
+    <div class="boatrow" style="margin-top:10px">
+      <input id="boat" type="text" inputmode="numeric" maxlength="4" placeholder="00" autocomplete="off">
+      <span class="inote" style="align-self:center">סירה שלא ברשימה? מקלידים מספר, והיא תתווסף אחרי הדיווח</span>
+    </div>
+  </div>
+
+  <div>
+    <span class="label">מה שבור? (אפשר לבחור כמה)</span>
+    <div id="partGroups"></div>
+    <div style="display:flex;gap:8px">
+      <input id="other" type="text" placeholder="משהו אחר? כתוב ולחץ הוסף" maxlength="60" enterkeyhint="done">
+      <button type="button" class="ghost" id="addOther" style="flex:none">הוסף</button>
+    </div>
+    <div class="chips" id="customs" style="margin-top:8px"></div>
+    <div id="issues" style="display:flex;flex-direction:column;gap:8px;margin-top:12px"></div>
+    <button type="button" class="ghost" id="editParts" style="margin-top:10px">ערוך שמות חלקים</button>
+    <div id="editPanel" hidden style="margin-top:10px;display:flex;flex-direction:column;gap:10px">
+      <p class="inote" style="margin:0">שורה לכל חלק. שינוי כאן מתעדכן אצל כולם.</p>
+      <div id="editGroups" style="display:flex;flex-direction:column;gap:10px"></div>
+      <div style="display:flex;gap:8px"><button type="button" class="primary" id="saveParts" style="flex:1;padding:12px">שמור</button><button type="button" class="ghost" id="cancelParts">ביטול</button></div>
+    </div>
+  </div>
+
+  <details class="more" id="more">
+    <summary>עוד: לא יוצאת למים, הערה, שם המדווח</summary>
+    <div class="morebody">
+      <label class="toggle" for="stop"><input type="checkbox" id="stop"> הסירה לא יכולה לצאת למים</label>
+      <div>
+        <label class="label" for="note">הערה</label>
+        <textarea id="note" maxlength="300" placeholder="למשל: סדק בצד ימין ליד התורן"></textarea>
+      </div>
+      <div>
+        <label class="label" for="who">מי מדווח</label>
+        <input id="who" type="text" maxlength="30" placeholder="שם">
+      </div>
+    </div>
+  </details>
+
+  <button class="primary" id="send" disabled>שלח דיווח</button>
+  <div class="toast" id="toast" role="status"></div>
+  <div class="status" id="conn"></div>
+</section>
+
+<!-- PARTS -->
+<section id="view-parts" hidden>
+  <div class="summary">
+    <p id="partsSummary">אין תקלות פתוחות</p>
+    <button class="ghost" id="copyParts">העתק רשימה</button>
+  </div>
+  <div id="partsList"></div>
+  <textarea id="copyFallback" hidden readonly></textarea>
+</section>
+
+<!-- BOATS -->
+<section id="view-boats" hidden>
+  <div class="filters">
+    <button class="chip" id="f-open" aria-pressed="true">פתוחות</button>
+    <button class="chip" id="f-all" aria-pressed="false">הכול כולל מתוקנות</button>
+  </div>
+  <div id="boatsList" style="display:flex;flex-direction:column;gap:12px"></div>
+</section>
+</div>
+
+<script>
+const PARTS = [
+  {g:"משימות (לא נכנס לרשימת חלקים)", task:true, items:["להוציא מים"]},
+  {g:"גוף וציוד", items:["פקק אחורי","גומי לפקק אחורי","טבעת גרירה אחורית","סדק / חור בגוף","רצועת רגליים","חבל חרטום"]},
+  {g:"תורן ומפרש", items:["תורן","מנור","גאף","מפרש קרוע","מפרש צבעוני","קשירות שפה תחתונה","קנינגהם","בומצ'אק"]},
+  {g:"הגה וחרב", items:["הגה","רומפל","מאריך","ציר הגה","חרב","גומי חרב"]},
+  {g:"חבלים ופרזול", items:["מיטר ראשי","גלגלת מנור","גלגלת רצפה","שאקל גלגלת רצפה"]}
+];
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store = { get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}} };
+
+const API = "https://script.google.com/macros/s/AKfycbwOpAxhk95-PnkC0yYDv4vwxFgNlU4z7Yxye3cTMwktPVsHLkzizyK6IND_ehN611D54Q/exec";
+let db = null, reports = [], selected = new Set(), boatFilter = "open";
+let have = new Set(JSON.parse(store.get("have") || "[]"));
+
+/* ---------- tabs ---------- */
+function showTab(t){
+  if(!["report","parts","boats"].includes(t)) t = "report";
+  document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
+  ["report","parts","boats"].forEach(v=>$("view-"+v).hidden = v!==t);
+}
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{ location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
+window.addEventListener("hashchange",()=>showTab(location.hash.slice(1)));
+showTab(location.hash.slice(1));
+
+/* ---------- report form ---------- */
+var ISSUES = ["שבור","חסר","אחר"]; var issueOf = {}; var issueText = {};
+function isTask(p){ return groups.some(g=>g.task && g.items.includes(p)); }
+function renderIssues(){
+  let cs = []; try{ cs = customs; }catch(e){}
+  const list = [...new Set([...selected, ...cs])].filter(p=>!isTask(p));
+  $("issues").innerHTML = list.map(p=>`<div class="irow"><span>${esc(p)}</span><div class="seg">${ISSUES.map(s=>`<button type="button" data-ip="${esc(p)}" data-is="${s}" aria-pressed="${(issueOf[p]||"שבור")===s}">${s}</button>`).join("")}</div>${issueOf[p]==="אחר"?`<input type="text" maxlength="80" data-it="${esc(p)}" placeholder="מה הבעיה?" value="${esc(issueText[p]||"")}">`:""}</div>`).join("");
+}
+let groups = PARTS;
+const norm = s => String(s ?? "").trim().replace(/\s+/g," ");
+const normBoat = b => { const s = String(b ?? "").replace(/\D/g,""); return s ? String(Number(s)) : ""; };
+function openFor(boat){ const b = normBoat(boat); return new Set(reports.filter(r=>r.status==="open" && normBoat(r.boat)===b).map(r=>norm(r.part))); }
+function renderChips(){
+  const done = openFor($("boat").value.trim());
+  for(const p of done) selected.delete(p);
+  $("partGroups").innerHTML = groups.map(g=>`<div class="group"><h3>${esc(g.g)}</h3><div class="chips">${
+    g.items.map(p=>done.has(p)
+      ? `<button type="button" class="chip reported" disabled data-part="${esc(p)}">${esc(p)}</button>`
+      : `<button type="button" class="chip" aria-pressed="${selected.has(p)}" data-part="${esc(p)}">${esc(p)}</button>`).join("")}</div></div>`).join("");
+  renderIssues();
+}
+renderChips();
+$("issues").addEventListener("click",e=>{ const b=e.target.closest("[data-is]"); if(!b) return; issueOf[b.dataset.ip]=b.dataset.is; renderIssues();
+  if(b.dataset.is==="אחר"){ const inp=[...$("issues").querySelectorAll("[data-it]")].find(x=>x.dataset.it===b.dataset.ip); if(inp) inp.focus(); } });
+$("issues").addEventListener("input",e=>{ const t=e.target.dataset.it; if(t!==undefined) issueText[t]=e.target.value; });
+$("editParts").addEventListener("click",()=>{
+  $("editGroups").innerHTML = groups.map((g,i)=>`<div><label class="label" for="eg${i}">${esc(g.g)}</label><textarea id="eg${i}" rows="${g.items.length+1}">${esc(g.items.join("\n"))}</textarea></div>`).join("");
+  $("editPanel").hidden=false; $("editParts").hidden=true;
+});
+$("cancelParts").addEventListener("click",()=>{ $("editPanel").hidden=true; $("editParts").hidden=false; });
+$("saveParts").addEventListener("click", async ()=>{
+  const next = groups.map((g,i)=>({...g, items:[...new Set($("eg"+i).value.split("\n").map(s=>s.trim()).filter(Boolean))].slice(0,40)}));
+  if(!db){ toast("אין חיבור לשמירה",true); return; }
+  try{ await api("setParts",{groups:next});
+    groups=next; renderChips(); $("editPanel").hidden=true; $("editParts").hidden=false; toast("רשימת החלקים עודכנה"); }
+  catch(e){ toast("השמירה נכשלה",true); }
+});
+$("partGroups").addEventListener("click",e=>{
+  const c = e.target.closest(".chip"); if(!c) return;
+  const p = c.dataset.part;
+  selected.has(p) ? selected.delete(p) : selected.add(p);
+  c.setAttribute("aria-pressed", selected.has(p));
+  renderIssues(); validate();
+});
+$("boat").addEventListener("input",e=>{ e.target.value = e.target.value.replace(/\D/g,""); renderRecent(); renderChips(); validate(); });
+$("other").addEventListener("input",validate);
+let customs = [];
+function renderCustoms(){
+  $("customs").innerHTML = customs.map((c,i)=>`<button type="button" class="chip" aria-pressed="true" data-ci="${i}" aria-label="הסר ${esc(c)}">${esc(c)} ✕</button>`).join("");
+  renderIssues();
+}
+function addOther(){
+  const v = $("other").value.trim(); if(!v) return;
+  if(!customs.includes(v)) customs.push(v);
+  $("other").value = ""; renderCustoms(); validate(); $("other").focus();
+}
+$("addOther").addEventListener("click", addOther);
+$("other").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); addOther(); } });
+$("customs").addEventListener("click", e=>{ const b=e.target.closest("[data-ci]"); if(!b) return; customs.splice(+b.dataset.ci,1); renderCustoms(); validate(); });
+$("who").value = store.get("who") || "";
+function validate(){
+  const ok = $("boat").value.trim() && (selected.size || customs.length || $("other").value.trim()) && db;
+  $("send").disabled = !ok;
+}
+let boatList = [];
+function knownBoats(){
+  const s = new Set(boatList.map(normBoat).filter(Boolean));
+  reports.forEach(r=>{ const b = normBoat(r.boat); if(b) s.add(b); });
+  return [...s].sort((a,b)=>a-b);
+}
+function renderRecent(){
+  const cur = normBoat($("boat").value);
+  const cnt = {}; reports.forEach(r=>{ if(r.status==="open"){ const b=normBoat(r.boat); cnt[b]=(cnt[b]||0)+1; } });
+  $("recent").innerHTML = knownBoats().map(n=>`<button type="button" data-n="${n}" aria-pressed="${n===cur}">${n}${cnt[n]?`<i>${cnt[n]}</i>`:""}</button>`).join("");
+}
+$("recent").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; $("boat").value = normBoat($("boat").value)===b.dataset.n ? "" : b.dataset.n; renderRecent(); renderChips(); validate(); });
+
+function toast(msg, err){ const t=$("toast"); t.textContent=msg; t.classList.toggle("err",!!err); clearTimeout(toast._t); toast._t=setTimeout(()=>t.textContent="",4000); }
+
+$("send").addEventListener("click", async ()=>{
+  if(!db) return;
+  const boat = normBoat($("boat").value);
+  const other = $("other").value;
+  const all = [...new Set([...selected, ...customs, other].map(norm).filter(Boolean))];
+  const already = openFor(boat);
+  const parts = all.filter(p=>!already.has(p));
+  const skipped = all.filter(p=>already.has(p));
+  if(!parts.length){ toast(`כבר דווח על סירה ${boat}: ${skipped.join(", ")}`, true); return; }
+  const who = $("who").value.trim(); store.set("who", who);
+  const base = { boat, note:$("note").value.trim(), stop:$("stop").checked, reporter:who, status:"open", createdAt:Date.now() };
+  $("send").disabled = true;
+  try{
+    const items = parts.map(part=>{
+      const kind = groups.some(g=>g.task && g.items.includes(part)) ? "task" : "part";
+      const issue = kind==="task" ? "" : (issueOf[part] || "שבור");
+      return {part, kind, issue, issueText: issue==="אחר" ? norm(issueText[part]) : ""};
+    });
+    const res = await api("add",{boat, note:base.note, stop:base.stop, reporter:who, items});
+    (res.skipped||[]).forEach(p=>{ if(!skipped.includes(p)) skipped.push(p); });
+    parts.length = 0; (res.added||[]).forEach(p=>parts.push(p));
+    load();
+    toast(`נשלח: סירה ${boat} · ${parts.length} ${parts.length===1?"תקלה":"תקלות"}` + (skipped.length?` (כבר היה: ${skipped.join(", ")})`:""));
+    selected.clear(); document.querySelectorAll("#partGroups .chip").forEach(c=>c.setAttribute("aria-pressed","false"));
+    $("other").value=""; issueOf={}; issueText={}; customs=[]; renderCustoms(); $("note").value=""; $("stop").checked=false; $("boat").value=""; $("boat").focus();
+  }catch(e){
+    toast("השליחה נכשלה. בדוק חיבור לאינטרנט ונסה שוב.", true);
+  }
+  validate();
+});
+
+/* ---------- parts view ---------- */
+function partsAgg(){
+  const m = new Map();
+  for(const r of reports){ if(r.status!=="open" || r.kind==="task") continue;
+    const k = norm(r.part); if(!m.has(k)) m.set(k,{part:k,qty:0,boats:[],seen:new Set()});
+    const e = m.get(k); const bn = normBoat(r.boat); if(e.seen.has(bn)) continue;
+    e.seen.add(bn); e.qty += 1; e.boats.push({n:bn, stop:r.stop});
+  }
+  return [...m.values()].sort((a,b)=>b.qty-a.qty || a.part.localeCompare(b.part,"he"));
+}
+function renderParts(){
+  const agg = partsAgg();
+  const total = agg.reduce((s,a)=>s+a.qty,0);
+  $("partsBadge").textContent = agg.length;
+  $("partsSummary").textContent = agg.length ? `${agg.length} סוגי חלקים · ${total} פריטים` : "אין תקלות פתוחות";
+  $("copyParts").hidden = !agg.length;
+  if(!agg.length){ $("partsList").innerHTML = `<div class="empty"><strong>הרשימה ריקה</strong>כל דיווח בלשונית "דיווח" מוסיף כאן את החלק שצריך להביא.</div>`; return; }
+  $("partsList").innerHTML = `<div class="list">${agg.map(a=>`
+    <div class="prow ${have.has(a.part)?"got":""}">
+      <div class="qty">${a.qty}</div>
+      <div class="pname">${esc(a.part)}<div class="boats">${a.boats.sort((x,y)=>x.n-y.n).map(b=>`<span class="bn ${b.stop?"stop":""}">${esc(b.n)}</span>`).join("")}</div></div>
+      <label class="have"><input type="checkbox" data-have="${esc(a.part)}" ${have.has(a.part)?"checked":""}> יש</label>
+    </div>`).join("")}</div>`;
+}
+$("partsList").addEventListener("change",e=>{
+  const p = e.target.dataset.have; if(!p) return;
+  e.target.checked ? have.add(p) : have.delete(p);
+  store.set("have", JSON.stringify([...have])); renderParts();
+});
+$("copyParts").addEventListener("click", async ()=>{
+  const txt = "חלקים לאופטימיסט:\n" + partsAgg().filter(a=>!have.has(a.part)).map(a=>`• ${a.part} ×${a.qty} (סירות ${a.boats.map(b=>b.n).join(", ")})`).join("\n");
+  try{ await navigator.clipboard.writeText(txt); $("copyParts").textContent="הועתק ✓"; setTimeout(()=>$("copyParts").textContent="העתק רשימה",2000); }
+  catch(e){ const f=$("copyFallback"); f.hidden=false; f.value=txt; f.select(); }
+});
+
+/* ---------- boats view ---------- */
+function renderBoats(){
+  const by = new Map();
+  for(const r of reports){ if(boatFilter==="open" && r.status!=="open") continue;
+    const bn = normBoat(r.boat); if(!by.has(bn)) by.set(bn,[]); const L = by.get(bn);
+    if(r.status==="open" && L.some(x=>x.status==="open" && norm(x.part)===norm(r.part))) continue;
+    L.push(r); }
+  const openBoats = new Set(reports.filter(r=>r.status==="open").map(r=>normBoat(r.boat)));
+  $("boatsBadge").textContent = openBoats.size;
+  const boats = [...by.entries()].sort((a,b)=>{
+    const sa=a[1].some(r=>r.stop&&r.status==="open"), sb=b[1].some(r=>r.stop&&r.status==="open");
+    return (sb-sa) || (Number(a[0])-Number(b[0]));
+  });
+  if(!boats.length){ $("boatsList").innerHTML = `<div class="empty"><strong>${boatFilter==="open"?"אין סירות עם תקלות פתוחות":"עוד לא דווח כלום"}</strong>דיווחים חדשים יופיעו כאן לפי מספר סירה.</div>`; return; }
+  $("boatsList").innerHTML = boats.map(([n,list])=>{
+    const open = list.filter(r=>r.status==="open"); const stop = open.some(r=>r.stop);
+    list.sort((a,b)=>(a.status==="open"?0:1)-(b.status==="open"?0:1) || (a.createdAt||0)-(b.createdAt||0));
+    return `<div class="boatcard ${stop?"stop":""}">
+      <div class="bhead"><div class="sail">${esc(n)}</div><div class="bmeta">${open.length? open.length+" פתוחות":"הכול תוקן"}</div>
+        ${stop?`<span class="pill">לא יוצאת</span>`:(!open.length?`<span class="pill ok">מוכנה</span>`:"")}</div>
+      ${list.map(r=>`<div class="issue ${r.status!=="open"?"done":""}">
+        <input type="checkbox" aria-label="תוקן" data-fix="${r.id}" ${r.status!=="open"?"checked":""}>
+        <div class="itext"><strong>${esc(r.part)}</strong>${r.issue?`<span class="itag">${esc(r.issue)}${r.issueText?": "+esc(r.issueText):""}</span>`:""}${r.note?`<div class="inote">${esc(r.note)}</div>`:""}
+          <div class="iby">${esc(r.reporter||"ללא שם")} · ${r.createdAt?new Date(r.createdAt).toLocaleDateString("he-IL",{day:"numeric",month:"numeric"}):""}</div></div>
+        <button class="del" data-del="${r.id}">מחק</button>
+      </div>`).join("")}
+    </div>`;
+  }).join("");
+}
+$("f-open").addEventListener("click",()=>{boatFilter="open";$("f-open").setAttribute("aria-pressed","true");$("f-all").setAttribute("aria-pressed","false");renderBoats();});
+$("f-all").addEventListener("click",()=>{boatFilter="all";$("f-all").setAttribute("aria-pressed","true");$("f-open").setAttribute("aria-pressed","false");renderBoats();});
+$("boatsList").addEventListener("change", async e=>{
+  const id = e.target.dataset.fix; if(!id||!db) return;
+  const r = reports.find(x=>x.id===id); const st = e.target.checked?"fixed":"open";
+  if(r){ r.status = st; render(); }
+  try{ await api("update",{id, status:st}); }
+  catch(err){ if(r){ r.status = st==="fixed"?"open":"fixed"; render(); } toast("השמירה נכשלה",true); }
+});
+$("boatsList").addEventListener("click", async e=>{
+  const b = e.target.closest("[data-del]"); if(!b||!db) return;
+  if(!b.classList.contains("arm")){ b.classList.add("arm"); b.textContent="בטוח?"; setTimeout(()=>{b.classList.remove("arm");b.textContent="מחק";},3000); return; }
+  const id=b.dataset.del; reports = reports.filter(x=>x.id!==id); render();
+  try{ await api("delete",{id}); }catch(err){ load(); }
+});
+
+function render(){ renderRecent(); renderChips(); renderParts(); renderBoats(); validate(); }
+render();
+
+/* ---------- data ---------- */
+async function api(action, payload){
+  const r = await fetch(API, {method:"POST", body: JSON.stringify({action, ...(payload||{})})});
+  const j = await r.json(); if(!j.ok) throw new Error(j.error||"error"); return j;
+}
+let loading = false;
+async function load(){
+  if(loading) return; loading = true;
+  try{
+    const j = await api("all");
+    reports = j.reports || [];
+    const c = j.config || {};
+    if(Array.isArray(c.boats)) boatList = c.boats.map(String);
+    if(Array.isArray(c.parts) && c.parts.length && $("editPanel").hidden) groups = c.parts;
+    db = true; $("conn").textContent = ""; render();
+  }catch(e){ $("conn").textContent = db ? "אין חיבור כרגע, מנסה שוב…" : "לא מצליח להתחבר לטבלה. בדוק אינטרנט."; }
+  finally{ loading = false; }
+}
+if(API.startsWith("http")){
+  $("conn").textContent = "טוען…"; load();
+  setInterval(()=>{ if(!document.hidden) load(); }, 20000);
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden) load(); });
+}else{ $("conn").textContent = "האפליקציה עוד לא מחוברת לטבלה."; }
+</script>
+</body>
+</html>
