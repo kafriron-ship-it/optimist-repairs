@@ -74,6 +74,7 @@ section{display:flex;flex-direction:column;gap:18px;padding-top:20px}
 .recent.wide{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
 .recent.wide button{font:700 1rem var(--body)}
 .tsec{display:flex;flex-direction:column;gap:8px}
+.brhead{font:800 1rem var(--body);color:var(--navy);margin:8px 0 -2px}
 .tsec h2{font:700 .85rem var(--body);letter-spacing:.04em;color:var(--muted);margin:0}
 .ttag{font:600 .75rem var(--body);color:var(--muted);background:var(--chip);border-radius:6px;padding:2px 7px}
 .search{position:relative;margin-bottom:12px}
@@ -217,7 +218,6 @@ textarea{min-height:64px;resize:vertical}
   </div>
   <nav role="tablist">
     <button role="tab" id="tab-report" data-tab="report" aria-selected="true">דיווח</button>
-    <button role="tab" id="tab-parts" data-tab="parts" aria-selected="false">מה להביא <span class="badge" id="partsBadge">0</span></button>
     <button role="tab" id="tab-boats" data-tab="boats" aria-selected="false">תיקונים <span class="badge" id="boatsBadge">0</span></button>
     <button role="tab" id="tab-stats" data-tab="stats" aria-selected="false">נתונים</button>
   </nav>
@@ -300,16 +300,6 @@ textarea{min-height:64px;resize:vertical}
   <div class="status" id="conn"></div>
 </section>
 
-<!-- PARTS -->
-<section id="view-parts" hidden>
-  <div class="chips bfilter"></div>
-  <div class="summary">
-    <p id="partsSummary">אין תקלות פתוחות</p>
-    <button class="ghost" id="copyParts">העתק רשימה</button>
-  </div>
-  <div id="partsList"></div>
-  <textarea id="copyFallback" hidden readonly></textarea>
-</section>
 
 <!-- STATS -->
 <section id="view-stats" hidden>
@@ -335,6 +325,8 @@ textarea{min-height:64px;resize:vertical}
     <button class="chip" id="f-all" aria-pressed="false">הכול כולל מתוקנות</button>
   </div>
   <div class="search" style="margin:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="bsearch" type="search" placeholder="חיפוש סירה או חלק" autocomplete="off" aria-label="חיפוש סירה או חלק"></div>
+  <button type="button" class="ghost" id="copyParts" hidden>העתק רשימת חלקים</button>
+  <textarea id="copyFallback" hidden readonly></textarea>
   <div id="boatsList" style="display:flex;flex-direction:column;gap:10px"></div>
 </section>
 </div>
@@ -408,9 +400,10 @@ let have = new Set(JSON.parse(store.get("have") || "[]"));
 
 /* ---------- tabs ---------- */
 function showTab(t){
-  if(!["report","parts","boats","stats"].includes(t)) t = "report";
+  if(t==="parts") t = "boats";
+  if(!["report","boats","stats"].includes(t)) t = "report";
   document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
-  ["report","parts","boats","stats"].forEach(v=>$("view-"+v).hidden = v!==t);
+  ["report","boats","stats"].forEach(v=>$("view-"+v).hidden = v!==t);
 }
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{ location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
 window.addEventListener("hashchange",()=>showTab(location.hash.slice(1)));
@@ -625,36 +618,17 @@ $("send").addEventListener("click", async ()=>{
 /* ---------- parts view ---------- */
 function partsAgg(){
   const m = new Map();
-  for(const r of reports){ if(r.status!=="open" || r.kind==="task") continue;
+  for(const r of reports){ if(r.status!=="open" || r.kind==="task" || (typeFilter!=="all" && typeOf(r)!==typeFilter)) continue;
     const t = typeOf(r), k = t+"|"+norm(r.part); if(!m.has(k)) m.set(k,{key:k,type:t,part:norm(r.part),qty:0,boats:[],seen:new Set()});
     const e = m.get(k); const bn = bname(r); if(e.seen.has(bn)) continue;
-    e.seen.add(bn); e.qty += 1; e.boats.push({n:bn, stop:r.stop});
+    e.seen.add(bn); e.qty += 1; e.boats.push({n:bn, stop:r.stop, br:BRANCHES.indexOf(brOf(r))});
   }
   return [...m.values()].sort((a,b)=>TYPES.indexOf(a.type)-TYPES.indexOf(b.type) || b.qty-a.qty || a.part.localeCompare(b.part,"he"));
 }
-function renderParts(){
-  const agg = partsAgg();
-  const total = agg.reduce((s,a)=>s+a.qty,0);
-  $("partsBadge").textContent = agg.length;
-  $("partsSummary").textContent = agg.length ? `${agg.length} סוגי חלקים · ${total} פריטים` : "אין תקלות פתוחות";
-  $("copyParts").hidden = !agg.length;
-  if(!agg.length){ $("partsList").innerHTML = `<div class="empty"><strong>הרשימה ריקה</strong>כל דיווח בלשונית "דיווח" מוסיף כאן את החלק שצריך להביא.</div>`; return; }
-  $("partsList").innerHTML = TYPES.filter(t=>agg.some(a=>a.type===t)).map(t=>`<div class="tsec"><h2>${esc(t)}</h2><div class="list">${agg.filter(a=>a.type===t).map(a=>`
-    <div class="prow ${have.has(a.key)?"got":""}">
-      <div class="qty">${a.qty}</div>
-      <div class="pname">${esc(a.part)}<div class="boats">${a.boats.sort((x,y)=>String(x.n).localeCompare(String(y.n),"he",{numeric:true})).map(b=>`<span class="bn ${b.stop?"stop":""}">${esc(b.n)}</span>`).join("")}</div></div>
-      <label class="have"><input type="checkbox" data-have="${esc(a.key)}" ${have.has(a.key)?"checked":""}> יש</label>
-    </div>`).join("")}</div></div>`).join("");
-}
-$("partsList").addEventListener("change",e=>{
-  const p = e.target.dataset.have; if(!p) return;
-  e.target.checked ? have.add(p) : have.delete(p);
-  store.set("have", JSON.stringify([...have])); renderParts();
-});
 $("copyParts").addEventListener("click", async ()=>{
-  const agg = partsAgg().filter(a=>!have.has(a.key));
-  const txt = `חלקים לסירות - מרכז דניאל${viewBranch==="all"?"":" "+viewBranch}\n` + TYPES.filter(t=>agg.some(a=>a.type===t)).map(t=>`\n${t}:\n` + agg.filter(a=>a.type===t).map(a=>`• ${a.part} ×${a.qty} (${a.boats.map(b=>b.n).join(", ")})`).join("\n")).join("\n");
-  try{ await navigator.clipboard.writeText(txt); $("copyParts").textContent="הועתק ✓"; setTimeout(()=>$("copyParts").textContent="העתק רשימה",2000); }
+  const agg = partsAgg();
+  const txt = `חלקים לסירות - מרכז דניאל${viewBranch==="all"?"":" "+viewBranch}\n` + TYPES.filter(t=>agg.some(a=>a.type===t)).map(t=>`\n${t}:\n` + agg.filter(a=>a.type===t).map(a=>`• ${a.part} ×${a.qty} (${a.boats.sort((x,y)=>x.br-y.br || String(x.n).localeCompare(String(y.n),"he",{numeric:true})).map(b=>b.n).join(", ")})`).join("\n")).join("\n");
+  try{ await navigator.clipboard.writeText(txt); $("copyParts").textContent="הועתק ✓"; setTimeout(()=>$("copyParts").textContent="העתק רשימת חלקים",2000); }
   catch(e){ const f=$("copyFallback"); f.hidden=false; f.value=txt; f.select(); }
 });
 
@@ -725,31 +699,36 @@ function renderBoats(){
     if(r.status==="open"){ if(seen.has(k)) continue; seen.add(k); }
     list.push(r);
   }
+  $("copyParts").hidden = groupBy!=="part" || !reports.some(r=>r.status==="open" && r.kind!=="task");
   const openBoats = new Set(reports.filter(r=>r.status==="open").map(r=>typeOf(r)+"|"+bname(r)));
   $("boatsBadge").textContent = openBoats.size;
   renderProgress();
   if(!list.length){ $("boatsList").innerHTML = `<div class="empty"><strong>${q?"לא נמצאו תקלות שמתאימות לחיפוש":boatFilter==="open"?"אין תקלות פתוחות":"עוד לא דווח כלום"}</strong>דיווחים חדשים יופיעו כאן.</div>`; return; }
-  const byOrder = (a,b)=>(a.status==="open"?0:1)-(b.status==="open"?0:1) || (a.createdAt||0)-(b.createdAt||0);
+  const byOrder = (a,b)=>(a.status==="open"?0:1)-(b.status==="open"?0:1) || (groupBy==="part" ? BRANCHES.indexOf(brOf(a))-BRANCHES.indexOf(brOf(b)) || String(normBoat(a.boat)).localeCompare(String(normBoat(b.boat)),"he",{numeric:true}) : (a.createdAt||0)-(b.createdAt||0));
   const groups = new Map();
   for(const r of list){
     const key = groupBy==="boat" ? "b|"+typeOf(r)+"|"+bname(r) : "p|"+typeOf(r)+"|"+norm(r.part);
     if(!groups.has(key)) groups.set(key, []); groups.get(key).push(r);
   }
   const multiType = new Set(list.map(typeOf)).size > 1;
+  const byBr = viewBranch==="all" && multiBr && groupBy==="boat";
   const cards = [...groups.entries()].map(([key, rs])=>{
     const [, t, name] = key.split("|");
     const open = rs.filter(r=>r.status==="open"), stop = open.some(r=>r.stop);
-    return {key, t, name, rs: rs.sort(byOrder), open: open.length, stop};
-  }).sort((a,b)=> groupBy==="boat"
+    return {key, t, name, rs: rs.sort(byOrder), open: open.length, stop, br: brOf(rs[0]), num: normBoat(rs[0].boat)};
+  }).sort((a,b)=> (byBr ? BRANCHES.indexOf(a.br)-BRANCHES.indexOf(b.br) : 0) || (groupBy==="boat"
       ? (b.stop-a.stop) || (TYPES.indexOf(a.t)-TYPES.indexOf(b.t)) || a.name.localeCompare(b.name,"he",{numeric:true})
-      : (b.open-a.open) || a.name.localeCompare(b.name,"he"));
+      : (b.open-a.open) || a.name.localeCompare(b.name,"he")));
+  let lastBr = "";
   $("boatsList").innerHTML = cards.map(c=>{
+    const head = byBr && c.br!==lastBr ? `<h2 class="brhead">${esc(c.br)}</h2>` : ""; lastBr = c.br;
     const exp = openCards.has(c.key) || !!q;
-    const title = groupBy==="boat" ? (c.t===MOTOR ? c.name : "סירה "+c.name) : c.name;
+    const nm = byBr ? c.num : c.name;
+    const title = groupBy==="boat" ? (c.t===MOTOR ? nm : "סירה "+nm) : c.name;
     const unit = groupBy==="boat" ? ["תקלה אחת","תקלות"] : ["סירה אחת","סירות"];
     const meta = c.open ? (c.open===1 ? unit[0] : c.open+" "+unit[1]) : "הכול תוקן";
     const pill = groupBy==="part" ? "" : c.stop ? `<span class="pill">לא יוצאת</span>` : (!c.open ? `<span class="pill ok">מוכנה</span>` : "");
-    return `<div class="bc ${c.stop?"stop":""}">
+    return head + `<div class="bc ${c.stop?"stop":""}">
       <button type="button" class="bh" data-card="${esc(c.key)}" aria-expanded="${exp}">
         <span class="nm2">${esc(title)}</span>${(multiType||c.t!=="אופטימיסט")?`<span class="ttag">${esc(c.t)}</span>`:""}
         <span class="bmeta">${meta}</span>${pill}
@@ -838,7 +817,7 @@ window.addEventListener("appinstalled", ()=>{ $("install").hidden=true; });
 if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 
 renderTypes();
-function render(){ renderRecent(); renderChips(); renderParts(); renderBoats(); renderStats(); renderAdmin(); validate(); }
+function render(){ renderRecent(); renderChips(); renderBoats(); renderStats(); renderAdmin(); validate(); }
 render();
 
 /* ---------- data ---------- */
