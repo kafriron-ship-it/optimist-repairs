@@ -376,11 +376,12 @@ const brOf = r => BRANCHES.includes(r.branch) ? r.branch : "נמל יפו";
 const bname = r => normBoat(r.boat) + (viewBranch==="all" && multiBr ? " · " + SHORT[brOf(r)] : "");
 let multiBr = false;
 function applyView(){
-  reports = allReports.filter(r=>(viewBranch==="all" || brOf(r)===viewBranch) && !pendingDel.has(r.id));
   multiBr = new Set(allReports.map(brOf)).size > 1;
+  reports = allReports.filter(r=>(viewBranch==="all" || brOf(r)===viewBranch) && !pendingDel.has(r.id));
   const cnt = {}; allReports.forEach(r=>{ if(r.status==="open"){ const b=brOf(r); cnt[b]=(cnt[b]||0)+1; } });
   const html = [["all","כל הסניפים"], ...BRANCHES.map(b=>[b,b])].map(([k,l])=>`<button type="button" class="chip" data-vb="${esc(k)}" aria-pressed="${viewBranch===k}">${esc(l)}${k!=="all"&&cnt[k]?` <span class="badge">${cnt[k]}</span>`:""}</button>`).join("");
-  document.querySelectorAll(".bfilter").forEach(el=>el.innerHTML = html);
+  if(!multiBr && viewBranch!=="all"){ viewBranch = "all"; reports = allReports.filter(r=>!pendingDel.has(r.id)); }
+  document.querySelectorAll(".bfilter").forEach(el=>{ el.innerHTML = html; el.hidden = !multiBr; });
 }
 function repReports(){ return repBranch ? allReports.filter(r=>brOf(r)===repBranch) : allReports; }
 function renderBranchPick(){
