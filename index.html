@@ -59,6 +59,11 @@ section{display:flex;flex-direction:column;gap:18px;padding-top:20px}
 .tsec{display:flex;flex-direction:column;gap:8px}
 .tsec h2{font:700 .85rem var(--body);letter-spacing:.04em;color:var(--muted);margin:0}
 .ttag{font:600 .75rem var(--body);color:var(--muted);background:var(--chip);border-radius:6px;padding:2px 7px}
+.search{position:relative;margin-bottom:12px}
+.search input[type=search]{padding-inline-start:38px;font-size:1.05rem}
+.search svg{position:absolute;inset-inline-start:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted);pointer-events:none}
+.nomatch{display:flex;flex-direction:column;gap:8px;align-items:flex-start;color:var(--muted);margin-bottom:12px}
+mark{background:none;color:var(--navy);font-weight:800}
 .group{margin-bottom:12px}
 .group h3{font-size:.85rem;margin:0 0 6px;color:var(--muted);font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -77,7 +82,7 @@ section{display:flex;flex-direction:column;gap:18px;padding-top:20px}
 .itag{font-weight:600;font-size:.8rem;color:var(--muted);margin-inline-start:6px}
 .chip.reported{border-style:dashed;color:var(--muted);background:var(--chip);cursor:default}
 .chip.reported::after{content:" · כבר דווח";font-weight:400;font-size:.85em}
-input[type=text],textarea{width:100%;box-sizing:border-box;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:1rem var(--body)}
+input[type=text],input[type=search],textarea{width:100%;box-sizing:border-box;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:1rem var(--body)}
 textarea{min-height:64px;resize:vertical}
 .toggle{display:flex;align-items:center;gap:10px;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;font-weight:600}
 .toggle input{width:22px;height:22px;accent-color:var(--stop)}
@@ -158,6 +163,8 @@ textarea{min-height:64px;resize:vertical}
 
   <div>
     <span class="label">מה שבור? (אפשר לבחור כמה)</span>
+    <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="psearch" type="search" placeholder="חיפוש חלק, למשל: חרב, טילר, פקק" autocomplete="off" enterkeyhint="search" aria-label="חיפוש חלק"></div>
+    <div class="nomatch" id="nomatch" hidden></div>
     <div id="partGroups"></div>
     <div style="display:flex;gap:8px">
       <input id="other" type="text" placeholder="משהו אחר? כתוב ולחץ הוסף" maxlength="60" enterkeyhint="done">
@@ -209,6 +216,7 @@ textarea{min-height:64px;resize:vertical}
     <button class="chip" id="f-open" aria-pressed="true">פתוחות</button>
     <button class="chip" id="f-all" aria-pressed="false">הכול כולל מתוקנות</button>
   </div>
+  <div class="search" style="margin:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="bsearch" type="search" placeholder="חיפוש סירה או חלק" autocomplete="off" aria-label="חיפוש סירה או חלק"></div>
   <div id="boatsList" style="display:flex;flex-direction:column;gap:12px"></div>
 </section>
 </div>
@@ -294,20 +302,55 @@ function renderTypes(){
 $("types").addEventListener("click", e=>{
   const b = e.target.closest("[data-t]"); if(!b || b.dataset.t===curType) return;
   curType = b.dataset.t; try{ localStorage.setItem("type", curType); }catch(err){}
-  $("boat").value = ""; selected.clear(); customs = []; issueOf = {}; issueText = {};
+  $("boat").value = ""; $("psearch").value = ""; selected.clear(); customs = []; issueOf = {}; issueText = {};
   groups = groupsFor(curType); $("editPanel").hidden = true; $("editParts").hidden = false;
   renderTypes(); renderCustoms(); render();
 });
+/* ---------- smart search ---------- */
+const SYN = [
+  ["מנור","בום boom"],["חרב","סנפיר daggerboard centreboard centerboard"],["רומפל","טילר מוט הגה tiller"],["מאריך","מאריך הגה extension"],
+  ["גאף","ספריט sprit"],["בומצ'אק","ואנג קיקר vang kicker"],["מיטר","שוט שוורת sheet"],["קנינגהם","cunningham downhaul"],
+  ["ציר הגה","פינים נצרת pintle"],["גומי חרב","רצועת סנפיר"],["חבל חרטום","חבל גרירה painter"],["קלאט","תפסנית cleat"],
+  ["ג'יב","מפרש קדמי jib"],["ג'נקר","gennaker"],["ספינקר","spinnaker"],["מפשקים","spreaders"],["כבלי תורן","shrouds כבלים"],
+  ["פורסטיי","forestay"],["בוספריט","bowsprit"],["צלעות מפרש","battens בטנים"],["חבל הרמה","הליארד halyard"],["מותחן תחתון","outhaul אאוטהול"],
+  ["פקק","פקק ניקוז drain bung"],["מפרש","sail"],["תורן","mast"],["הגה","rudder"],["גלגלת","בלוק block"],["שאקל","סגל shackle"],
+  ["טרפז","trapeze"],["רצועת רגליים","רצועות רגליים toestrap"],["מנוע","engine motor לא נדלק לא עובד"],["מדחף","פרופלור propeller"],
+  ["מצבר","סוללה battery"],["דלק","בנזין fuel"],["להוציא מים","שאיבה מים בסירה"],["סדק","חור שבר crack"]
+];
+const fold = s => norm(s).toLowerCase().replace(/[׳'"״()\-\/·.,]/g,"").replace(/ך/g,"כ").replace(/ם/g,"מ").replace(/ן/g,"נ").replace(/ף/g,"פ").replace(/ץ/g,"צ").replace(/\s+/g," ").trim();
+function lev(a,b){ if(Math.abs(a.length-b.length)>1) return 2; const d=[...Array(b.length+1).keys()];
+  for(let i=1;i<=a.length;i++){ let p=d[0]; d[0]=i; for(let j=1;j<=b.length;j++){ const t=d[j]; d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]===b[j-1]?0:1)); p=t; } } return d[b.length]; }
+function keysFor(p){ const f=fold(p); const ks=[f]; SYN.forEach(([k,v])=>{ if(f.includes(fold(k))) ks.push(fold(v)); }); return ks; }
+function matchScore(q, p){
+  const qs = fold(q); if(!qs) return 1;
+  const ks = keysFor(p), words = ks.join(" ").split(" ");
+  if(ks[0].includes(qs)) return 4;
+  if(ks.some(k=>k.includes(qs))) return 3;
+  const qw = qs.split(" ");
+  if(qw.every(w=>words.some(x=>x.startsWith(w)))) return 2;
+  if(qw.every(w=>w.length>=3 && words.some(x=>lev(x,w)<=1 || lev(x.slice(0,w.length),w)<=1))) return 1;
+  return 0;
+}
+function hl(p, q){ const qs = norm(q); if(!qs) return esc(p); const i = p.indexOf(qs); return i<0 ? esc(p) : esc(p.slice(0,i))+"<mark>"+esc(p.slice(i,i+qs.length))+"</mark>"+esc(p.slice(i+qs.length)); }
 function renderChips(){
   const done = openFor($("boat").value.trim());
   for(const p of done) selected.delete(p);
-  $("partGroups").innerHTML = groups.map(g=>`<div class="group"><h3>${esc(g.g)}</h3><div class="chips">${
+  const q = ($("psearch") && $("psearch").value) || "";
+  const best = q ? Math.max(0, ...groups.flatMap(g=>g.items.map(p=>matchScore(q,p)))) : 0;
+  const floor = best >= 2 ? 2 : 1;
+  const shown = groups.map(g=>({g:g.g, items: q ? g.items.map(p=>[p,matchScore(q,p)]).filter(x=>x[1]>=floor).sort((a,b)=>b[1]-a[1]).map(x=>x[0]) : g.items})).filter(g=>g.items.length);
+  $("partGroups").innerHTML = shown.map(g=>`<div class="group"><h3>${esc(g.g)}</h3><div class="chips">${
     g.items.map(p=>done.has(p)
-      ? `<button type="button" class="chip reported" disabled data-part="${esc(p)}">${esc(p)}</button>`
-      : `<button type="button" class="chip" aria-pressed="${selected.has(p)}" data-part="${esc(p)}">${esc(p)}</button>`).join("")}</div></div>`).join("");
+      ? `<button type="button" class="chip reported" disabled data-part="${esc(p)}">${hl(p,q)}</button>`
+      : `<button type="button" class="chip" aria-pressed="${selected.has(p)}" data-part="${esc(p)}">${hl(p,q)}</button>`).join("")}</div></div>`).join("");
+  const nm = $("nomatch");
+  if(q.trim() && !shown.length){ nm.hidden=false; nm.innerHTML = `<span>לא מצאתי "${esc(q.trim())}" ברשימה של ${esc(curType)}.</span><button type="button" class="ghost" id="addFromSearch">הוסף "${esc(q.trim())}" כמשהו אחר</button>`; }
+  else { nm.hidden=true; nm.innerHTML=""; }
   renderIssues();
 }
 renderChips();
+$("psearch").addEventListener("input", renderChips);
+$("nomatch").addEventListener("click", e=>{ if(!e.target.closest("#addFromSearch")) return; const v=norm($("psearch").value); if(v && !customs.includes(v)) customs.push(v); $("psearch").value=""; renderCustoms(); renderChips(); validate(); });
 $("issues").addEventListener("click",e=>{ const b=e.target.closest("[data-is]"); if(!b) return; issueOf[b.dataset.ip]=b.dataset.is; renderIssues();
   if(b.dataset.is==="אחר"){ const inp=[...$("issues").querySelectorAll("[data-it]")].find(x=>x.dataset.it===b.dataset.ip); if(inp) inp.focus(); } });
 $("issues").addEventListener("input",e=>{ const t=e.target.dataset.it; if(t!==undefined) issueText[t]=e.target.value; });
@@ -328,7 +371,8 @@ $("partGroups").addEventListener("click",e=>{
   const p = c.dataset.part;
   selected.has(p) ? selected.delete(p) : selected.add(p);
   c.setAttribute("aria-pressed", selected.has(p));
-  renderIssues(); validate();
+  if($("psearch").value){ $("psearch").value=""; renderChips(); } else renderIssues();
+  validate();
 });
 $("boat").addEventListener("input",e=>{ if(curType!==MOTOR) e.target.value = e.target.value.replace(/\D/g,""); renderRecent(); renderChips(); validate(); });
 $("other").addEventListener("input",validate);
@@ -434,8 +478,9 @@ $("copyParts").addEventListener("click", async ()=>{
 
 /* ---------- boats view ---------- */
 function renderBoats(){
-  const by = new Map();
+  const by = new Map(); const bq = $("bsearch").value;
   for(const r of reports){ if(boatFilter==="open" && r.status!=="open") continue;
+    if(bq.trim() && !(fold(normBoat(r.boat)).includes(fold(bq)) || fold(typeOf(r)).includes(fold(bq)) || matchScore(bq, r.part)>0)) continue;
     const bn = typeOf(r)+"|"+normBoat(r.boat); if(!by.has(bn)) by.set(bn,[]); const L = by.get(bn);
     if(r.status==="open" && L.some(x=>x.status==="open" && norm(x.part)===norm(r.part))) continue;
     L.push(r); }
@@ -446,7 +491,7 @@ function renderBoats(){
     const [ta,na]=a[0].split("|"), [tb,nb]=b[0].split("|");
     return (sb-sa) || (TYPES.indexOf(ta)-TYPES.indexOf(tb)) || na.localeCompare(nb,"he",{numeric:true});
   });
-  if(!boats.length){ $("boatsList").innerHTML = `<div class="empty"><strong>${boatFilter==="open"?"אין סירות עם תקלות פתוחות":"עוד לא דווח כלום"}</strong>דיווחים חדשים יופיעו כאן לפי מספר סירה.</div>`; return; }
+  if(!boats.length){ $("boatsList").innerHTML = `<div class="empty"><strong>${$("bsearch").value.trim()?"לא נמצאו סירות שמתאימות לחיפוש":boatFilter==="open"?"אין סירות עם תקלות פתוחות":"עוד לא דווח כלום"}</strong>דיווחים חדשים יופיעו כאן לפי מספר סירה.</div>`; return; }
   $("boatsList").innerHTML = boats.map(([key,list])=>{
     const [bt,n] = key.split("|");
     const open = list.filter(r=>r.status==="open"); const stop = open.some(r=>r.stop);
@@ -463,6 +508,7 @@ function renderBoats(){
     </div>`;
   }).join("");
 }
+$("bsearch").addEventListener("input", renderBoats);
 $("f-open").addEventListener("click",()=>{boatFilter="open";$("f-open").setAttribute("aria-pressed","true");$("f-all").setAttribute("aria-pressed","false");renderBoats();});
 $("f-all").addEventListener("click",()=>{boatFilter="all";$("f-all").setAttribute("aria-pressed","true");$("f-open").setAttribute("aria-pressed","false");renderBoats();});
 $("boatsList").addEventListener("change", async e=>{
