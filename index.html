@@ -856,18 +856,25 @@ async function load(){
   if(loading) return; loading = true;
   try{
     const j = await api("all");
+    try{ localStorage.setItem("cache", JSON.stringify({reports:j.reports, requests:j.requests, config:j.config})); }catch(e){}
+    applyData(j);
+    db = true; $("conn").textContent = ""; render();
+  }catch(e){ $("conn").textContent = db ? "אין חיבור כרגע, מנסה שוב…" : (cached ? "מציג נתונים שמורים, אין חיבור כרגע…" : "לא מצליח להתחבר לטבלה. בדוק אינטרנט."); }
+  finally{ loading = false; }
+}
+// show the last data saved on this phone right away, then refresh from the server
+function applyData(j){
     allReports = j.reports || [];
     requests = j.requests || [];
     const c = j.config || {};
     if(c.fleetB && typeof c.fleetB==="object") fleetB = c.fleetB;
     applyView();
     if(c.partsByType && typeof c.partsByType==="object"){ partsByType = c.partsByType; if($("editPanel").hidden) groups = groupsFor(curType); }
-    db = true; $("conn").textContent = ""; render();
-  }catch(e){ $("conn").textContent = db ? "אין חיבור כרגע, מנסה שוב…" : "לא מצליח להתחבר לטבלה. בדוק אינטרנט."; }
-  finally{ loading = false; }
 }
+let cached = false;
+try{ const c = JSON.parse(localStorage.getItem("cache") || "null"); if(c && Array.isArray(c.reports)){ applyData(c); render(); cached = true; } }catch(e){}
 if(API.startsWith("http")){
-  $("conn").textContent = "טוען…"; load();
+  $("conn").textContent = cached ? "" : "טוען…"; load();
   setInterval(()=>{ if(!document.hidden) load(); }, 20000);
   document.addEventListener("visibilitychange",()=>{ if(!document.hidden) load(); });
 }else{ $("conn").textContent = "האפליקציה עוד לא מחוברת לטבלה."; }
