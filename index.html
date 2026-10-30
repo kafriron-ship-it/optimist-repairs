@@ -96,6 +96,8 @@ mark{background:none;color:var(--navy);font-weight:800}
 .prog-bar{height:10px;background:var(--chip);border-radius:6px;overflow:hidden}
 .prog-bar i{display:block;height:100%;width:0;margin-left:auto;background:var(--ok);border-radius:6px}
 @media (prefers-reduced-motion:no-preference){.prog-bar i{transition:width .3s}}
+.chip .badge{font:600 .75rem var(--mono);background:var(--chip);color:var(--muted);border-radius:999px;padding:0 6px;margin-inline-start:4px}
+.chip[aria-pressed="true"] .badge{background:rgba(255,255,255,.25);color:inherit}
 .seg2{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
 .seg2 button{background:none;border:0;color:var(--ink);font:700 .95rem var(--body);padding:10px 4px;cursor:pointer}
 .seg2 button+button{border-inline-start:1.5px solid var(--line)}
@@ -308,6 +310,7 @@ textarea{min-height:64px;resize:vertical}
     <button type="button" id="g-boat" aria-pressed="true">לפי סירה</button>
     <button type="button" id="g-part" aria-pressed="false">לפי חלק</button>
   </div>
+  <div class="chips" id="tfilter" role="group" aria-label="סוג סירה" hidden></div>
   <div class="filters">
     <button class="chip" id="f-open" aria-pressed="true">פתוחות</button>
     <button class="chip" id="f-all" aria-pressed="false">הכול כולל מתוקנות</button>
@@ -641,7 +644,7 @@ async function sendComment(id){
 $("boatsList").addEventListener("keydown", e=>{ if(e.key==="Enter" && e.target.dataset.cin){ e.preventDefault(); sendComment(e.target.dataset.cin); } });
 
 /* ---------- boats view ---------- */
-let groupBy = "boat"; const openCards = new Set(), openMore = new Set();
+let groupBy = "boat", typeFilter = "all"; const openCards = new Set(), openMore = new Set();
 function issueLabel(r){ return r.issue ? r.issue + (r.issueText ? ": " + r.issueText : "") : ""; }
 function itemRow(r, title){
   const done = r.status !== "open", lab = issueLabel(r);
@@ -660,17 +663,24 @@ function itemRow(r, title){
 }
 function renderProgress(){
   const t0 = new Date(); t0.setHours(0,0,0,0);
-  const fixedToday = reports.filter(r=>r.status!=="open" && r.fixedAt && r.fixedAt >= t0.getTime()).length;
-  const open = reports.filter(r=>r.status==="open").length, total = fixedToday + open;
+  const rs = typeFilter==="all" ? reports : reports.filter(r=>typeOf(r)===typeFilter);
+  const fixedToday = rs.filter(r=>r.status!=="open" && r.fixedAt && r.fixedAt >= t0.getTime()).length;
+  const open = rs.filter(r=>r.status==="open").length, total = fixedToday + open;
   $("prog").hidden = !total;
   if(total){ $("progTxt").textContent = `${fixedToday} מתוך ${total}`; $("progBar").style.width = Math.round(fixedToday/total*100) + "%"; }
 }
 function renderBoats(){
   const ae = document.activeElement; if(ae && ae.dataset && ae.dataset.cin && $("boatsList").contains(ae)) return;
   const bq = $("bsearch").value, q = bq.trim();
+  const tc = {}; reports.forEach(r=>{ if(r.status==="open"){ const t=typeOf(r); tc[t]=(tc[t]||0)+1; } });
+  const tl = TYPES.filter(t=>tc[t]);
+  if(typeFilter!=="all" && !tc[typeFilter] && boatFilter==="open") typeFilter = "all";
+  $("tfilter").hidden = tl.length < 2 && typeFilter==="all";
+  $("tfilter").innerHTML = [["all","הכול"], ...tl.map(t=>[t, t===MOTOR?"מנוע":t])].map(([k,l])=>`<button type="button" class="chip" data-tf="${esc(k)}" aria-pressed="${typeFilter===k}">${esc(l)}${k!=="all"?` <span class="badge">${tc[k]}</span>`:""}</button>`).join("");
   const list = [], seen = new Set();
   for(const r of reports){
     if(boatFilter==="open" && r.status!=="open") continue;
+    if(typeFilter!=="all" && typeOf(r)!==typeFilter) continue;
     if(q && !(fold(normBoat(r.boat)).includes(fold(bq)) || fold(typeOf(r)).includes(fold(bq)) || matchScore(bq, r.part)>0)) continue;
     const k = typeOf(r)+"|"+normBoat(r.boat)+"|"+norm(r.part);
     if(r.status==="open"){ if(seen.has(k)) continue; seen.add(k); }
@@ -713,6 +723,7 @@ function renderBoats(){
 $("bsearch").addEventListener("input", renderBoats);
 function setGroup(g){ groupBy=g; $("g-boat").setAttribute("aria-pressed", g==="boat"); $("g-part").setAttribute("aria-pressed", g==="part"); renderBoats(); }
 $("g-boat").addEventListener("click", ()=>setGroup("boat"));
+$("tfilter").addEventListener("click", e=>{ const b=e.target.closest("[data-tf]"); if(!b) return; typeFilter=b.dataset.tf; renderBoats(); });
 $("g-part").addEventListener("click", ()=>setGroup("part"));
 $("f-open").addEventListener("click",()=>{boatFilter="open";$("f-open").setAttribute("aria-pressed","true");$("f-all").setAttribute("aria-pressed","false");renderBoats();});
 $("f-all").addEventListener("click",()=>{boatFilter="all";$("f-all").setAttribute("aria-pressed","true");$("f-open").setAttribute("aria-pressed","false");renderBoats();});
