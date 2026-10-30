@@ -4,7 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#2161ad">
-<title>תקלות אופטימיסט · מרכז דניאל</title>
+<title>תקלות סירות · מרכז דניאל</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="תקלות סירות">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Secular+One&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -36,7 +42,7 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
 .brand{position:relative}
 .logo{width:40px;height:40px;flex:none;display:block}
 nav{display:flex;gap:4px;margin-top:12px}
-nav button{flex:1;background:none;border:0;color:var(--head-ink);opacity:.7;font:600 1rem var(--body);padding:10px 4px 12px;border-bottom:3px solid transparent;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:6px}
+nav button{flex:1;min-width:0;background:none;border:0;color:var(--head-ink);opacity:.7;font:600 .95rem var(--body);padding:10px 2px 12px;white-space:nowrap;border-bottom:3px solid transparent;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:6px}
 nav button[aria-selected="true"]{opacity:1;border-bottom-color:var(--flag)}
 nav .badge{background:var(--flag);color:var(--flag-ink);font:600 .75rem var(--mono);border-radius:999px;padding:1px 7px}
 nav button:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
@@ -64,6 +70,26 @@ section{display:flex;flex-direction:column;gap:18px;padding-top:20px}
 .search svg{position:absolute;inset-inline-start:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted);pointer-events:none}
 .nomatch{display:flex;flex-direction:column;gap:8px;align-items:flex-start;color:var(--muted);margin-bottom:12px}
 mark{background:none;color:var(--navy);font-weight:800}
+.photo-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.photo-row label.ghost{display:inline-flex;align-items:center;gap:8px}
+.photo-row input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.pv{position:relative;width:72px;height:72px;border-radius:10px;overflow:hidden;border:1.5px solid var(--line)}
+.pv img{width:100%;height:100%;object-fit:cover;display:block}
+.pv button{position:absolute;top:2px;inset-inline-end:2px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font:700 .8rem var(--body);cursor:pointer}
+.thumb{display:block;margin-top:6px;width:120px;max-width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--chip)}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.tile b{display:block;font:600 1.6rem var(--mono);font-variant-numeric:tabular-nums;color:var(--navy)}
+.tile span{font-size:.85rem;color:var(--muted)}
+.bars{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.bar{display:grid;grid-template-columns:minmax(0,9rem) 1fr 2.5ch;gap:10px;align-items:center;font-size:.92rem}
+.bar .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.bar .tr{height:10px;background:var(--chip);border-radius:6px;overflow:hidden}
+.bar .tr i{display:block;height:100%;background:var(--flag);border-radius:6px}
+.bar .ct{font:600 .85rem var(--mono);font-variant-numeric:tabular-nums;text-align:end}
+.stitle{font:700 .85rem var(--body);letter-spacing:.04em;color:var(--muted);margin:0}
+.install{display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--surface);border:1.5px dashed var(--navy);border-radius:12px;padding:10px 12px;font-size:.92rem}
+.install .x{background:none;border:0;color:var(--muted);font:700 1rem var(--body);cursor:pointer;padding:4px 8px}
 .group{margin-bottom:12px}
 .group h3{font-size:.85rem;margin:0 0 6px;color:var(--muted);font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -143,11 +169,13 @@ textarea{min-height:64px;resize:vertical}
     <button role="tab" id="tab-report" data-tab="report" aria-selected="true">דיווח</button>
     <button role="tab" id="tab-parts" data-tab="parts" aria-selected="false">מה להביא <span class="badge" id="partsBadge">0</span></button>
     <button role="tab" id="tab-boats" data-tab="boats" aria-selected="false">לפי סירה <span class="badge" id="boatsBadge">0</span></button>
+    <button role="tab" id="tab-stats" data-tab="stats" aria-selected="false">נתונים</button>
   </nav>
 </header>
 
 <!-- REPORT -->
 <section id="view-report">
+  <div class="install" id="install" hidden><span id="installText">להוסיף את האפליקציה למסך הבית?</span><span style="display:flex;gap:4px;align-items:center"><button type="button" class="ghost" id="installBtn">הוסף</button><button type="button" class="x" id="installX" aria-label="סגור">✕</button></span></div>
   <div>
     <span class="label">סוג סירה</span>
     <div class="types" id="types" role="group" aria-label="סוג סירה"></div>
@@ -180,6 +208,12 @@ textarea{min-height:64px;resize:vertical}
     </div>
   </div>
 
+  <div class="photo-row">
+    <label class="ghost" for="photo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg> צרף תמונה (לא חובה)</label>
+    <input type="file" id="photo" accept="image/*">
+    <div class="pv" id="pv" hidden><img id="pvImg" alt="תמונה שצורפה"><button type="button" id="pvX" aria-label="הסר תמונה">✕</button></div>
+  </div>
+
   <details class="more" id="more">
     <summary>עוד: לא יוצאת למים, הערה, שם המדווח</summary>
     <div class="morebody">
@@ -208,6 +242,15 @@ textarea{min-height:64px;resize:vertical}
   </div>
   <div id="partsList"></div>
   <textarea id="copyFallback" hidden readonly></textarea>
+</section>
+
+<!-- STATS -->
+<section id="view-stats" hidden>
+  <div class="filters">
+    <button class="chip" id="s-30" aria-pressed="true">30 יום אחרונים</button>
+    <button class="chip" id="s-all" aria-pressed="false">מאז ומעולם</button>
+  </div>
+  <div id="statsBody"></div>
 </section>
 
 <!-- BOATS -->
@@ -270,9 +313,9 @@ let have = new Set(JSON.parse(store.get("have") || "[]"));
 
 /* ---------- tabs ---------- */
 function showTab(t){
-  if(!["report","parts","boats"].includes(t)) t = "report";
+  if(!["report","parts","boats","stats"].includes(t)) t = "report";
   document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
-  ["report","parts","boats"].forEach(v=>$("view-"+v).hidden = v!==t);
+  ["report","parts","boats","stats"].forEach(v=>$("view-"+v).hidden = v!==t);
 }
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{ location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
 window.addEventListener("hashchange",()=>showTab(location.hash.slice(1)));
@@ -407,6 +450,21 @@ function renderRecent(){
 }
 $("recent").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; $("boat").value = normBoat($("boat").value)===b.dataset.n ? "" : b.dataset.n; renderRecent(); renderChips(); validate(); });
 
+/* ---------- photo ---------- */
+let photoData = null;
+function shrink(file){ return new Promise((res,rej)=>{ const url=URL.createObjectURL(file); const im=new Image();
+  im.onload=()=>{ const s=Math.min(1,1280/Math.max(im.naturalWidth,im.naturalHeight)); const c=document.createElement("canvas");
+    c.width=Math.round(im.naturalWidth*s); c.height=Math.round(im.naturalHeight*s); c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+    URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg",0.72)); };
+  im.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error("bad image")); }; im.src=url; }); }
+function clearPhoto(){ photoData=null; $("photo").value=""; $("pv").hidden=true; $("pvImg").removeAttribute("src"); }
+$("photo").addEventListener("change", async e=>{
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  try{ photoData = await shrink(f); $("pvImg").src = photoData; $("pv").hidden = false; }
+  catch(err){ clearPhoto(); toast("לא הצלחתי לפתוח את התמונה. נסה תמונה אחרת.", true); }
+});
+$("pvX").addEventListener("click", clearPhoto);
+
 function toast(msg, err){ const t=$("toast"); t.textContent=msg; t.classList.toggle("err",!!err); clearTimeout(toast._t); toast._t=setTimeout(()=>t.textContent="",4000); }
 
 $("send").addEventListener("click", async ()=>{
@@ -420,23 +478,25 @@ $("send").addEventListener("click", async ()=>{
   if(!parts.length){ toast(`כבר דווח על ${curType} ${boat}: ${skipped.join(", ")}`, true); return; }
   const who = $("who").value.trim(); store.set("who", who);
   const base = { boat, note:$("note").value.trim(), stop:$("stop").checked, reporter:who, status:"open", createdAt:Date.now() };
-  $("send").disabled = true;
+  $("send").disabled = true; $("send").textContent = photoData ? "שולח עם תמונה…" : "שולח…";
   try{
     const items = parts.map(part=>{
       const kind = groups.some(g=>g.task && g.items.includes(part)) ? "task" : "part";
       const issue = kind==="task" ? "" : (issueOf[part] || "שבור");
       return {part, kind, issue, issueText: issue==="אחר" ? norm(issueText[part]) : ""};
     });
-    const res = await api("add",{type:curType, boat, note:base.note, stop:base.stop, reporter:who, items});
+    const res = await api("add",{type:curType, boat, note:base.note, stop:base.stop, reporter:who, items, photo:photoData||""});
     (res.skipped||[]).forEach(p=>{ if(!skipped.includes(p)) skipped.push(p); });
+    if(res.photoError) setTimeout(()=>toast("הדיווח נשמר, אבל התמונה לא נשמרה.", true), 4200);
     parts.length = 0; (res.added||[]).forEach(p=>parts.push(p));
     load();
     toast(`נשלח: ${curType} ${boat} · ${parts.length} ${parts.length===1?"תקלה":"תקלות"}` + (skipped.length?` (כבר היה: ${skipped.join(", ")})`:""));
     selected.clear(); document.querySelectorAll("#partGroups .chip").forEach(c=>c.setAttribute("aria-pressed","false"));
-    $("other").value=""; issueOf={}; issueText={}; customs=[]; renderCustoms(); $("note").value=""; $("stop").checked=false; $("boat").value=""; $("boat").focus();
+    $("other").value=""; issueOf={}; issueText={}; customs=[]; renderCustoms(); $("note").value=""; $("stop").checked=false; $("boat").value=""; clearPhoto(); $("boat").focus();
   }catch(e){
     toast("השליחה נכשלה. בדוק חיבור לאינטרנט ונסה שוב.", true);
   }
+  $("send").textContent = "שלח דיווח";
   validate();
 });
 
@@ -501,7 +561,7 @@ function renderBoats(){
         ${stop?`<span class="pill">לא יוצאת</span>`:(!open.length?`<span class="pill ok">מוכנה</span>`:"")}</div>
       ${list.map(r=>`<div class="issue ${r.status!=="open"?"done":""}">
         <input type="checkbox" aria-label="תוקן" data-fix="${r.id}" ${r.status!=="open"?"checked":""}>
-        <div class="itext"><strong>${esc(r.part)}</strong>${r.issue?`<span class="itag">${esc(r.issue)}${r.issueText?": "+esc(r.issueText):""}</span>`:""}${r.note?`<div class="inote">${esc(r.note)}</div>`:""}
+        <div class="itext"><strong>${esc(r.part)}</strong>${r.issue?`<span class="itag">${esc(r.issue)}${r.issueText?": "+esc(r.issueText):""}</span>`:""}${r.note?`<div class="inote">${esc(r.note)}</div>`:""}${r.photo?`<a href="https://drive.google.com/file/d/${encodeURIComponent(r.photo)}/view" target="_blank" rel="noopener"><img class="thumb" loading="lazy" alt="תמונה של התקלה" src="https://drive.google.com/thumbnail?id=${encodeURIComponent(r.photo)}&sz=w320"></a>`:""}
           <div class="iby">${esc(r.reporter||"ללא שם")} · ${r.createdAt?new Date(r.createdAt).toLocaleDateString("he-IL",{day:"numeric",month:"numeric"}):""}</div></div>
         <button class="del" data-del="${r.id}">מחק</button>
       </div>`).join("")}
@@ -525,8 +585,54 @@ $("boatsList").addEventListener("click", async e=>{
   try{ await api("delete",{id}); }catch(err){ load(); }
 });
 
+/* ---------- stats ---------- */
+let statsRange = 30;
+function bars(rows){
+  if(!rows.length) return `<div class="empty">אין עדיין מספיק נתונים</div>`;
+  const max = Math.max(...rows.map(r=>r[1]));
+  return `<div class="bars">${rows.map(([n,c])=>`<div class="bar"><span class="nm" title="${esc(n)}">${esc(n)}</span><span class="tr"><i style="width:${Math.max(4,Math.round(c/max*100))}%"></i></span><span class="ct">${c}</span></div>`).join("")}</div>`;
+}
+function topN(map, n){ return [...map.entries()].sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0],"he",{numeric:true})).slice(0,n); }
+function renderStats(){
+  const since = statsRange ? Date.now() - statsRange*864e5 : 0;
+  const rs = reports.filter(r=>(r.createdAt||0) >= since);
+  const parts = rs.filter(r=>r.kind!=="task");
+  const fixed = rs.filter(r=>r.status!=="open" && r.fixedAt && r.createdAt);
+  const avg = fixed.length ? fixed.reduce((s,r)=>s+(r.fixedAt-r.createdAt),0)/fixed.length/864e5 : null;
+  const multi = new Set(rs.map(typeOf)).size > 1;
+  const label = r => (multi || typeOf(r)!=="אופטימיסט") ? typeOf(r)+" "+normBoat(r.boat) : "סירה "+normBoat(r.boat);
+  const byBoat = new Map(), byPart = new Map(), byType = new Map();
+  rs.forEach(r=>{ byBoat.set(label(r),(byBoat.get(label(r))||0)+1); byType.set(typeOf(r),(byType.get(typeOf(r))||0)+1); });
+  parts.forEach(r=>{ const k = multi ? norm(r.part)+" ("+typeOf(r)+")" : norm(r.part); byPart.set(k,(byPart.get(k)||0)+1); });
+  $("statsBody").innerHTML = `<div style="display:flex;flex-direction:column;gap:16px">
+    <div class="tiles">
+      <div class="tile"><b>${rs.length}</b><span>דיווחים</span></div>
+      <div class="tile"><b>${rs.filter(r=>r.status!=="open").length}</b><span>תוקנו</span></div>
+      <div class="tile"><b>${rs.filter(r=>r.status==="open").length}</b><span>עדיין פתוחות</span></div>
+      <div class="tile"><b>${avg===null?"–":(avg<1?"<1":avg.toFixed(1))}</b><span>ימים בממוצע עד תיקון</span></div>
+    </div>
+    <h2 class="stitle">סירות שנשברות הכי הרבה</h2>${bars(topN(byBoat,8))}
+    <h2 class="stitle">חלקים שנשברים הכי הרבה</h2>${bars(topN(byPart,10))}
+    ${byType.size>1?`<h2 class="stitle">לפי סוג סירה</h2>${bars(topN(byType,4))}`:""}
+  </div>`;
+}
+$("s-30").addEventListener("click",()=>{ statsRange=30; $("s-30").setAttribute("aria-pressed","true"); $("s-all").setAttribute("aria-pressed","false"); renderStats(); });
+$("s-all").addEventListener("click",()=>{ statsRange=0; $("s-all").setAttribute("aria-pressed","true"); $("s-30").setAttribute("aria-pressed","false"); renderStats(); });
+
+/* ---------- install ---------- */
+let deferredPrompt = null;
+const standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+function showInstall(text, btn){ if(standalone || store.get("installX")) return; $("installText").textContent = text; $("installBtn").hidden = !btn; $("install").hidden = false; }
+window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferredPrompt = e; showInstall("להוסיף את האפליקציה למסך הבית?", true); });
+if(isIOS) showInstall("להוספה למסך הבית: לוחצים על כפתור השיתוף ובוחרים \"הוסף למסך הבית\"", false);
+$("installBtn").addEventListener("click", async ()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch(e){} deferredPrompt=null; $("install").hidden=true; });
+$("installX").addEventListener("click", ()=>{ store.set("installX","1"); $("install").hidden=true; });
+window.addEventListener("appinstalled", ()=>{ $("install").hidden=true; });
+if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+
 renderTypes();
-function render(){ renderRecent(); renderChips(); renderParts(); renderBoats(); validate(); }
+function render(){ renderRecent(); renderChips(); renderParts(); renderBoats(); renderStats(); validate(); }
 render();
 
 /* ---------- data ---------- */
