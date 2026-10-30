@@ -609,7 +609,7 @@ function renderStats(){
       <div class="tile"><b>${rs.length}</b><span>דיווחים</span></div>
       <div class="tile"><b>${rs.filter(r=>r.status!=="open").length}</b><span>תוקנו</span></div>
       <div class="tile"><b>${rs.filter(r=>r.status==="open").length}</b><span>עדיין פתוחות</span></div>
-      <div class="tile"><b>${avg===null?"–":(avg<1?"<1":avg.toFixed(1))}</b><span>ימים בממוצע עד תיקון</span></div>
+      <div class="tile"><b>${avg===null?"–":avg.toFixed(1)}</b><span>ימים בממוצע עד תיקון</span></div>
     </div>
     <h2 class="stitle">סירות שנשברות הכי הרבה</h2>${bars(topN(byBoat,8))}
     <h2 class="stitle">חלקים שנשברים הכי הרבה</h2>${bars(topN(byPart,10))}
