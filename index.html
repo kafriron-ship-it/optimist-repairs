@@ -176,6 +176,17 @@ textarea{min-height:64px;resize:vertical}
 .iby{color:var(--muted);font-size:.78rem}
 .del{background:none;border:0;color:var(--muted);font:600 .8rem var(--body);cursor:pointer;padding:4px}
 .del.arm{color:var(--stop)}
+.cmts{margin-top:6px;display:flex;flex-direction:column;gap:4px}
+.cmt{font-size:.85rem;background:var(--chip);border-radius:8px;padding:5px 9px;color:var(--ink)}
+.cmt b{color:var(--muted);font-weight:600}
+.addc{display:flex;gap:6px;width:100%}
+.addc input{flex:1;min-width:0;padding:8px 10px;font-size:.9rem}
+.addc button{flex:none;padding:8px 12px}
+.snack{position:fixed;inset-inline:16px;bottom:16px;margin:0 auto;max-width:480px;background:var(--ink);color:var(--bg);border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:600;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.snack button{background:none;border:0;color:var(--flag);font:800 1rem var(--body);cursor:pointer;padding:4px 8px}
+.reqs{display:flex;flex-direction:column;gap:8px}
+.req{display:flex;gap:8px;align-items:flex-start;background:var(--chip);border-radius:10px;padding:8px 10px}
+.req div{flex:1;min-width:0;overflow-wrap:anywhere}
 .empty{background:var(--surface);border:1.5px dashed var(--line);border-radius:12px;padding:28px 18px;text-align:center;color:var(--muted)}
 .empty strong{display:block;color:var(--ink);font-size:1.1rem;margin-bottom:4px}
 .filters{display:flex;gap:8px;flex-wrap:wrap}
@@ -226,7 +237,17 @@ textarea{min-height:64px;resize:vertical}
     </div>
     <div class="chips" id="customs" style="margin-top:8px"></div>
     <div id="issues" style="display:flex;flex-direction:column;gap:8px;margin-top:12px"></div>
-    <button type="button" class="ghost" id="editParts" style="margin-top:10px">ערוך שמות חלקים</button>
+    <button type="button" class="ghost" id="reqOpen" style="margin-top:10px">חסר חלק או שם לא נכון? בקשה לשינוי</button>
+    <div id="reqPanel" hidden style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+      <textarea id="reqText" rows="3" maxlength="300" placeholder="מה לשנות? למשל: להוסיף חלק, או לכתוב אחרת שם של חלק"></textarea>
+      <div style="display:flex;gap:8px"><button type="button" class="primary" id="reqSend" style="flex:1;padding:12px">שלח בקשה</button><button type="button" class="ghost" id="reqCancel">ביטול</button></div>
+      <div style="display:flex;gap:8px;align-items:center"><input id="pinIn" type="password" inputmode="numeric" placeholder="קוד עריכה" maxlength="12" style="flex:1;min-width:0" aria-label="קוד עריכה"><button type="button" class="ghost" id="pinGo" style="flex:none">כניסה לעריכה</button></div>
+    </div>
+    <div id="adminBox" hidden style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+      <div class="label" id="reqTitle">בקשות לשינוי</div>
+      <div class="reqs" id="reqList"></div>
+      <div style="display:flex;gap:8px"><button type="button" class="ghost" id="editParts" style="flex:1">ערוך שמות חלקים</button><button type="button" class="ghost" id="pinOut" style="flex:none">יציאה</button></div>
+    </div>
     <div id="editPanel" hidden style="margin-top:10px;display:flex;flex-direction:column;gap:10px">
       <p class="inote" style="margin:0">שורה לכל חלק. שינוי כאן מתעדכן אצל כולם.</p>
       <div id="editGroups" style="display:flex;flex-direction:column;gap:10px"></div>
@@ -257,6 +278,7 @@ textarea{min-height:64px;resize:vertical}
 
   <button class="primary" id="send" disabled>שלח דיווח</button>
   <div class="toast" id="toast" role="status"></div>
+  <div class="snack" id="snack" role="status" hidden><span id="snackMsg"></span><button type="button" id="snackUndo">בטל</button></div>
   <div class="status" id="conn"></div>
 </section>
 
@@ -339,7 +361,9 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",
 const store = { get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}} };
 
 const API = "https://script.google.com/macros/s/AKfycbwOpAxhk95-PnkC0yYDv4vwxFgNlU4z7Yxye3cTMwktPVsHLkzizyK6IND_ehN611D54Q/exec";
-let db = null, reports = [], selected = new Set(), boatFilter = "open";
+let db = null, reports = [], selected = new Set(), boatFilter = "open", requests = [];
+const pendingDel = new Map();
+let pin = store.get("pin") || "";
 let have = new Set(JSON.parse(store.get("have") || "[]"));
 
 /* ---------- tabs ---------- */
@@ -428,17 +452,42 @@ $("nomatch").addEventListener("click", e=>{ if(!e.target.closest("#addFromSearch
 $("issues").addEventListener("click",e=>{ const b=e.target.closest("[data-is]"); if(!b) return; issueOf[b.dataset.ip]=b.dataset.is; renderIssues();
   if(b.dataset.is==="אחר"){ const inp=[...$("issues").querySelectorAll("[data-it]")].find(x=>x.dataset.it===b.dataset.ip); if(inp) inp.focus(); } });
 $("issues").addEventListener("input",e=>{ const t=e.target.dataset.it; if(t!==undefined) issueText[t]=e.target.value; });
+function renderAdmin(){
+  $("adminBox").hidden = !pin; $("reqOpen").hidden = !!pin;
+  if(!pin) return;
+  $("reqTitle").textContent = requests.length ? `בקשות לשינוי (${requests.length})` : "אין בקשות לשינוי";
+  $("reqList").innerHTML = requests.map(q=>`<div class="req"><div>${esc(q.text)}<div class="inote">${esc(q.by||"ללא שם")}${q.type?" · "+esc(q.type):""} · ${new Date(q.createdAt).toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})}</div></div><button type="button" class="ghost" data-rdone="${esc(q.id)}" style="flex:none;padding:6px 10px">בוצע</button></div>`).join("");
+}
+$("reqOpen").addEventListener("click", ()=>{ $("reqPanel").hidden = false; $("reqOpen").hidden = true; $("reqText").focus(); });
+$("reqCancel").addEventListener("click", ()=>{ $("reqPanel").hidden = true; $("reqOpen").hidden = !!pin; });
+$("reqSend").addEventListener("click", async ()=>{
+  const text = $("reqText").value.trim(); if(!text) { $("reqText").focus(); return; }
+  if(!db){ toast("אין חיבור",true); return; }
+  try{ await api("request",{text, by:$("who").value.trim(), type:curType}); $("reqText").value=""; $("reqPanel").hidden=true; $("reqOpen").hidden=false; toast("הבקשה נשלחה, תודה!"); }
+  catch(e){ toast("השליחה נכשלה",true); }
+});
+$("pinGo").addEventListener("click", async ()=>{
+  const p = $("pinIn").value.trim(); if(!p) return;
+  try{ await api("checkPin",{pin:p}); pin = p; store.set("pin", p); $("pinIn").value=""; $("reqPanel").hidden = true; renderAdmin(); toast("מצב עריכה פעיל"); }
+  catch(e){ toast("קוד לא נכון",true); }
+});
+$("pinOut").addEventListener("click", ()=>{ pin=""; store.set("pin",""); $("editPanel").hidden=true; renderAdmin(); });
+$("reqList").addEventListener("click", async e=>{
+  const b = e.target.closest("[data-rdone]"); if(!b) return;
+  const id = b.dataset.rdone, keep = requests; requests = requests.filter(q=>q.id!==id); renderAdmin();
+  try{ await api("doneRequest",{id, pin}); }catch(err){ requests = keep; renderAdmin(); toast("לא נשמר",true); }
+});
 $("editParts").addEventListener("click",()=>{
   $("editGroups").innerHTML = groups.map((g,i)=>`<div><label class="label" for="eg${i}">${esc(g.g)}</label><textarea id="eg${i}" rows="${g.items.length+1}">${esc(g.items.join("\n"))}</textarea></div>`).join("");
-  $("editPanel").hidden=false; $("editParts").hidden=true;
+  $("editPanel").hidden=false;
 });
-$("cancelParts").addEventListener("click",()=>{ $("editPanel").hidden=true; $("editParts").hidden=false; });
+$("cancelParts").addEventListener("click",()=>{ $("editPanel").hidden=true; });
 $("saveParts").addEventListener("click", async ()=>{
   const next = groups.map((g,i)=>({...g, items:[...new Set($("eg"+i).value.split("\n").map(s=>s.trim()).filter(Boolean))].slice(0,40)}));
   if(!db){ toast("אין חיבור לשמירה",true); return; }
-  try{ await api("setParts",{type:curType, groups:next}); partsByType[curType]=next;
-    groups=next; renderChips(); $("editPanel").hidden=true; $("editParts").hidden=false; toast("רשימת החלקים עודכנה"); }
-  catch(e){ toast("השמירה נכשלה",true); }
+  try{ await api("setParts",{type:curType, groups:next, pin}); partsByType[curType]=next;
+    groups=next; renderChips(); $("editPanel").hidden=true; toast("רשימת החלקים עודכנה"); }
+  catch(e){ toast(e.message==="pin" ? "קוד העריכה לא תקף" : "השמירה נכשלה",true); }
 });
 $("partGroups").addEventListener("click",e=>{
   const c = e.target.closest(".chip"); if(!c) return;
@@ -567,6 +616,30 @@ $("copyParts").addEventListener("click", async ()=>{
   catch(e){ const f=$("copyFallback"); f.hidden=false; f.value=txt; f.select(); }
 });
 
+/* ---------- undo bar, comments, deletes ---------- */
+let snackUndo = null;
+function snack(msg, undo){
+  $("snackMsg").textContent = msg; $("snackUndo").hidden = !undo; snackUndo = undo || null; $("snack").hidden = false;
+  clearTimeout(snack._t); snack._t = setTimeout(()=>{ $("snack").hidden = true; snackUndo = null; }, 5500);
+}
+$("snackUndo").addEventListener("click", ()=>{ const u = snackUndo; snackUndo = null; $("snack").hidden = true; if(u) u(); });
+async function commitDel(id){
+  if(!pendingDel.has(id)) return; pendingDel.delete(id);
+  try{ await api("delete",{id}); }catch(e){ snack("המחיקה נכשלה, בדוק אינטרנט"); load(); }
+}
+function flushDeletes(){ for(const [id,t] of [...pendingDel]){ clearTimeout(t); commitDel(id); } }
+document.addEventListener("visibilitychange", ()=>{ if(document.hidden) flushDeletes(); });
+async function sendComment(id){
+  const inp = [...$("boatsList").querySelectorAll("[data-cin]")].find(x=>x.dataset.cin===id);
+  const text = inp ? inp.value.trim() : ""; if(!text) return;
+  const r = reports.find(x=>x.id===id); if(!r) return;
+  const by = $("who").value.trim();
+  r.comments = [...(r.comments||[]), {by, text, at:Date.now()}]; inp.blur(); renderBoats();
+  try{ const j = await api("comment",{id, text, by}); r.comments = j.comments || r.comments; renderBoats(); }
+  catch(e){ r.comments = r.comments.slice(0,-1); renderBoats(); snack("ההערה לא נשמרה, בדוק אינטרנט"); }
+}
+$("boatsList").addEventListener("keydown", e=>{ if(e.key==="Enter" && e.target.dataset.cin){ e.preventDefault(); sendComment(e.target.dataset.cin); } });
+
 /* ---------- boats view ---------- */
 let groupBy = "boat"; const openCards = new Set(), openMore = new Set();
 function issueLabel(r){ return r.issue ? r.issue + (r.issueText ? ": " + r.issueText : "") : ""; }
@@ -577,7 +650,9 @@ function itemRow(r, title){
     <div class="rt"><strong>${esc(title)}</strong>${lab?` <span class="itag">${esc(lab)}</span>`:""}${r.stop&&!done?` <span class="pill">לא יוצאת</span>`:""}
       ${r.note?`<div class="inote">${esc(r.note)}</div>`:""}
       ${r.photo?`<a href="https://drive.google.com/file/d/${encodeURIComponent(r.photo)}/view" target="_blank" rel="noopener"><img class="thumb" loading="lazy" alt="תמונה של התקלה" src="https://drive.google.com/thumbnail?id=${encodeURIComponent(r.photo)}&sz=w320"></a>`:""}
-      ${openMore.has(r.id)?`<div class="extra"><span>דווח ע"י ${esc(r.reporter||"ללא שם")} · ${date}</span><button class="del" data-del="${r.id}">מחק דיווח</button></div>`:""}
+      ${(r.comments||[]).length?`<div class="cmts">${r.comments.map(c=>`<div class="cmt"><b>${esc(c.by||"ללא שם")}:</b> ${esc(c.text)}</div>`).join("")}</div>`:""}
+      ${openMore.has(r.id)?`<div class="extra"><span>דווח ע"י ${esc(r.reporter||"ללא שם")} · ${date}</span><button class="del" data-del="${r.id}">מחק דיווח</button>
+        <div class="addc"><input type="text" maxlength="200" placeholder="הוסף הערה, למשל: זה בעצם סירה 54" data-cin="${r.id}" aria-label="הערה"><button type="button" class="ghost" data-csend="${r.id}">שלח</button></div></div>`:""}
     </div>
     ${done?`<button class="undo" data-fix="${r.id}" data-st="open">החזר</button>`:`<button class="fixbtn" data-fix="${r.id}" data-st="fixed">תוקן ✓</button>`}
     <button class="dots" data-more="${r.id}" aria-label="פרטים נוספים" aria-expanded="${openMore.has(r.id)}">⋯</button>
@@ -591,6 +666,7 @@ function renderProgress(){
   if(total){ $("progTxt").textContent = `${fixedToday} מתוך ${total}`; $("progBar").style.width = Math.round(fixedToday/total*100) + "%"; }
 }
 function renderBoats(){
+  const ae = document.activeElement; if(ae && ae.dataset && ae.dataset.cin && $("boatsList").contains(ae)) return;
   const bq = $("bsearch").value, q = bq.trim();
   const list = [], seen = new Set();
   for(const r of reports){
@@ -650,14 +726,19 @@ $("boatsList").addEventListener("click", async e=>{
     const id = fx.dataset.fix, st = fx.dataset.st, r = reports.find(x=>x.id===id); if(!r) return;
     const prev = {status:r.status, fixedAt:r.fixedAt};
     r.status = st; r.fixedAt = st==="fixed" ? Date.now() : null; render();
+    if(st==="fixed") snack(`${r.part} סומן כתוקן`, async ()=>{ r.status="open"; r.fixedAt=null; render(); try{ await api("update",{id, status:"open"}); }catch(e){ load(); } });
     try{ await api("update",{id, status:st}); }
-    catch(err){ Object.assign(r, prev); render(); toast("השמירה נכשלה", true); }
+    catch(err){ Object.assign(r, prev); render(); snack("השמירה נכשלה, בדוק אינטרנט"); }
     return;
   }
+  const cs = e.target.closest("[data-csend]");
+  if(cs && db){ sendComment(cs.dataset.csend); return; }
   const b = e.target.closest("[data-del]"); if(!b||!db) return;
   if(!b.classList.contains("arm")){ b.classList.add("arm"); b.textContent="בטוח? לחץ שוב"; setTimeout(()=>{b.classList.remove("arm");b.textContent="מחק דיווח";},3000); return; }
-  const id=b.dataset.del; reports = reports.filter(x=>x.id!==id); openMore.delete(id); render();
-  try{ await api("delete",{id}); }catch(err){ load(); }
+  const id=b.dataset.del, r = reports.find(x=>x.id===id); if(!r) return;
+  reports = reports.filter(x=>x.id!==id); openMore.delete(id);
+  pendingDel.set(id, setTimeout(()=>commitDel(id), 6000)); render();
+  snack(`הדיווח על ${r.part} נמחק`, ()=>{ clearTimeout(pendingDel.get(id)); pendingDel.delete(id); reports.push(r); render(); });
 });
 
 /* ---------- stats ---------- */
@@ -707,7 +788,7 @@ window.addEventListener("appinstalled", ()=>{ $("install").hidden=true; });
 if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 
 renderTypes();
-function render(){ renderRecent(); renderChips(); renderParts(); renderBoats(); renderStats(); validate(); }
+function render(){ renderRecent(); renderChips(); renderParts(); renderBoats(); renderStats(); renderAdmin(); validate(); }
 render();
 
 /* ---------- data ---------- */
@@ -720,7 +801,8 @@ async function load(){
   if(loading) return; loading = true;
   try{
     const j = await api("all");
-    reports = j.reports || [];
+    reports = (j.reports || []).filter(r=>!pendingDel.has(r.id));
+    requests = j.requests || [];
     const c = j.config || {};
     if(c.fleet && typeof c.fleet==="object") fleet = c.fleet;
     if(c.partsByType && typeof c.partsByType==="object"){ partsByType = c.partsByType; if($("editPanel").hidden) groups = groupsFor(curType); }
