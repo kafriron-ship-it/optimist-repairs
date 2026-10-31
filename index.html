@@ -883,14 +883,27 @@ $("s-30").addEventListener("click",()=>{ statsRange=30; $("s-30").setAttribute("
 $("s-all").addEventListener("click",()=>{ statsRange=0; $("s-all").setAttribute("aria-pressed","true"); $("s-30").setAttribute("aria-pressed","false"); renderStats(); });
 
 /* ---------- install ---------- */
+// Chrome on Android offers a real install button. Everywhere else we show short instructions for that browser.
 let deferredPrompt = null;
 const standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone;
-const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-function showInstall(text, btn){ if(standalone || store.get("installX")) return; $("installText").textContent = text; $("installBtn").hidden = !btn; $("install").hidden = false; }
-window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferredPrompt = e; showInstall("להוסיף את האפליקציה למסך הבית?", true); });
-if(isIOS) showInstall("להוספה למסך הבית: לוחצים על כפתור השיתוף ובוחרים \"הוסף למסך הבית\"", false);
+const UA = navigator.userAgent;
+const isIOS = /iphone|ipad|ipod/i.test(UA) || (/macintosh/i.test(UA) && navigator.maxTouchPoints > 1);
+const inApp = /FBAN|FBAV|Instagram|WhatsApp|Line\/|; wv\)|GSA\//i.test(UA);
+const isSamsung = /SamsungBrowser/i.test(UA);
+const iosOther = isIOS && /CriOS|FxiOS|EdgiOS/i.test(UA);
+function snoozed(){ const t = Number(store.get("installX") || 0); return t && Date.now() - t < 3*864e5; }
+function showInstall(text, btn){ if(standalone || snoozed()) return; $("installText").textContent = text; $("installBtn").hidden = !btn; $("install").hidden = false; }
+window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferredPrompt = e; showInstall("להוסיף את האפליקציה למסך הבית? ככה לא צריך לחפש את הקישור כל פעם", true); });
+setTimeout(()=>{
+  if(deferredPrompt || standalone) return;
+  if(inApp) showInstall(isIOS ? "כדי להתקין: לפתוח את הקישור בספארי (⋯ או כפתור השיתוף ← פתח בספארי)" : "כדי להתקין: לפתוח את הקישור בכרום (⋮ למעלה ← פתח בכרום / בדפדפן)", false);
+  else if(iosOther) showInstall("כדי להתקין: להעתיק את הקישור ולפתוח אותו בספארי", false);
+  else if(isIOS) showInstall("להוספה למסך הבית: כפתור השיתוף ⬆︎ למטה ← \"הוסף למסך הבית\"", false);
+  else if(isSamsung) showInstall("להוספה למסך הבית: תפריט ☰ למטה ← \"הוסף דף אל\" ← \"מסך הבית\"", false);
+  else if(/android/i.test(UA)) showInstall("להוספה למסך הבית: ⋮ למעלה ← \"הוספה למסך הבית\" או \"התקנת אפליקציה\"", false);
+}, 2500);
 $("installBtn").addEventListener("click", async ()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch(e){} deferredPrompt=null; $("install").hidden=true; });
-$("installX").addEventListener("click", ()=>{ store.set("installX","1"); $("install").hidden=true; });
+$("installX").addEventListener("click", ()=>{ store.set("installX", String(Date.now())); $("install").hidden=true; });
 window.addEventListener("appinstalled", ()=>{ $("install").hidden=true; });
 if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 
