@@ -61,6 +61,9 @@ section{display:flex;flex-direction:column;gap:18px;padding-top:20px}
 .branches button+button{border-inline-start:1.5px solid var(--line)}
 .branches button[aria-pressed="true"]{background:var(--navy);color:var(--bg)}
 .branches.need{border-color:var(--stop);box-shadow:0 0 0 3px color-mix(in srgb,var(--stop) 30%,transparent)}
+input.need{border-color:var(--stop)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--stop) 30%,transparent)}
+.pick #nameSave{background:var(--flag);color:var(--flag-ink);border:0}
+.namebtn{background:rgba(255,255,255,.16);color:inherit;border:0;border-radius:999px;font:600 .8rem var(--body);padding:2px 10px;margin-inline-start:8px;cursor:pointer}
 .needmsg{color:var(--stop);font-weight:700;font-size:.9rem;margin-top:6px}
 .bfilter{margin:0}
 .pick{position:fixed;inset:0;z-index:60;background:rgba(10,20,40,.55);display:flex;align-items:center;justify-content:center;padding:16px}
@@ -214,7 +217,7 @@ textarea{min-height:64px;resize:vertical}
 <header>
   <div class="brand">
     <svg class="logo" viewBox="0 0 40 40" role="img" aria-label="מרכז דניאל"><rect width="40" height="40" rx="9" fill="#fff"/><path d="M3 20 Q20 16.6 37 20 Q20 23.4 3 20 Z" fill="#ec8f33"/><g fill="#2e6fb7"><path d="M11.7 9 L14.5 9 L13.4 15.5 L12.4 15.5 Z"/><path d="M16.7 9 L19.5 9 L18.4 15.5 L17.4 15.5 Z"/><path d="M21.7 9 L24.5 9 L23.4 15.5 L22.4 15.5 Z"/><path d="M26.7 9 L29.5 9 L28.4 15.5 L27.4 15.5 Z"/><path d="M12.6 24.5 L13.6 24.5 L14.4 31 L11.6 31 Z"/><path d="M17.6 24.5 L18.6 24.5 L19.4 31 L16.6 31 Z"/><path d="M22.6 24.5 L23.6 24.5 L24.4 31 L21.6 31 Z"/><path d="M27.6 24.5 L28.6 24.5 L29.4 31 L26.6 31 Z"/></g></svg>
-    <div><h1>מרכז דניאל · חוג שייט</h1><div class="sub">תקלות בסירות</div></div>
+    <div><h1>מרכז דניאל · חוג שייט</h1><div class="sub">תקלות בסירות<button type="button" id="nameBtn" class="namebtn" hidden></button></div></div>
   </div>
   <nav role="tablist">
     <button role="tab" id="tab-report" data-tab="report" aria-selected="true">דיווח</button>
@@ -275,20 +278,17 @@ textarea{min-height:64px;resize:vertical}
   </div>
 
   <details class="more" id="more">
-    <summary>עוד: לא יוצאת למים, הערה, שם המדווח</summary>
+    <summary>עוד: לא יוצאת למים, הערה</summary>
     <div class="morebody">
       <label class="toggle" for="stop"><input type="checkbox" id="stop"> הסירה לא יכולה לצאת למים</label>
       <div>
         <label class="label" for="note">הערה</label>
         <textarea id="note" maxlength="300" placeholder="למשל: סדק בצד ימין ליד התורן"></textarea>
       </div>
-      <div>
-        <label class="label" for="who">מי מדווח</label>
-        <input id="who" type="text" maxlength="30" placeholder="שם">
-      </div>
     </div>
   </details>
 
+  <input id="who" type="hidden">
   <div id="branchBox">
     <span class="label">סניף (חובה)</span>
     <div class="branches" id="branches" role="group" aria-label="סניף"></div>
@@ -296,6 +296,13 @@ textarea{min-height:64px;resize:vertical}
   </div>
   <button class="primary" id="send" disabled>שלח דיווח</button>
   <div class="toast" id="toast" role="status"></div>
+  <div class="pick" id="namePick" hidden role="dialog" aria-modal="true" aria-labelledby="nameTitle"><div>
+    <h2 id="nameTitle">מה השם שלך?</h2>
+    <p class="inote" style="margin:0">ככה נדע מי דיווח ומי תיקן. שואלים רק פעם אחת, ואפשר לשנות אחר כך למעלה.</p>
+    <input id="nameIn" type="text" maxlength="30" placeholder="שם פרטי ושם משפחה" autocomplete="name" enterkeyhint="done">
+    <div class="needmsg" id="needName" hidden>צריך לכתוב שם</div>
+    <button type="button" class="primary" id="nameSave" style="padding:14px">שמור</button>
+  </div></div>
   <div class="snack" id="snack" role="status" hidden><span id="snackMsg"></span><button type="button" id="snackUndo">בטל</button></div>
   <div class="status" id="conn"></div>
 </section>
@@ -315,6 +322,7 @@ textarea{min-height:64px;resize:vertical}
 <!-- BOATS -->
 <section id="view-boats" hidden>
   <div class="chips bfilter"></div>
+  <input id="fixer" type="hidden">
   <div class="prog" id="prog" hidden><div class="prog-top"><span>תוקנו היום</span><b id="progTxt"></b></div><div class="prog-bar"><i id="progBar"></i></div></div>
   <div class="seg2" role="group" aria-label="סידור">
     <button type="button" id="g-boat" aria-pressed="true">לפי סירה</button>
@@ -548,6 +556,16 @@ $("addOther").addEventListener("click", addOther);
 $("other").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); addOther(); } });
 $("customs").addEventListener("click", e=>{ const b=e.target.closest("[data-ci]"); if(!b) return; customs.splice(+b.dataset.ci,1); renderCustoms(); validate(); });
 $("who").value = store.get("who") || "";
+$("fixer").value = store.get("who") || "";
+function showName(){ const n = $("who").value.trim(); $("nameBtn").hidden = !n; $("nameBtn").textContent = n ? n + " ✎" : ""; $("nameBtn").setAttribute("aria-label", "שינוי שם: " + n); }
+function askName(){ $("nameIn").value = $("who").value; $("needName").hidden = true; $("nameIn").classList.remove("need"); $("namePick").hidden = false; setTimeout(()=>$("nameIn").focus(), 50); }
+function saveName(){ const n = $("nameIn").value.trim().replace(/\s+/g," ");
+  if(!n){ $("nameIn").classList.add("need"); $("needName").hidden = false; return; }
+  $("who").value = n; $("fixer").value = n; store.set("who", n); $("namePick").hidden = true; showName(); }
+$("nameSave").addEventListener("click", saveName);
+$("nameIn").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); saveName(); } });
+$("nameBtn").addEventListener("click", askName);
+showName(); if(!$("who").value.trim()) askName();
 function validate(){
   const ok = $("boat").value.trim() && (selected.size || customs.length || $("other").value.trim()) && db;
   $("send").disabled = !ok;
@@ -585,6 +603,7 @@ function toast(msg, err){ const t=$("toast"); t.textContent=msg; t.classList.tog
 
 $("send").addEventListener("click", async ()=>{
   if(!db) return;
+  if(!$("who").value.trim()){ askName(); return; }
   if(!repBranch){ $("branches").classList.add("need"); $("needBranch").hidden = false; $("branchBox").scrollIntoView({behavior:"smooth", block:"center"}); return; }
   const boat = normBoat($("boat").value);
   const other = $("other").value;
@@ -651,7 +670,7 @@ function exportRows(){
     "סניף": brOf(r), "סוג סירה": typeOf(r), "סירה": normBoat(r.boat),
     "חלק / משימה": r.part, "סוג": r.kind==="task" ? "משימה" : (r.issue||""), "פירוט": r.issueText||"",
     "הערה": r.note||"", "לא יוצאת": r.stop ? "כן" : "", "דווח ע\"י": r.reporter||"",
-    "תאריך דיווח": fmtDate(r.createdAt), "סטטוס": r.status==="open" ? "פתוח" : "תוקן", "תאריך תיקון": r.status==="open" ? "" : fmtDate(r.fixedAt),
+    "תאריך דיווח": fmtDate(r.createdAt), "סטטוס": r.status==="open" ? "פתוח" : "תוקן", "תאריך תיקון": r.status==="open" ? "" : fmtDate(r.fixedAt), "תוקן ע\"י": r.status==="open" ? "" : (r.fixedBy||""),
     "ימים עד תיקון": r.status!=="open" && r.fixedAt && r.createdAt ? Math.round((r.fixedAt-r.createdAt)/864e5*10)/10 : "",
     "הערות נוספות": (r.comments||[]).map(c=>(c.by?c.by+": ":"")+c.text).join(" | "),
     "תמונה": r.photo ? "https://drive.google.com/file/d/"+r.photo+"/view" : ""
@@ -724,7 +743,7 @@ function itemRow(r, title){
       ${r.note?`<div class="inote">${esc(r.note)}</div>`:""}
       ${r.photo?`<a href="https://drive.google.com/file/d/${encodeURIComponent(r.photo)}/view" target="_blank" rel="noopener"><img class="thumb" loading="lazy" alt="תמונה של התקלה" src="https://drive.google.com/thumbnail?id=${encodeURIComponent(r.photo)}&sz=w320"></a>`:""}
       ${(r.comments||[]).length?`<div class="cmts">${r.comments.map(c=>`<div class="cmt"><b>${esc(c.by||"ללא שם")}:</b> ${esc(c.text)}</div>`).join("")}</div>`:""}
-      ${openMore.has(r.id)?`<div class="extra"><span>דווח ע"י ${esc(r.reporter||"ללא שם")} · ${date}</span><button class="del" data-del="${r.id}">מחק דיווח</button>
+      ${openMore.has(r.id)?`<div class="extra"><span>דווח ע"י ${esc(r.reporter||"ללא שם")} · ${date}${done && r.fixedBy ? ` · תוקן ע"י ${esc(r.fixedBy)}` : ""}</span><button class="del" data-del="${r.id}">מחק דיווח</button>
         <div class="addc"><input type="text" maxlength="200" placeholder="הוסף הערה, למשל: זה בעצם סירה 54" data-cin="${r.id}" aria-label="הערה"><button type="button" class="ghost" data-csend="${r.id}">שלח</button></div></div>`:""}
     </div>
     ${done?`<button class="undo" data-fix="${r.id}" data-st="open">החזר</button>`:`<button class="fixbtn" data-fix="${r.id}" data-st="fixed">תוקן ✓</button>`}
@@ -810,10 +829,12 @@ $("boatsList").addEventListener("click", async e=>{
   const fx = e.target.closest("[data-fix]");
   if(fx && db){
     const id = fx.dataset.fix, st = fx.dataset.st, r = reports.find(x=>x.id===id); if(!r) return;
-    const prev = {status:r.status, fixedAt:r.fixedAt};
-    r.status = st; r.fixedAt = st==="fixed" ? Date.now() : null; render();
+    const by = $("fixer").value.trim();
+    if(st==="fixed" && !by){ askName(); return; }
+    const prev = {status:r.status, fixedAt:r.fixedAt, fixedBy:r.fixedBy};
+    r.status = st; r.fixedAt = st==="fixed" ? Date.now() : null; r.fixedBy = st==="fixed" ? by : ""; render();
     if(st==="fixed") snack(`${r.part} סומן כתוקן`, async ()=>{ r.status="open"; r.fixedAt=null; render(); try{ await api("update",{id, status:"open"}); }catch(e){ load(); } });
-    try{ await api("update",{id, status:st}); }
+    try{ await api("update",{id, status:st, by}); }
     catch(err){ Object.assign(r, prev); render(); snack("השמירה נכשלה, בדוק אינטרנט"); }
     return;
   }
