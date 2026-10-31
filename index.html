@@ -309,6 +309,7 @@ textarea{min-height:64px;resize:vertical}
     <button class="chip" id="s-all" aria-pressed="false">מאז ומעולם</button>
   </div>
   <div id="statsBody"></div>
+  <button type="button" class="ghost" id="exportXlsx">ייצוא כל הנתונים לאקסל</button>
 </section>
 
 <!-- BOATS -->
@@ -631,6 +632,61 @@ $("copyParts").addEventListener("click", async ()=>{
   const txt = `חלקים לסירות - מרכז דניאל${viewBranch==="all"?"":" "+viewBranch}\n` + TYPES.filter(t=>agg.some(a=>a.type===t)).map(t=>`\n${t}:\n` + agg.filter(a=>a.type===t).map(a=>`• ${a.part} ×${a.qty} (${a.boats.sort((x,y)=>x.br-y.br || String(x.n).localeCompare(String(y.n),"he",{numeric:true})).map(b=>b.n).join(", ")})`).join("\n")).join("\n");
   try{ await navigator.clipboard.writeText(txt); $("copyParts").textContent="הועתק ✓"; setTimeout(()=>$("copyParts").textContent="העתק רשימת חלקים",2000); }
   catch(e){ const f=$("copyFallback"); f.hidden=false; f.value=txt; f.select(); }
+});
+
+/* ---------- export to Excel ---------- */
+// SheetJS is only downloaded when someone presses the button, so the app stays light.
+let xlsxLib = null;
+function loadXlsx(){
+  if(window.XLSX) return Promise.resolve(window.XLSX);
+  if(xlsxLib) return xlsxLib;
+  xlsxLib = new Promise((res, rej)=>{ const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload = ()=>res(window.XLSX); s.onerror = ()=>{ xlsxLib = null; rej(new Error("load")); }; document.head.appendChild(s); });
+  return xlsxLib;
+}
+const fmtDate = t => t ? new Date(t).toLocaleString("he-IL",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}) : "";
+function exportRows(){
+  return [...allReports].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).map(r=>({
+    "סניף": brOf(r), "סוג סירה": typeOf(r), "סירה": normBoat(r.boat),
+    "חלק / משימה": r.part, "סוג": r.kind==="task" ? "משימה" : (r.issue||""), "פירוט": r.issueText||"",
+    "הערה": r.note||"", "לא יוצאת": r.stop ? "כן" : "", "דווח ע\"י": r.reporter||"",
+    "תאריך דיווח": fmtDate(r.createdAt), "סטטוס": r.status==="open" ? "פתוח" : "תוקן", "תאריך תיקון": r.status==="open" ? "" : fmtDate(r.fixedAt),
+    "ימים עד תיקון": r.status!=="open" && r.fixedAt && r.createdAt ? Math.round((r.fixedAt-r.createdAt)/864e5*10)/10 : "",
+    "הערות נוספות": (r.comments||[]).map(c=>(c.by?c.by+": ":"")+c.text).join(" | "),
+    "תמונה": r.photo ? "https://drive.google.com/file/d/"+r.photo+"/view" : ""
+  }));
+}
+function openPartsRows(){
+  const m = new Map();
+  allReports.forEach(r=>{ if(r.status!=="open" || r.kind==="task") return;
+    const k = brOf(r)+"|"+typeOf(r)+"|"+norm(r.part);
+    if(!m.has(k)) m.set(k,{"סניף":brOf(r),"סוג סירה":typeOf(r),"חלק":norm(r.part),"כמות":0,"סירות":new Set()});
+    const e = m.get(k); const b = normBoat(r.boat); if(!e["סירות"].has(b)){ e["סירות"].add(b); e["כמות"]++; } });
+  return [...m.values()].sort((a,b)=>BRANCHES.indexOf(a["סניף"])-BRANCHES.indexOf(b["סניף"]) || TYPES.indexOf(a["סוג סירה"])-TYPES.indexOf(b["סוג סירה"]) || b["כמות"]-a["כמות"])
+    .map(e=>({...e, "סירות":[...e["סירות"]].sort((x,y)=>String(x).localeCompare(String(y),"he",{numeric:true})).join(", ")}));
+}
+function sheet(X, rows, headers){
+  const ws = X.utils.json_to_sheet(rows, {header: headers});
+  ws["!cols"] = headers.map(k=>({wch: Math.min(45, Math.max(k.length, ...rows.map(r=>String(r[k]??"").length)) + 2)}));
+  if(rows.length) ws["!autofilter"] = {ref: ws["!ref"]};
+  return ws;
+}
+$("exportXlsx").addEventListener("click", async ()=>{
+  const btn = $("exportXlsx"); if(!allReports.length){ snack("אין נתונים לייצא"); return; }
+  btn.disabled = true; btn.textContent = "מכין קובץ…";
+  try{
+    const X = await loadXlsx();
+    const wb = X.utils.book_new();
+    const rows = exportRows();
+    X.utils.book_append_sheet(wb, sheet(X, rows, Object.keys(rows[0])), "כל הדיווחים");
+    const pr = openPartsRows();
+    X.utils.book_append_sheet(wb, sheet(X, pr, ["סניף","סוג סירה","חלק","כמות","סירות"]), "חלקים פתוחים");
+    wb.Workbook = {Views:[{RTL:true}]};
+    const d = new Date(), name = `daniel-boats-${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}.xlsx`;
+    X.writeFile(wb, name);
+  }catch(e){ snack("הייצוא נכשל, בדוק אינטרנט"); }
+  btn.disabled = false; btn.textContent = "ייצוא כל הנתונים לאקסל";
 });
 
 /* ---------- undo bar, comments, deletes ---------- */
