@@ -402,7 +402,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store = { get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}} };
 
-const API = "https://script.google.com/macros/s/AKfycbwOpAxhk95-PnkC0yYDv4vwxFgNlU4z7Yxye3cTMwktPVsHLkzizyK6IND_ehN611D54Q/exec";
+const API = "https://script.google.com/macros/s/AKfycbyQZM3Gn4zGLK0OVKR4A4-iUNWjjTTfPVBu8uIDW3MX3SWw_pm08RTjodLlLnEMbGhabQ/exec";
 let db = null, reports = [], selected = new Set(), boatFilter = "open", requests = [];
 const pendingDel = new Map();
 let pin = store.get("pin") || "";
