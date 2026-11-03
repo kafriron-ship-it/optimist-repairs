@@ -257,6 +257,7 @@ textarea{min-height:64px;resize:vertical}
       <input id="boat" type="text" inputmode="numeric" maxlength="4" placeholder="00" autocomplete="off">
       <span class="inote" style="align-self:center" id="boatHint">סירה שלא ברשימה? מקלידים מספר, והיא תתווסף אחרי הדיווח</span>
     </div>
+    <div class="needmsg" id="needBoat" hidden>צריך לבחור סירה</div>
   </div>
 
   <div>
@@ -264,6 +265,7 @@ textarea{min-height:64px;resize:vertical}
     <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="psearch" type="search" placeholder="חיפוש חלק, למשל: חרב, טילר, פקק" autocomplete="off" enterkeyhint="search" aria-label="חיפוש חלק"></div>
     <div class="nomatch" id="nomatch" hidden></div>
     <div id="partGroups"></div>
+    <div class="needmsg" id="needPart" hidden>צריך לסמן מה שבור (או לכתוב ב"משהו אחר")</div>
     <div style="display:flex;gap:8px">
       <input id="other" type="text" placeholder="משהו אחר? כתוב ולחץ הוסף" maxlength="60" enterkeyhint="done">
       <button type="button" class="ghost" id="addOther" style="flex:none">הוסף</button>
@@ -596,9 +598,13 @@ $("nameSave").addEventListener("click", saveName);
 $("nameIn").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); saveName(); } });
 $("nameBtn").addEventListener("click", askName);
 showName(); if(!$("who").value.trim()) askName();
+// the send button stays clickable; pressing it with something missing says what is missing
+const hasBoat = () => !!$("boat").value.trim();
+const hasPart = () => !!(selected.size || customs.length || $("other").value.trim());
 function validate(){
-  const ok = $("boat").value.trim() && (selected.size || customs.length || $("other").value.trim()) && db;
-  $("send").disabled = !ok;
+  $("send").disabled = !db;
+  if(hasBoat()){ $("needBoat").hidden = true; $("boat").classList.remove("need"); }
+  if(hasPart()) $("needPart").hidden = true;
 }
 let boatList = [];
 function knownBoats(){
@@ -634,7 +640,11 @@ function toast(msg, err){ const t=$("toast"); t.textContent=msg; t.classList.tog
 $("send").addEventListener("click", async ()=>{
   if(!db) return;
   if(!$("who").value.trim()){ askName(); return; }
-  if(!repBranch){ $("branches").classList.add("need"); $("needBranch").hidden = false; $("branchBox").scrollIntoView({behavior:"smooth", block:"center"}); return; }
+  const miss = [];
+  if(!hasBoat()){ $("needBoat").hidden = false; $("boat").classList.add("need"); miss.push($("recent")); }
+  if(!hasPart()){ $("needPart").hidden = false; miss.push($("needPart")); }
+  if(!repBranch){ $("branches").classList.add("need"); $("needBranch").hidden = false; miss.push($("branchBox")); }
+  if(miss.length){ miss[0].scrollIntoView({behavior:"smooth", block:"center"}); return; }
   const boat = normBoat($("boat").value);
   const other = $("other").value;
   const all = [...new Set([...selected, ...customs, other].map(norm).filter(Boolean))];
