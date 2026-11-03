@@ -368,6 +368,9 @@ const PARTS = [
 // boat types and branches come from the club settings sheet; these are only the first-run defaults
 let TYPES = ["אופטימיסט","Feva","Toura","סירת מנוע"];
 const isMotor = t => /מנוע/.test(String(t));
+// some clubs name their boats instead of numbering them (set in the club settings sheet)
+let NAMES = false;
+const byName = t => NAMES || isMotor(t);
 const GENERIC = [
   {g:"משימות (לא נכנס לרשימת חלקים)", task:true, items:["להוציא מים"]},
   {g:"כללי", items:["סדק / חור בגוף","חבל חרטום"]}
@@ -460,7 +463,7 @@ const normBoat = b => { const s = norm(b); return /^\d+$/.test(s) ? String(Numbe
 function openFor(boat){ const b = normBoat(boat); return new Set(repReports().filter(r=>r.status==="open" && typeOf(r)===curType && normBoat(r.boat)===b).map(r=>norm(r.part))); }
 function renderTypes(){
   $("types").innerHTML = TYPES.map(t=>`<button type="button" data-t="${esc(t)}" aria-pressed="${t===curType}">${esc(t)}</button>`).join("");
-  const motor = isMotor(curType), b = $("boat");
+  const motor = byName(curType), b = $("boat");
   $("boatLabel").textContent = motor ? "שם הסירה" : "מספר סירה";
   $("boatHint").textContent = motor ? "סירה שלא ברשימה? כותבים את השם שלה, והיא תתווסף אחרי הדיווח" : "סירה שלא ברשימה? מקלידים מספר, והיא תתווסף אחרי הדיווח";
   b.inputMode = motor ? "text" : "numeric"; b.maxLength = motor ? 20 : 4; b.placeholder = motor ? "שם" : "00"; b.classList.toggle("name", motor);
@@ -567,7 +570,7 @@ $("partGroups").addEventListener("click",e=>{
   if($("psearch").value){ $("psearch").value=""; renderChips(); } else renderIssues();
   validate();
 });
-$("boat").addEventListener("input",e=>{ if(!isMotor(curType)) e.target.value = e.target.value.replace(/\D/g,""); renderRecent(); renderChips(); validate(); });
+$("boat").addEventListener("input",e=>{ if(!byName(curType)) e.target.value = e.target.value.replace(/\D/g,""); renderRecent(); renderChips(); validate(); });
 $("other").addEventListener("input",validate);
 let customs = [];
 function renderCustoms(){
@@ -827,7 +830,7 @@ function renderBoats(){
     const head = byBr && c.br!==lastBr ? `<h2 class="brhead">${esc(c.br)}</h2>` : ""; lastBr = c.br;
     const exp = openCards.has(c.key) || !!q;
     const nm = byBr ? c.num : c.name;
-    const title = groupBy==="boat" ? (isMotor(c.t) ? nm : "סירה "+nm) : c.name;
+    const title = groupBy==="boat" ? (byName(c.t) ? nm : "סירה "+nm) : c.name;
     const unit = groupBy==="boat" ? ["תקלה אחת","תקלות"] : ["סירה אחת","סירות"];
     const meta = c.open ? (c.open===1 ? unit[0] : c.open+" "+unit[1]) : "הכול תוקן";
     const pill = groupBy==="part" ? "" : c.stop ? `<span class="pill">לא יוצאת</span>` : (!c.open ? `<span class="pill ok">מוכנה</span>` : "");
@@ -837,7 +840,7 @@ function renderBoats(){
         <span class="bmeta">${meta}</span>${pill}
         <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </button>
-      ${exp?`<div class="rows">${c.rs.map(r=>itemRow(r, groupBy==="boat" ? r.part : (isMotor(typeOf(r)) ? bname(r) : "סירה "+bname(r)))).join("")}</div>`:""}
+      ${exp?`<div class="rows">${c.rs.map(r=>itemRow(r, groupBy==="boat" ? r.part : (byName(typeOf(r)) ? bname(r) : "סירה "+bname(r)))).join("")}</div>`:""}
     </div>`;
   }).join("");
 }
@@ -968,6 +971,7 @@ function applySettings(c){
   if(redo) renderTypes();
   if(bs && bs.length && bs.join("|") !== BRANCHES.join("|")){ BRANCHES = bs; if(!BRANCHES.includes(repBranch)) repBranch = ""; if(!BRANCHES.includes(viewBranch)) viewBranch = "all"; renderBranchPick(); }
   if(c.defBranch) DEF_BRANCH = String(c.defBranch);
+  const nm = c.boatIds === "name"; if(nm !== NAMES){ NAMES = nm; renderTypes(); }
   if(c.club) CLUB = String(c.club);
   showClub();
 }
@@ -988,7 +992,8 @@ function applyData(j){
     if(c.partsByType && typeof c.partsByType==="object"){ partsByType = c.partsByType; if($("editPanel").hidden) groups = groupsFor(curType); }
 }
 let cached = false;
-try{ const c = JSON.parse(localStorage.getItem(skey("cache")) || "null"); if(c && Array.isArray(c.reports)){ applyData(c); render(); cached = true; } }catch(e){}
+if(!ORG_OK){ try{ localStorage.removeItem(skey("cache")); }catch(e){} }
+else try{ const c = JSON.parse(localStorage.getItem(skey("cache")) || "null"); if(c && Array.isArray(c.reports)){ applyData(c); render(); cached = true; } }catch(e){}
 if(API.startsWith("http")){
   $("conn").textContent = cached ? "" : "טוען…"; load();
   setInterval(()=>{ if(!document.hidden) load(); }, 20000);
