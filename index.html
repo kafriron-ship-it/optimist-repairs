@@ -59,7 +59,7 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
 .brand{position:relative}
 .logo{width:40px;height:40px;flex:none;display:block}
 nav{display:flex;gap:4px;margin-top:12px}
-nav button{flex:1;min-width:0;background:none;border:0;color:var(--head-ink);opacity:.7;font:600 .95rem var(--body);padding:10px 2px 12px;white-space:nowrap;border-bottom:3px solid transparent;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:6px}
+nav button{flex:1;min-width:0;background:none;border:0;color:var(--head-ink);opacity:.88;font:600 .95rem var(--body);padding:10px 2px 12px;white-space:nowrap;border-bottom:3px solid transparent;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:6px}
 nav button[aria-selected="true"]{opacity:1;border-bottom-color:var(--flag)}
 nav .badge{background:var(--flag);color:var(--flag-ink);font:600 .75rem var(--mono);border-radius:999px;padding:1px 7px}
 nav button:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
@@ -221,11 +221,18 @@ textarea{min-height:64px;resize:vertical}
 .reqs{display:flex;flex-direction:column;gap:8px}
 .req{display:flex;gap:8px;align-items:flex-start;background:var(--chip);border-radius:10px;padding:8px 10px}
 .req div{flex:1;min-width:0;overflow-wrap:anywhere}
+.photobtn{display:inline-flex;align-items:center;gap:5px;text-decoration:none;margin-top:4px}
+.lightbox>div{max-width:560px;padding:12px;gap:10px}
+.lightbox img{width:100%;max-height:70vh;object-fit:contain;border-radius:12px;background:var(--chip);min-height:120px}
 .linkbtn{display:block;background:none;border:0;padding:4px 0 0;color:var(--navy);font:600 .8rem var(--body);text-decoration:underline;cursor:pointer}
 .empty{background:var(--surface);border:1.5px dashed var(--line);border-radius:12px;padding:28px 18px;text-align:center;color:var(--muted)}
 .empty strong{display:block;color:var(--ink);font-size:1.1rem;margin-bottom:4px}
 .filters{display:flex;gap:8px;flex-wrap:wrap}
 .status{font-size:.85rem;color:var(--muted);text-align:center}
+/* dark mode: light green / coral backgrounds need dark text to stay readable */
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) :is(.pill,.fixbtn,.bn.stop,.recent button i){color:#0b1422}}
+:root[data-theme="dark"] :is(.pill,.fixbtn,.bn.stop,.recent button i){color:#0b1422}
+.legal{margin:28px 0 0}.legal a,.pick a{color:var(--muted)}
 @media (prefers-reduced-motion:no-preference){.chip,.primary,nav button{transition:background .15s,opacity .15s,border-color .15s}}
 /* polish: one corner radius for every control, a press response, splash, skeleton, empty state */
 .ghost,.fixbtn,.undo,.recent button,.irow,.req,#boat,.pv,.thumb{border-radius:12px}
@@ -316,7 +323,7 @@ textarea{min-height:64px;resize:vertical}
   </div>
 
   <div class="photo-row">
-    <label class="ghost" for="photo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg> צרף תמונה (לא חובה)</label>
+    <label class="ghost" for="photo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg> צרף תמונה של הסירה (לא חובה)</label>
     <input type="file" id="photo" accept="image/*">
     <div class="pv" id="pv" hidden><img id="pvImg" alt="תמונה שצורפה"><button type="button" id="pvX" aria-label="הסר תמונה">✕</button></div>
   </div>
@@ -340,15 +347,8 @@ textarea{min-height:64px;resize:vertical}
   </div>
   <button class="primary" id="send" disabled>שלח דיווח</button>
   <div class="toast" id="toast" role="status"></div>
-  <div class="pick" id="namePick" hidden role="dialog" aria-modal="true" aria-labelledby="nameTitle"><div>
-    <h2 id="nameTitle">מה השם שלך?</h2>
-    <p class="inote" style="margin:0">ככה נדע מי דיווח ומי תיקן. שואלים רק פעם אחת, ואפשר לשנות אחר כך למעלה.</p>
-    <input id="nameIn" type="text" maxlength="30" placeholder="שם פרטי ושם משפחה" autocomplete="name" enterkeyhint="done">
-    <div class="needmsg" id="needName" hidden>צריך לכתוב שם</div>
-    <button type="button" class="primary" id="nameSave" style="padding:14px">שמור</button>
-  </div></div>
-  <div class="snack" id="snack" role="status" hidden><span id="snackMsg"></span><button type="button" id="snackUndo">בטל</button></div>
   <div class="status" id="conn"></div>
+  <p class="status legal"><a href="privacy.html">פרטיות ותנאי שימוש</a></p>
 </section>
 
 
@@ -383,6 +383,16 @@ textarea{min-height:64px;resize:vertical}
   <div id="boatsList" style="display:flex;flex-direction:column;gap:10px"></div>
 </section>
 </div>
+<!-- overlays: outside the tabs so they show on every tab -->
+<div class="pick" id="namePick" hidden role="dialog" aria-modal="true" aria-labelledby="nameTitle"><div>
+  <h2 id="nameTitle">מה השם שלך?</h2>
+  <p class="inote" style="margin:0">ככה נדע מי דיווח ומי תיקן. מספיק שם פרטי. שואלים רק פעם אחת, ואפשר לשנות אחר כך למעלה. <a href="privacy.html">פרטיות ותנאי שימוש</a></p>
+  <input id="nameIn" type="text" maxlength="30" placeholder="שם פרטי ושם משפחה" autocomplete="name" enterkeyhint="done">
+  <div class="needmsg" id="needName" hidden>צריך לכתוב שם</div>
+  <button type="button" class="primary" id="nameSave" style="padding:14px">שמור</button>
+</div></div>
+<div class="pick lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="תמונה של התקלה"><div><img id="lbImg" alt="תמונה של התקלה"><div class="status" id="lbMsg"></div><button type="button" class="ghost" id="lbClose">סגור</button></div></div>
+<div class="snack" id="snack" role="status" hidden><span id="snackMsg"></span><button type="button" id="snackUndo">בטל</button></div>
 
 <script>
 const PARTS = [
@@ -457,6 +467,16 @@ const $ = id => document.getElementById(id);
 var booting = true;
 const buzz = p => { try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} };
 const calm = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+// photos are private in Drive; the server hands them over only to the app, on request
+const photoCache = new Map();
+async function showPhoto(id){
+  $("lightbox").hidden = false; $("lbImg").removeAttribute("src"); $("lbMsg").textContent = "טוען תמונה…"; $("lbClose").focus();
+  try{ let src = photoCache.get(id); if(!src){ src = (await api("photo",{id})).data; photoCache.set(id, src); }
+    if(!$("lightbox").hidden){ $("lbImg").src = src; $("lbMsg").textContent = ""; } }
+  catch(e){ $("lbMsg").textContent = "לא הצלחתי לטעון את התמונה. בדקו אינטרנט ונסו שוב."; }
+}
+document.addEventListener("click", e=>{ if(e.target.id==="lbClose" || e.target.id==="lightbox") $("lightbox").hidden = true; });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && !$("lightbox").hidden) $("lightbox").hidden = true; });
 function hideSplash(){ const el = document.getElementById("splash"); if(!el || el.classList.contains("out")) return; el.classList.add("out"); setTimeout(()=>el.remove(), 400); }
 setTimeout(hideSplash, 2500);
 const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -760,7 +780,7 @@ function exportRows(){
     "תאריך דיווח": fmtDate(r.createdAt), "סטטוס": r.status==="open" ? "פתוח" : "תוקן", "תאריך תיקון": r.status==="open" ? "" : fmtDate(r.fixedAt), "תוקן ע\"י": r.status==="open" ? "" : (r.fixedBy||""),
     "ימים עד תיקון": r.status!=="open" && r.fixedAt && r.createdAt ? Math.round((r.fixedAt-r.createdAt)/864e5*10)/10 : "",
     "הערות נוספות": (r.comments||[]).map(c=>(c.by?c.by+": ":"")+c.text).join(" | "),
-    "תמונה": r.photo ? "https://drive.google.com/file/d/"+r.photo+"/view" : ""
+    "תמונה": r.photo ? "יש" : ""
   }));
 }
 function openPartsRows(){
@@ -828,7 +848,7 @@ function itemRow(r, title){
   return `<div class="row ${done?"done":""}">
     <div class="rt"><strong>${esc(title)}</strong>${lab?` <span class="itag">${esc(lab)}</span>`:""}${r.stop&&!done?` <span class="pill">לא יוצאת</span>`:""}
       ${r.note?`<div class="inote">${esc(r.note)}</div>`:""}
-      ${r.photo?`<a href="https://drive.google.com/file/d/${encodeURIComponent(r.photo)}/view" target="_blank" rel="noopener"><img class="thumb" loading="lazy" alt="תמונה של התקלה" src="https://drive.google.com/thumbnail?id=${encodeURIComponent(r.photo)}&sz=w320"></a>`:""}
+      ${r.photo?`<button type="button" class="linkbtn photobtn" data-photo="${esc(r.id)}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg> הצג תמונה</button>`:""}
       ${(r.comments||[]).length?`<div class="cmts">${r.comments.map(c=>`<div class="cmt"><b>${esc(c.by||"ללא שם")}:</b> ${esc(c.text)}</div>`).join("")}</div>`:""}
       ${openMore.has(r.id)?`<div class="extra"><span>דווח ע"י ${esc(r.reporter||"ללא שם")} · ${date}${done && r.fixedBy ? ` · תוקן ע"י ${esc(r.fixedBy)}` : ""}</span><button class="del" data-del="${r.id}">מחק דיווח</button>
         <div class="addc"><input type="text" maxlength="200" placeholder="הוסף הערה, למשל: זה בעצם סירה 54" data-cin="${r.id}" aria-label="הערה"><button type="button" class="ghost" data-csend="${r.id}">שלח</button></div></div>`:""}
@@ -927,6 +947,8 @@ $("boatsList").addEventListener("click", async e=>{
     catch(err){ Object.assign(r, prev); render(); snack("השמירה נכשלה, בדוק אינטרנט"); }
     return;
   }
+  const ph = e.target.closest("[data-photo]");
+  if(ph){ showPhoto(ph.dataset.photo); return; }
   const cs = e.target.closest("[data-csend]");
   if(cs && db){ sendComment(cs.dataset.csend); return; }
   const b = e.target.closest("[data-del]"); if(!b||!db) return;
