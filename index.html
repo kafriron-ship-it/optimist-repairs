@@ -601,11 +601,12 @@ $("reqKind").addEventListener("click", e=>{ const b=e.target.closest("[data-rk]"
   $("reqKind").querySelectorAll("[data-rk]").forEach(x=>x.setAttribute("aria-pressed", x===b)); $("reqText").placeholder = REQ_HINT[reqKind]; });
 $("reqOpen").addEventListener("click", ()=>{ $("reqPanel").hidden = false; $("reqOpen").hidden = true; $("reqText").focus(); });
 $("reqCancel").addEventListener("click", ()=>{ $("reqPanel").hidden = true; $("reqOpen").hidden = !!pin; });
-$("reqSend").addEventListener("click", async ()=>{
+$("reqSend").addEventListener("click", ()=>{
   const text = $("reqText").value.trim(); if(!text) { $("reqText").focus(); return; }
   if(!db){ toast("אין חיבור",true); return; }
-  try{ await api("request",{text, by:$("who").value.trim(), type:curType, kind:reqKind}); $("reqText").value=""; $("reqPanel").hidden=true; $("reqOpen").hidden=false; toast("הבקשה נשלחה, תודה!"); }
-  catch(e){ toast("השליחה נכשלה",true); }
+  const by=$("who").value.trim(), type=curType, kind=reqKind;
+  $("reqText").value=""; $("reqPanel").hidden=true; $("reqOpen").hidden=false; toast("הבקשה נשלחה, תודה!");
+  api("request",{text, by, type, kind}).catch(e=> toast("הבקשה לא נשלחה, נסה שוב",true));
 });
 $("pinGo").addEventListener("click", async ()=>{
   const p = $("pinIn").value.trim(); if(!p) return;
@@ -628,12 +629,15 @@ $("editParts").addEventListener("click",()=>{
   $("editPanel").hidden=false;
 });
 $("cancelParts").addEventListener("click",()=>{ $("editPanel").hidden=true; });
-$("saveParts").addEventListener("click", async ()=>{
+$("saveParts").addEventListener("click", ()=>{
   const next = groups.map((g,i)=>({...g, items:[...new Set($("eg"+i).value.split("\n").map(s=>s.trim()).filter(Boolean))].slice(0,40)}));
   if(!db){ toast("אין חיבור לשמירה",true); return; }
-  try{ await api("setParts",{type:curType, groups:next, pin}); partsByType[curType]=next;
-    groups=next; renderChips(); $("editPanel").hidden=true; toast("רשימת החלקים עודכנה"); }
-  catch(e){ toast(e.message==="pin" ? "קוד העריכה לא תקף" : "השמירה נכשלה",true); }
+  const type=curType, prevByType=partsByType[type], prevGroups=groups;
+  partsByType[type]=next; groups=next; renderChips(); $("editPanel").hidden=true; toast("רשימת החלקים עודכנה");
+  api("setParts",{type, groups:next, pin}).catch(e=>{
+    partsByType[type]=prevByType; if(curType===type) groups=prevGroups; renderChips();
+    toast(e.message==="pin" ? "קוד העריכה לא תקף" : "השמירה נכשלה, שוחזר",true);
+  });
 });
 $("partGroups").addEventListener("click",e=>{
   const c = e.target.closest(".chip"); if(!c) return;
