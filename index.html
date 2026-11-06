@@ -108,7 +108,9 @@ mark{background:none;color:var(--navy);font-weight:800}
 .pv{position:relative;width:72px;height:72px;border-radius:10px;overflow:hidden;border:1.5px solid var(--line)}
 .pv img{width:100%;height:100%;object-fit:cover;display:block}
 .pv button{position:absolute;top:2px;inset-inline-end:2px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font:700 .8rem var(--body);cursor:pointer}
-.thumb{display:block;margin-top:6px;width:120px;max-width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--chip)}
+.thumb{display:block;margin-top:6px;width:120px;max-width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--chip);color:transparent}
+.thumb.phload{background:linear-gradient(90deg,var(--chip),var(--line),var(--chip));background-size:200% 100%;animation:phsh 1.2s linear infinite}
+@keyframes phsh{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .tile b{display:block;font:600 1.6rem var(--mono);font-variant-numeric:tabular-nums;color:var(--navy)}
@@ -486,9 +488,11 @@ document.addEventListener("keydown", e=>{ if(e.key==="Escape" && !$("lightbox").
 // show attached photos inline: load each thumbnail lazily when it scrolls into view
 function loadThumb(img){
   const id = img.dataset.photo; if(!id || img.dataset.ld) return; img.dataset.ld = "1";
+  img.addEventListener("load", ()=>img.classList.remove("phload"), {once:true});
   const c = photoCache.get(id);
   if(c){ img.src = c; return; }
-  api("photo",{id}).then(j=>{ if(j && j.data){ photoCache.set(id, j.data); img.src = j.data; } }).catch(()=>{ img.dataset.ld = ""; });
+  api("photo",{id}).then(j=>{ if(j && j.data){ photoCache.set(id, j.data); img.src = j.data; } else img.classList.remove("phload"); })
+    .catch(()=>{ img.dataset.ld = ""; img.classList.remove("phload"); });
 }
 let thumbObs = null;
 function observeThumbs(){
@@ -876,7 +880,7 @@ function itemRow(r, title){
   return `<div class="row ${done?"done":""}">
     <div class="rt"><strong>${esc(title)}</strong>${lab?` <span class="itag">${esc(lab)}</span>`:""}${r.stop&&!done?` <span class="pill">לא יוצאת</span>`:""}
       ${r.note?`<div class="inote">${esc(r.note)}</div>`:""}
-      ${r.photo?`<img class="thumb" data-photo="${esc(r.id)}" alt="תמונה של התקלה" title="הגדל">`:""}
+      ${r.photo?`<img class="thumb phload" data-photo="${esc(r.id)}" alt="תמונה של התקלה" title="הגדל">`:""}
       ${(r.comments||[]).length?`<div class="cmts">${r.comments.map(c=>`<div class="cmt"><b>${esc(c.by||"ללא שם")}:</b> ${esc(c.text)}</div>`).join("")}</div>`:""}
       ${openMore.has(r.id)?`<div class="extra"><span>דווח ע"י ${esc(r.reporter||"ללא שם")} · ${date}${done && r.fixedBy ? ` · תוקן ע"י ${esc(r.fixedBy)}` : ""}</span><button class="del" data-del="${r.id}">מחק דיווח</button>
         <div class="addc"><input type="text" maxlength="200" placeholder="הוסף הערה, למשל: זה בעצם סירה 54" data-cin="${r.id}" aria-label="הערה"><button type="button" class="ghost" data-csend="${r.id}">שלח</button></div></div>`:""}
