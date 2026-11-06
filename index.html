@@ -113,6 +113,11 @@ mark{background:none;color:var(--navy);font-weight:800}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .tile b{display:block;font:600 1.6rem var(--mono);font-variant-numeric:tabular-nums;color:var(--navy)}
 .tile span{font-size:.85rem;color:var(--muted)}
+.hero{display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.hero>b{font:600 3.2rem/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--stop);min-width:1.2em;text-align:center}
+.hero>b.zero{color:var(--ok)}
+.hero strong{display:block;font-size:1.05rem}
+.hero span{display:block;font-size:.88rem;color:var(--muted)}
 .bars{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .bar{display:grid;grid-template-columns:minmax(0,9rem) 1fr 2.5ch;gap:10px;align-items:center;font-size:.92rem}
 .bar .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
@@ -438,7 +443,8 @@ const DEF_PARTS = {
   ]
 };
 let curType = (()=>{ let t = null; try{ t = localStorage.getItem(skey("type")); }catch(e){} return t || TYPES[0]; })();
-let partsByType = {}, fleet = {}, fleetB = {}, allReports = [];
+let partsByType = {}, fleet = {}, fleetB = {}, allReports = [], pending = [];
+function repSig(r){ return brOf(r)+"|"+typeOf(r)+"|"+normBoat(r.boat)+"|"+norm(r.part); }
 let BRANCHES = ["ירקון","מרינה תל אביב","נמל יפו"], DEF_BRANCH = "נמל יפו", CLUB = ORG === "daniel" ? "מרכז דניאל · חוג שייט" : "";
 let repBranch = "", viewBranch = "all";
 const SHORT = {"ירקון":"ירקון","מרינה תל אביב":"מרינה","נמל יפו":"יפו"};
@@ -720,27 +726,31 @@ $("send").addEventListener("click", async ()=>{
   if(!parts.length){ toast(`כבר דווח על ${curType} ${boat}: ${skipped.join(", ")}`, true); return; }
   const who = $("who").value.trim(); store.set("who", who);
   const base = { boat, note:$("note").value.trim(), stop:$("stop").checked, reporter:who, status:"open", createdAt:Date.now() };
-  $("send").disabled = true; $("send").textContent = photoData ? "שולח עם תמונה…" : "שולח…";
-  try{
-    const items = parts.map(part=>{
-      const kind = groups.some(g=>g.task && g.items.includes(part)) ? "task" : "part";
-      const issue = kind==="task" ? "" : (issueOf[part] || "שבור");
-      return {part, kind, issue, issueText: issue==="אחר" ? norm(issueText[part]) : ""};
-    });
-    const res = await api("add",{branch:repBranch, type:curType, boat, note:base.note, stop:base.stop, reporter:who, items, photo:photoData||""});
-    (res.skipped||[]).forEach(p=>{ if(!skipped.includes(p)) skipped.push(p); });
-    if(res.photoError) setTimeout(()=>toast("הדיווח נשמר, אבל התמונה לא נשמרה.", true), 4200);
-    parts.length = 0; (res.added||[]).forEach(p=>parts.push(p));
-    load();
-    buzz(30);
-    toast(`נשלח: ${repBranch} · ${curType} ${boat} · ${parts.length} ${parts.length===1?"תקלה":"תקלות"}` + (skipped.length?` (כבר היה: ${skipped.join(", ")})`:""));
-    selected.clear(); document.querySelectorAll("#partGroups .chip").forEach(c=>c.setAttribute("aria-pressed","false"));
-    $("other").value=""; issueOf={}; issueText={}; customs=[]; renderCustoms(); $("note").value=""; $("stop").checked=false; $("boat").value=""; repBranch=""; renderBranchPick(); clearPhoto(); $("boat").focus();
-  }catch(e){
-    toast("השליחה נכשלה. בדוק חיבור לאינטרנט ונסה שוב.", true);
-  }
-  $("send").textContent = "שלח דיווח";
+  const items = parts.map(part=>{
+    const kind = groups.some(g=>g.task && g.items.includes(part)) ? "task" : "part";
+    const issue = kind==="task" ? "" : (issueOf[part] || "שבור");
+    return {part, kind, issue, issueText: issue==="אחר" ? norm(issueText[part]) : ""};
+  });
+  const br = repBranch, payload = {branch:br, type:curType, boat, note:base.note, stop:base.stop, reporter:who, items, photo:photoData||""};
+  // show the report right away, then sync with the server in the background
+  const now = Date.now();
+  const opt = items.map(it=>({ id:"tmp_"+Math.random().toString(36).slice(2), type:curType, boat, part:it.part, kind:it.kind, issue:it.issue, issueText:it.issueText, note:base.note, stop:base.stop, reporter:who, status:"open", photo:"", createdAt:now, fixedAt:null, comments:[], branch:br, fixedBy:"" }));
+  pending.push(...opt); allReports = allReports.concat(opt); applyView(); render();
+  buzz(30);
+  toast(`נשלח: ${br} · ${curType} ${boat} · ${parts.length} ${parts.length===1?"תקלה":"תקלות"}` + (skipped.length?` (כבר היה: ${skipped.join(", ")})`:""));
+  selected.clear(); document.querySelectorAll("#partGroups .chip").forEach(c=>c.setAttribute("aria-pressed","false"));
+  $("other").value=""; issueOf={}; issueText={}; customs=[]; renderCustoms(); $("note").value=""; $("stop").checked=false; $("boat").value=""; repBranch=""; renderBranchPick(); clearPhoto(); $("boat").focus();
   validate();
+  api("add", payload).then(res=>{
+    if(res.photoError) toast("הדיווח נשמר, אבל התמונה לא נשמרה.", true);
+    load();
+  }).catch(e=>{
+    const ids = new Set(opt.map(o=>o.id));
+    pending = pending.filter(p=>!ids.has(p.id));
+    allReports = allReports.filter(r=>!ids.has(r.id));
+    applyView(); render();
+    toast("השליחה נכשלה. הדיווח לא נשמר, נסה שוב.", true);
+  });
 });
 
 /* ---------- parts view ---------- */
@@ -978,12 +988,14 @@ function renderStats(){
   const byBoat = new Map(), byPart = new Map(), byType = new Map();
   rs.forEach(r=>{ byBoat.set(label(r),(byBoat.get(label(r))||0)+1); byType.set(typeOf(r),(byType.get(typeOf(r))||0)+1); });
   parts.forEach(r=>{ const k = multi ? norm(r.part)+" ("+typeOf(r)+")" : norm(r.part); byPart.set(k,(byPart.get(k)||0)+1); });
+  // one number leads (what is still open); the rest supports it as plain sentences
+  const open = rs.filter(r=>r.status==="open").length, done = rs.length - open;
   $("statsBody").innerHTML = `<div style="display:flex;flex-direction:column;gap:16px">
-    <div class="tiles">
-      <div class="tile"><b>${rs.length}</b><span>דיווחים</span></div>
-      <div class="tile"><b>${rs.filter(r=>r.status!=="open").length}</b><span>תוקנו</span></div>
-      <div class="tile"><b>${rs.filter(r=>r.status==="open").length}</b><span>עדיין פתוחות</span></div>
-      <div class="tile"><b>${avg===null?"–":avg.toFixed(1)}</b><span>ימים בממוצע עד תיקון</span></div>
+    <div class="hero">
+      <b class="${open?"":"zero"}">${open}</b>
+      <div><strong>${open===1?"תקלה אחת עדיין פתוחה":open?"תקלות עדיין פתוחות":"אין תקלות פתוחות"}</strong>
+        <span>${rs.length ? `${done} מתוך ${rs.length} דיווחים כבר תוקנו` : "עוד לא היו דיווחים בתקופה הזו"}</span>
+        ${avg===null?"":`<span>בממוצע ${avg<1?"פחות מיום":avg.toFixed(1)+" ימים"} עד תיקון</span>`}</div>
     </div>
     <h2 class="stitle">סירות שנשברות הכי הרבה</h2>${bars(topN(byBoat,8))}
     <h2 class="stitle">חלקים שנשברים הכי הרבה</h2>${bars(topN(byPart,10))}
@@ -1064,7 +1076,9 @@ function showClub(){
 showClub();
 // show the last data saved on this phone right away, then refresh from the server
 function applyData(j){
-    allReports = j.reports || [];
+    const srv = j.reports || [];
+    if(pending.length){ const have = new Set(srv.filter(r=>r.status==="open").map(repSig)); pending = pending.filter(p=>!have.has(repSig(p))); }
+    allReports = srv.concat(pending);
     requests = j.requests || [];
     const c = j.config || {};
     if(c.fleetB && typeof c.fleetB==="object") fleetB = c.fleetB;
