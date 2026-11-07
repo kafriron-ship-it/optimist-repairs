@@ -31,6 +31,8 @@ button{font-family:inherit;cursor:pointer}
 .gsel{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .gsel button{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font:600 .82rem 'Assistant';color:var(--muted)}
 .gsel button.on{background:#214a7d;border-color:#3e6fa8;color:#fff}
+.gsel .gbr{flex-basis:100%;font:800 .72rem 'Assistant';letter-spacing:.04em;color:var(--flag);margin:8px 2px 0}
+.gsel .gbr:first-child{margin-top:0}
 .gttl{display:flex;justify-content:space-between;align-items:center;margin:0 2px 8px}
 .gttl .t{font-weight:800}
 .pill{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:3px 11px;font:600 .8rem 'Assistant'}
@@ -189,9 +191,20 @@ function render(){
   if(needsReminder(cur, state.dates[state.di])) h += '<div class="rem">⏰ אל תשכחו למלא נוכחות לתאריך הזה</div>';
   // בוחר קבוצה (לרכזים / כמה קבוצות)
   if(groups.length > 1){
-    h += '<div class="gsel">'+groups.map(function(x,i){
-      return '<button data-gi="'+i+'" class="'+(i===state.gi?"on":"")+'">'+esc(x.instructor)+' · '+esc(x.day)+'</button>';
-    }).join("")+'</div>';
+    var DORDER = ["ראשון","שני","שלישי","רביעי","חמישי","שישי"];
+    var BR = { jaffa:"יפו", ta:"תל אביב" };
+    var order = groups.map(function(g,i){ return i; }).sort(function(a,b){
+      var ga=groups[a], gb=groups[b];
+      if(ga.branch!==gb.branch) return (ga.branch==="jaffa"?0:1)-(gb.branch==="jaffa"?0:1);
+      var d=DORDER.indexOf(ga.day)-DORDER.indexOf(gb.day); if(d) return d;
+      return norm(ga.instructor).localeCompare(norm(gb.instructor),"he");
+    });
+    var lastBr="", gh='<div class="gsel">';
+    order.forEach(function(i){ var g=groups[i];
+      if(state.isCoord && g.branch!==lastBr){ lastBr=g.branch; gh += '<div class="gbr">'+esc(BR[g.branch]||g.branch)+'</div>'; }
+      gh += '<button data-gi="'+i+'" class="'+(i===state.gi?"on":"")+'">'+esc(g.instructor)+' · '+esc(g.day)+'</button>';
+    });
+    h += gh + '</div>';
   }
   h += '<div class="card">';
   h += '<div class="datebar"><button class="nav" data-dd="-1">‹</button><b id="dlabel">'+esc(state.dates[state.di]||"")+'</b><button class="nav" data-dd="1">›</button></div>';
