@@ -538,7 +538,7 @@ function attTabAllowed(){
     if(!localStorage.getItem("att_api")) return false;                 // המכשיר לא נכנס דרך הקישור הפרטי
     var who = ($("who").value || localStorage.getItem("who") || "").trim();
     if(!who) return false;
-    if(["טל","ירדן"].indexOf(who.split(" ")[0]) > -1) return true;      // רכזים
+    if(["טל","ירדן","רון"].indexOf(who.split(" ")[0]) > -1) return true;      // רכזים
     return (localStorage.getItem("att_ok") || "") === who;             // מדריך שאומת מול הטבלה
   }catch(e){ return false; }
 }

@@ -116,7 +116,7 @@ try{ API = localStorage.getItem("att_api") || ""; }catch(e){}
 try{ if(/[?&]embed=/.test(location.search)) document.documentElement.classList.add("embed"); }catch(e){}
 var BRANCH = "jaffa";
 try{ var mb=/[#&?]branch=([^&]+)/.exec(location.search); if(mb) BRANCH=decodeURIComponent(mb[1]); }catch(e){}
-var COORDS = ["טל","ירדן"];   // רואים את כל הקבוצות
+var COORDS = ["טל","ירדן","רון"];   // רואים את כל הקבוצות
 var DAYS = {0:"ראשון",1:"שני",2:"שלישי",3:"רביעי",4:"חמישי",5:"שישי",6:"שבת"};
 var $ = function(id){ return document.getElementById(id); };
 var esc = function(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); };
