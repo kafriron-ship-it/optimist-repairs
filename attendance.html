@@ -148,27 +148,20 @@ function post(body){ return fetch(API, {method:"POST", body:JSON.stringify(body)
 
 function load(){
   $("main").innerHTML = '<div class="msg"><span class="spin"></span><div style="margin-top:10px">טוען נוכחות…</div></div>';
-  api({action:"roster", branch:BRANCH}).then(function(j){
+  api({action:"rosterAll"}).then(function(j){
     if(!j.ok){ $("main").innerHTML = '<div class="msg">שגיאה: '+esc(j.error||"")+'</div>'; return; }
-    state.data = j.days;
+    state.all = j.groups || [];
     render();
   }).catch(function(){ $("main").innerHTML = '<div class="msg">אין חיבור. נסו שוב.</div>'; });
 }
 
 function myGroups(){
-  // כל הקבוצות מכל הימים, מסוננות למדריך (אלא אם רכז)
+  // כל הקבוצות משני הסניפים, מסוננות למדריך לפי השם הפרטי (אלא אם רכז רואה הכול)
   var first = norm(state.who).split(" ")[0];
   state.isCoord = COORDS.indexOf(first) > -1;
-  var all = [];
-  Object.keys(state.data).forEach(function(day){
-    state.data[day].forEach(function(g){ all.push({ day:day, g:g }); });
-  });
-  if(state.isCoord) return all;
-  var words = norm(state.who).split(" ");
-  return all.filter(function(x){
-    var inst = norm(x.g.instructor);
-    return words.every(function(w){ return inst.indexOf(w) > -1; });
-  });
+  var all = state.all || [];
+  if(state.isCoord) return all.slice();
+  return all.filter(function(g){ return norm(g.instructor).indexOf(first) > -1; });
 }
 
 function render(){
@@ -183,21 +176,21 @@ function render(){
   if(state.gi >= groups.length) state.gi = 0;
   var cur = groups[state.gi];
   // תאריכים של הקבוצה הנוכחית + בחירת ברירת מחדל (הקרוב להיום)
-  state.dates = cur.g.dateCols.map(function(d){ return d.date; });
+  state.dates = cur.dateCols.map(function(d){ return d.date; });
   state.di = nearestDate(state.dates);
 
   var h = '<div class="who">שלום <b>'+esc(state.who)+'</b> · <a id="chname">שנה שם</a></div>';
   // תזכורת אם הנוכחות של היום ריקה
-  if(needsReminder(cur.g, state.dates[state.di])) h += '<div class="rem">⏰ אל תשכחו למלא נוכחות לתאריך הזה</div>';
+  if(needsReminder(cur, state.dates[state.di])) h += '<div class="rem">⏰ אל תשכחו למלא נוכחות לתאריך הזה</div>';
   // בוחר קבוצה (לרכזים / כמה קבוצות)
   if(groups.length > 1){
     h += '<div class="gsel">'+groups.map(function(x,i){
-      return '<button data-gi="'+i+'" class="'+(i===state.gi?"on":"")+'">'+esc(x.g.instructor)+' · '+esc(x.day)+'</button>';
+      return '<button data-gi="'+i+'" class="'+(i===state.gi?"on":"")+'">'+esc(x.instructor)+' · '+esc(x.day)+'</button>';
     }).join("")+'</div>';
   }
   h += '<div class="card">';
   h += '<div class="datebar"><button class="nav" data-dd="-1">‹</button><b id="dlabel">'+esc(state.dates[state.di]||"")+'</b><button class="nav" data-dd="1">›</button></div>';
-  h += '<div class="gttl"><span class="t">'+esc(cur.g.instructor)+' · '+esc(cur.day)+'</span><span class="pill" id="cnt"></span></div>';
+  h += '<div class="gttl"><span class="t">'+esc(cur.instructor)+' · '+esc(cur.day)+'</span><span class="pill" id="cnt"></span></div>';
   h += '<div id="stlist"></div></div>';
   $("main").innerHTML = h;
   $("chname").onclick = openGate;
@@ -217,7 +210,7 @@ function needsReminder(g, date){ return g.students.some(function(s){ return !s.a
 function renderStudents(){
   var cur = state.groups[state.gi]; var date = state.dates[state.di];
   var present = 0;
-  var html = cur.g.students.map(function(s, idx){
+  var html = cur.students.map(function(s, idx){
     var v = s.attendance[date]||"";
     if(v==="v") present++;
     return '<div class="st">'+
@@ -228,18 +221,18 @@ function renderStudents(){
       '</div></div>';
   }).join("");
   $("stlist").innerHTML = html;
-  $("cnt").innerHTML = '<b>'+present+'</b> / '+cur.g.students.length+' נוכחים';
+  $("cnt").innerHTML = '<b>'+present+'</b> / '+cur.students.length+' נוכחים';
   document.querySelectorAll("#stlist [data-mark]").forEach(function(b){ b.onclick=function(){ mark(cur, date, b); }; });
-  document.querySelectorAll("#stlist [data-card]").forEach(function(b){ b.onclick=function(){ openCard(cur.g.students[+b.dataset.card], cur); }; });
+  document.querySelectorAll("#stlist [data-card]").forEach(function(b){ b.onclick=function(){ openCard(cur.students[+b.dataset.card], cur); }; });
 }
 
 function mark(cur, date, btn){
   var row = +btn.dataset.row, val = btn.dataset.mark;
-  var s = cur.g.students.filter(function(x){ return x.row===row; })[0];
+  var s = cur.students.filter(function(x){ return x.row===row; })[0];
   var nv = (s.attendance[date]===val) ? "" : val;   // לחיצה שנייה מבטלת
   s.attendance[date] = nv;                            // אופטימי
   renderStudents();
-  post({action:"mark", branch:BRANCH, day:cur.day, row:row, date:date, value:nv}).then(function(j){
+  post({action:"mark", branch:cur.branch, day:cur.day, row:row, date:date, value:nv}).then(function(j){
     if(!j||!j.ok){ s.attendance[date] = ""; renderStudents(); alert("לא נשמר, נסו שוב"); }
   }).catch(function(){ s.attendance[date]=""; renderStudents(); alert("אין חיבור"); });
 }
@@ -249,7 +242,7 @@ function openCard(s, cur){
   var init = norm(s.name).split(" ").slice(0,2).map(function(w){return w[0];}).join("");
   var ph = (s.phone||"").replace(/\D/g,"");
   var h = '<div class="top"><div class="av '+(fem?"f":"")+'">'+esc(init)+'</div>'+
-    '<div><div class="nm">'+esc(s.name)+'</div><div class="sub">'+esc(cur.g.instructor)+' · '+esc(cur.day)+'</div></div>'+
+    '<div><div class="nm">'+esc(s.name)+'</div><div class="sub">'+esc(cur.instructor)+' · '+esc(cur.day)+'</div></div>'+
     '<button class="x" id="ovx">סגור</button></div>';
   if(ph) h += '<a class="call" href="tel:'+esc(ph)+'"><div class="ic">📞</div><div><div class="lab">התקשר להורה'+(s.parent?' — '+esc(s.parent):'')+'</div><div class="ph">'+esc(s.phone)+'</div></div></a>';
   h += '<div class="grid">'+
@@ -274,7 +267,7 @@ function addNote(s, cur){
   var t = norm($("nin").value); if(!t) return;
   s.notes = s.notes||[]; s.notes.push({note:t, by:state.who, at:Date.now()});
   $("nlist").innerHTML = notesHtml(s); $("nin").value="";
-  post({action:"addNote", branch:BRANCH, day:cur.day, student:s.name, note:t, by:state.who}).catch(function(){ alert("ההערה לא נשמרה"); });
+  post({action:"addNote", branch:cur.branch, day:cur.day, student:s.name, note:t, by:state.who}).catch(function(){ alert("ההערה לא נשמרה"); });
 }
 function closeCard(){ $("ov").hidden = true; }
 $("ov").addEventListener("click", function(e){ if(e.target.id==="ov") closeCard(); });
