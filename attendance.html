@@ -83,6 +83,8 @@ button{font-family:inherit;cursor:pointer}
 .naddrow input{flex:1;background:var(--bg);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:9px 11px;font:600 .9rem 'Assistant'}
 .naddrow button{background:var(--navy);color:#fff;border:0;border-radius:10px;padding:0 15px;font:700 .9rem 'Assistant'}
 [hidden]{display:none!important}
+.embed header{display:none}
+.embed .bd{padding-top:16px}
 </style>
 </head>
 <body>
@@ -111,6 +113,7 @@ try{ API = localStorage.getItem("att_api") || ""; }catch(e){}
   var m = /[#&?]api=([^&]+)/.exec(location.hash + "&" + location.search);
   if(m){ API = decodeURIComponent(m[1]); try{ localStorage.setItem("att_api", API); }catch(e){} try{ history.replaceState(null,"",location.pathname); }catch(e){} }
 })();
+try{ if(/[?&]embed=/.test(location.search)) document.documentElement.classList.add("embed"); }catch(e){}
 var BRANCH = "jaffa";
 try{ var mb=/[#&?]branch=([^&]+)/.exec(location.search); if(mb) BRANCH=decodeURIComponent(mb[1]); }catch(e){}
 var COORDS = ["טל","ירדן"];   // רואים את כל הקבוצות

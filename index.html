@@ -283,7 +283,7 @@ textarea{min-height:64px;resize:vertical}
     <button role="tab" id="tab-report" data-tab="report" aria-selected="true">דיווח</button>
     <button role="tab" id="tab-boats" data-tab="boats" aria-selected="false">תיקונים <span class="badge" id="boatsBadge">0</span></button>
     <button role="tab" id="tab-stats" data-tab="stats" aria-selected="false">נתונים</button>
-    <a class="navlink" id="tab-att" href="attendance.html" hidden>נוכחות</a>
+    <button role="tab" id="tab-att" data-tab="att" aria-selected="false" hidden>נוכחות</button>
   </nav>
 </header>
 
@@ -378,6 +378,7 @@ textarea{min-height:64px;resize:vertical}
 </section>
 
 <!-- BOATS -->
+<section id="view-att" hidden><iframe id="attFrame" title="נוכחות חניכים" style="width:100%;height:calc(100dvh - 118px);border:0;display:block"></iframe></section>
 <section id="view-boats" hidden>
   <div class="chips bfilter"></div>
   <input id="fixer" type="hidden">
@@ -525,9 +526,10 @@ let have = new Set(JSON.parse(store.get("have") || "[]"));
 /* ---------- tabs ---------- */
 function showTab(t){
   if(t==="parts") t = "boats";
-  if(!["report","boats","stats"].includes(t)) t = "report";
+  if(!["report","boats","stats","att"].includes(t)) t = "report";
   document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
-  ["report","boats","stats"].forEach(v=>$("view-"+v).hidden = v!==t);
+  ["report","boats","stats","att"].forEach(v=>$("view-"+v).hidden = v!==t);
+  if(t==="att"){ const f=$("attFrame"); if(f && !f.getAttribute("src")) f.setAttribute("src","attendance.html?embed=1"); }
 }
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{ location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
 // תאב "נוכחות" מופיע רק למדריכים — מכשיר שכבר נכנס פעם דרך הקישור הפרטי (יש att_api)
