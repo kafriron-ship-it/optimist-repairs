@@ -61,6 +61,7 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
 nav{display:flex;gap:4px;margin-top:12px}
 nav button{flex:1;min-width:0;background:none;border:0;color:var(--head-ink);opacity:.88;font:600 .95rem var(--body);padding:10px 2px 12px;white-space:nowrap;border-bottom:3px solid transparent;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:6px}
 nav button[aria-selected="true"]{opacity:1;border-bottom-color:var(--flag)}
+nav a.navlink{flex:1;min-width:0;text-align:center;color:var(--head-ink);opacity:.88;font:600 .95rem var(--body);padding:10px 2px 12px;white-space:nowrap;border-bottom:3px solid transparent;text-decoration:none;display:flex;justify-content:center;align-items:center;gap:6px}
 nav .badge{background:var(--flag);color:var(--flag-ink);font:600 .75rem var(--mono);border-radius:999px;padding:1px 7px}
 nav button:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
 section{display:flex;flex-direction:column;gap:18px;padding-top:20px}
@@ -282,6 +283,7 @@ textarea{min-height:64px;resize:vertical}
     <button role="tab" id="tab-report" data-tab="report" aria-selected="true">דיווח</button>
     <button role="tab" id="tab-boats" data-tab="boats" aria-selected="false">תיקונים <span class="badge" id="boatsBadge">0</span></button>
     <button role="tab" id="tab-stats" data-tab="stats" aria-selected="false">נתונים</button>
+    <a class="navlink" id="tab-att" href="attendance.html" hidden>נוכחות</a>
   </nav>
 </header>
 
@@ -360,7 +362,7 @@ textarea{min-height:64px;resize:vertical}
   <button class="primary" id="send" disabled>שלח דיווח</button>
   <div class="toast" id="toast" role="status"></div>
   <div class="status" id="conn"></div>
-  <p class="status legal"><a href="attendance.html">נוכחות חניכים (למדריכים)</a> · <a href="privacy.html">פרטיות ותנאי שימוש</a></p>
+  <p class="status legal"><a href="privacy.html">פרטיות ותנאי שימוש</a></p>
 </section>
 
 
@@ -528,6 +530,8 @@ function showTab(t){
   ["report","boats","stats"].forEach(v=>$("view-"+v).hidden = v!==t);
 }
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{ location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
+// תאב "נוכחות" מופיע רק למדריכים — מכשיר שכבר נכנס פעם דרך הקישור הפרטי (יש att_api)
+try{ if(localStorage.getItem("att_api")) $("tab-att").hidden = false; }catch(e){}
 window.addEventListener("hashchange",()=>showTab(location.hash.slice(1)));
 showTab(location.hash.slice(1));
 
