@@ -533,7 +533,17 @@ function showTab(t){
 }
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{ location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
 // תאב "נוכחות" מופיע רק למדריכים — מכשיר שכבר נכנס פעם דרך הקישור הפרטי (יש att_api)
-try{ if(localStorage.getItem("att_api")) $("tab-att").hidden = false; }catch(e){}
+function attTabAllowed(){
+  try{
+    if(!localStorage.getItem("att_api")) return false;                 // המכשיר לא נכנס דרך הקישור הפרטי
+    var who = ($("who").value || localStorage.getItem("who") || "").trim();
+    if(!who) return false;
+    if(["טל","ירדן"].indexOf(who.split(" ")[0]) > -1) return true;      // רכזים
+    return (localStorage.getItem("att_ok") || "") === who;             // מדריך שאומת מול הטבלה
+  }catch(e){ return false; }
+}
+function updateAttTab(){ try{ $("tab-att").hidden = !attTabAllowed(); if($("tab-att").hidden && location.hash==="#att") showTab("report"); }catch(e){} }
+updateAttTab();
 window.addEventListener("hashchange",()=>showTab(location.hash.slice(1)));
 showTab(location.hash.slice(1));
 
@@ -705,7 +715,7 @@ function showName(){ const n = $("who").value.trim(); $("nameBtn").hidden = !n; 
 function askName(){ $("nameIn").value = $("who").value; $("needName").hidden = true; $("nameIn").classList.remove("need"); $("namePick").hidden = false; setTimeout(()=>$("nameIn").focus(), 50); }
 function saveName(){ const n = $("nameIn").value.trim().replace(/\s+/g," ");
   if(!n){ $("nameIn").classList.add("need"); $("needName").hidden = false; return; }
-  $("who").value = n; $("fixer").value = n; store.set("who", n); $("namePick").hidden = true; showName(); }
+  $("who").value = n; $("fixer").value = n; store.set("who", n); $("namePick").hidden = true; showName(); updateAttTab(); }
 $("nameSave").addEventListener("click", saveName);
 $("nameIn").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); saveName(); } });
 $("nameBtn").addEventListener("click", askName);

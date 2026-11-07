@@ -124,7 +124,7 @@ var norm = function(s){ return String(s==null?"":s).trim().replace(/\s+/g," "); 
 
 var state = { who:"", data:null, day:"", dates:[], di:0, groups:[], gi:0, isCoord:false };
 
-try{ state.who = localStorage.getItem("att_who") || ""; }catch(e){}
+try{ state.who = localStorage.getItem("who") || localStorage.getItem("att_who") || ""; }catch(e){}
 
 function fmtToday(d){ return d.getDate()+"/"+(d.getMonth()+1)+"/"+String(d.getFullYear()).slice(2); }
 
@@ -139,7 +139,7 @@ $("gname").addEventListener("keydown", function(e){ if(e.key==="Enter") saveName
 function saveName(){
   var v = norm($("gname").value);
   if(v.split(" ").length < 2){ $("gerr").textContent = "צריך שם פרטי ושם משפחה"; return; }
-  state.who = v; try{ localStorage.setItem("att_who", v); }catch(e){}
+  state.who = v; try{ localStorage.setItem("who", v); localStorage.setItem("att_who", v); }catch(e){}
   $("gate").hidden = true; load();
 }
 
@@ -170,6 +170,8 @@ function myGroups(){
 function render(){
   var groups = myGroups();
   state.groups = groups;
+  // דגל "מדריך מוכר" — לפיו האפליקציה הראשית מחליטה אם להציג את תאב הנוכחות
+  try{ if(state.isCoord || groups.length) localStorage.setItem("att_ok", norm(state.who)); else localStorage.removeItem("att_ok"); }catch(e){}
   $("hsub").textContent = "מרכז דניאל · יפו" + (state.isCoord ? " · כל הקבוצות" : "");
   if(!groups.length){
     $("main").innerHTML = '<div class="who">שלום <b>'+esc(state.who)+'</b> · <a id="chname">שנה שם</a></div>'+
