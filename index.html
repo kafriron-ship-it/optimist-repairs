@@ -533,20 +533,39 @@ function showTab(t){
   if(t==="att"){ const f=$("attFrame"); if(f && !f.getAttribute("src")) f.setAttribute("src","attendance.html?embed=1"); }
 }
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{ location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
-// תאב "נוכחות" מופיע רק למדריכים — מכשיר שכבר נכנס פעם דרך הקישור הפרטי (יש att_api)
+// כתובת המחבר מוטמעת בקוד (מעורפלת — הסתרה, לא אבטחה) כדי שהקישור הראשי יעבוד לבד, בלי קישור נפרד
+var ATT_ENC="DEAaQUBWSxsdUkEFFEBAVlwDA1gLH1ADCRsDUFAeC0dBQhwtL1IXUlEbLnZDUws/N1gkR2BYBw1cBR4tAGYtSGE+NHY3QgVZNURfZwc8KllcS1svPGVYCV1UUl0lAVAKCUQtdUoONXc0VQBZJRsLSVYP";
+function attDeob(e){ try{ var x=atob(e),k="d4n13l",o=""; for(var i=0;i<x.length;i++) o+=String.fromCharCode(x.charCodeAt(i)^k.charCodeAt(i%k.length)); return o; }catch(_){ return ""; } }
+try{ var _au=attDeob(ATT_ENC); if(_au && localStorage.getItem("att_api")!==_au) localStorage.setItem("att_api",_au); }catch(e){}
+var ATT_COORDS=["טל הררי","ירדן סדן"];
+function attWords(s){ return String(s||"").replace(/\s+/g," ").trim().split(" ").filter(Boolean); }
+function attIsCoord(who){ var b=attWords(who); return ATT_COORDS.some(function(c){ return attWords(c).every(function(w){ return b.indexOf(w)>-1; }); }); }
+function attMatchName(instr, who){ var a=attWords(instr), b=attWords(who); if(b.length<2) return false; return b.every(function(w){return a.indexOf(w)>-1;}) || (a.length>=2 && a.every(function(w){return b.indexOf(w)>-1;})); }
+function attRosterMatch(who){ try{ var c=JSON.parse(localStorage.getItem("att_roster")||"null"); return !!(c&&c.names&&c.names.some(function(n){ return attMatchName(n,who); })); }catch(e){ return false; } }
+// מושך את רשימת המדריכים פעם ב-12 שעות כדי להחליט אם להציג את התאב למדריך רגיל (רכז לא צריך)
+function ensureRoster(){
+  try{
+    var who=($("who").value||localStorage.getItem("who")||"").replace(/\s+/g," ").trim();
+    if(attWords(who).length<2 || attIsCoord(who) || attRosterMatch(who)) return;
+    var c=JSON.parse(localStorage.getItem("att_roster")||"null"); if(c&&c.t&&(Date.now()-c.t)<432e5) return;  // קאש 12 שעות
+    var api=localStorage.getItem("att_api"); if(!api) return;
+    fetch(api+"?action=rosterAll").then(function(r){return r.json();}).then(function(j){
+      if(j&&j.ok&&j.groups){ try{ localStorage.setItem("att_roster",JSON.stringify({t:Date.now(),names:j.groups.map(function(g){return g.instructor;})})); }catch(e){} updateAttTab(); }
+    }).catch(function(){});
+  }catch(e){}
+}
+// תאב "נוכחות" מופיע רק למדריכים/רכזים — לפי שם, מול רשימת הרכזים או רשימת המדריכים מהטבלה
 function attTabAllowed(){
   try{
-    if(!localStorage.getItem("att_api")) return false;                 // המכשיר לא נכנס דרך הקישור הפרטי
     var who = ($("who").value || localStorage.getItem("who") || "").replace(/\s+/g," ").trim();
-    var ww = who.split(" ").filter(Boolean);
-    if(ww.length < 2) return false;                                     // שם מלא חובה
-    var coords = ["טל הררי","ירדן סדן"];
-    if(coords.some(function(c){ return c.split(" ").every(function(w){ return ww.indexOf(w) > -1; }); })) return true;  // רכזים (שם מלא)
-    return (localStorage.getItem("att_ok") || "") === who;             // מדריך שאומת מול הטבלה
+    if(attWords(who).length < 2) return false;                         // שם מלא חובה
+    if(attIsCoord(who)) return true;                                   // רכזים (שם מלא)
+    if(attRosterMatch(who)) return true;                               // מדריך שקיים ברשימת הקבוצות
+    return (localStorage.getItem("att_ok") || "") === who;             // גיבוי: אומת בתוך מסך הנוכחות
   }catch(e){ return false; }
 }
 function updateAttTab(){ try{ $("tab-att").hidden = !attTabAllowed(); if($("tab-att").hidden && location.hash==="#att") showTab("report"); }catch(e){} }
-updateAttTab();
+updateAttTab(); ensureRoster();
 window.addEventListener("hashchange",()=>showTab(location.hash.slice(1)));
 showTab(location.hash.slice(1));
 
@@ -719,7 +738,7 @@ function askName(){ const p=($("who").value||"").split(" ").filter(Boolean); $("
 function saveName(){ const f=$("nameFirst").value.trim().replace(/\s+/g," "), l=$("nameLast").value.trim().replace(/\s+/g," ");
   if(!f || !l){ $("nameFirst").classList.toggle("need",!f); $("nameLast").classList.toggle("need",!l); $("needName").hidden=false; return; }
   const n=f+" "+l;
-  $("who").value = n; $("fixer").value = n; store.set("who", n); $("namePick").hidden = true; showName(); updateAttTab(); }
+  $("who").value = n; $("fixer").value = n; store.set("who", n); $("namePick").hidden = true; showName(); updateAttTab(); ensureRoster(); }
 $("nameSave").addEventListener("click", saveName);
 $("nameFirst").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); $("nameLast").focus(); } });
 $("nameLast").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); saveName(); } });
