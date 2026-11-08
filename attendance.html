@@ -91,6 +91,7 @@ button{font-family:inherit;cursor:pointer}
 .call .ic{width:44px;height:44px;border-radius:50%;background:var(--ok);color:#06231a;display:grid;place-items:center;font-size:21px;flex:none}
 .call .lab{font-size:.74rem;color:#8fd9bf}
 .call .ph{font:600 1.3rem 'IBM Plex Mono';color:#eafff5}
+.addcontact{display:block;width:100%;background:var(--chip);border:1px solid var(--line);border-radius:12px;color:var(--navy);font:700 .9rem 'Assistant';padding:11px;margin-bottom:12px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .cell{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .cell .k{font-size:.72rem;color:var(--muted)}
@@ -405,7 +406,10 @@ function openCard(s, cur){
   var h = '<div class="top"><div class="av '+(fem?"f":"")+'">'+esc(init)+'</div>'+
     '<div><div class="nm">'+esc(s.name)+'</div><div class="sub">'+esc(cleanInst(cur.instructor))+' · '+esc(cur.day)+'</div></div>'+
     '<button class="x" id="ovx">סגור</button></div>';
-  if(ph) h += '<a class="call" href="tel:'+esc(ph)+'"><div class="ic">📞</div><div><div class="lab">התקשר להורה'+(s.parent?' — '+esc(s.parent):'')+'</div><div class="ph">'+esc(s.phone)+'</div></div></a>';
+  if(ph){
+    h += '<a class="call" href="tel:'+esc(ph)+'"><div class="ic">📞</div><div><div class="lab">התקשר להורה'+(s.parent?' — '+esc(s.parent):'')+'</div><div class="ph">'+esc(s.phone)+'</div></div></a>';
+    h += '<button class="addcontact" id="addcontact">➕ הוסף לאנשי קשר</button>';
+  }
   var _att=s.attendance||{}, _vals=Object.keys(_att).map(function(k){return _att[k];});
   var _absent=_vals.filter(function(m){return m==="x";}).length, _present=_vals.filter(function(m){return m==="v";}).length, _total=_absent+_present;
   h += '<div class="grid" style="margin-bottom:12px">'+
@@ -420,7 +424,25 @@ function openCard(s, cur){
   $("ovbox").innerHTML = h;
   $("ov").hidden = false;
   $("ovx").onclick = closeCard;
+  if($("addcontact")) $("addcontact").onclick = function(){ saveContact(s, cur); };
   $("nadd").onclick = function(){ addNote(s, cur); };
+}
+// יוצר קובץ vCard (איש קשר) ומוריד אותו — בטלפון זה נפתח כ"הוסף איש קשר"
+function saveContact(s, cur){
+  function vesc(x){ return String(x||"").replace(/([\\,;])/g,"\\$1").replace(/\r?\n/g," "); }
+  var br = cur.branch==="jaffa" ? "יפו" : "תל אביב";
+  var fn = (s.parent? s.parent+" · " : "") + "הורה של "+s.name+" · "+br+" · "+cur.day;
+  var vcard = "BEGIN:VCARD\r\nVERSION:3.0\r\n"+
+    "FN:"+vesc(fn)+"\r\n"+
+    (s.phone? "TEL;TYPE=CELL:"+vesc(s.phone)+"\r\n" : "")+
+    "NOTE:"+vesc(s.name+" · "+cleanInst(cur.instructor)+" · "+br+" · "+cur.day)+"\r\n"+
+    "END:VCARD";
+  var blob = new Blob([vcard], {type:"text/vcard;charset=utf-8"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url; a.download = ((s.parent||s.name)+".vcf").replace(/\s+/g,"_");
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 800);
 }
 function cell(k,v,big){ return '<div class="cell"><div class="k">'+esc(k)+'</div><div class="v'+(big?" big":"")+'">'+esc(v)+'</div></div>'; }
 function notesHtml(s){
