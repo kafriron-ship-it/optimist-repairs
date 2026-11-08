@@ -130,7 +130,7 @@ try{ API = localStorage.getItem("att_api") || ""; }catch(e){}
 try{ if(/[?&]embed=/.test(location.search)) document.documentElement.classList.add("embed"); }catch(e){}
 var BRANCH = "jaffa";
 try{ var mb=/[#&?]branch=([^&]+)/.exec(location.search); if(mb) BRANCH=decodeURIComponent(mb[1]); }catch(e){}
-var COORDS = ["רון כפרי","טל הררי","ירדן סדן"];   // רכזים (שם מלא)
+var COORDS = ["טל הררי","ירדן סדן"];   // רכזים (שם מלא)
 function nameWords(s){ return norm(s).split(/\s+/).filter(Boolean); }
 // התאמה מחמירה: כל מילות השם המוקלד נמצאות אצל המדריך, או להפך. דורש שם מלא.
 function matchName(instructor, who){
@@ -143,6 +143,16 @@ function matchName(instructor, who){
 function isCoordName(who){
   var ww = nameWords(who); if(ww.length < 2) return false;
   return COORDS.some(function(c){ return nameWords(c).every(function(w){ return ww.indexOf(w) > -1; }); });
+}
+// שם קבוצה לתצוגה — בלי עוזרי מדריך ובלי "הקבוצה של"
+function cleanInst(s){
+  var t = norm(String(s||""))
+    .replace(/עוזר[ת]?\s*מדריכ[ה]?/g,"")
+    .replace(/^\s*עוזר[ת]?\s*/,"")
+    .replace(/^הקבוצ[הת]\s*(של\s*)?/,"")
+    .replace(/^קבוצה\s*של\s*/,"");
+  if(t.indexOf("+")>-1){ var p=t.split("+"); t = norm(p[0]) || norm(p.slice(1).join("+")); }   // עוזר אחרי + — שומר את המדריך הראשי
+  return norm(t) || "קבוצה";
 }
 var DAYS = {0:"ראשון",1:"שני",2:"שלישי",3:"רביעי",4:"חמישי",5:"שישי",6:"שבת"};
 var $ = function(id){ return document.getElementById(id); };
@@ -230,13 +240,13 @@ function render(){
     var lastBr="", gh='<div class="gsel">';
     order.forEach(function(i){ var g=groups[i];
       if(state.isCoord && g.branch!==lastBr){ lastBr=g.branch; gh += '<div class="gbr">'+esc(BR[g.branch]||g.branch)+'</div>'; }
-      gh += '<button data-gi="'+i+'" class="'+(i===state.gi?"on":"")+'">'+esc(g.instructor)+' · '+esc(g.day)+'</button>';
+      gh += '<button data-gi="'+i+'" class="'+(i===state.gi?"on":"")+'">'+esc(cleanInst(g.instructor))+' · '+esc(g.day)+'</button>';
     });
     h += gh + '</div>';
   }
   h += '<div class="card">';
   h += '<div class="datebar"><button class="nav" data-dd="-1">‹</button><b id="dlabel">'+esc(state.dates[state.di]||"")+'</b><button class="nav" data-dd="1">›</button></div>';
-  h += '<div class="gttl"><span class="t">'+esc(cur.instructor)+' · '+esc(cur.day)+'</span><span class="pill" id="cnt"></span></div>';
+  h += '<div class="gttl"><span class="t">'+esc(cleanInst(cur.instructor))+' · '+esc(cur.day)+'</span><span class="pill" id="cnt"></span></div>';
   h += '<div style="margin:0 2px 10px"><button id="allp" class="ghostbtn">✓ סמן את כולם נוכחים</button></div>';
   h += '<div id="stlist"></div></div>';
   if(state.isCoord) h += '<div class="card" id="sumcard" style="margin-top:14px"></div>';   // הסיכום בסוף הגלילה
@@ -298,7 +308,7 @@ function doSearch(q){
   var box=$("sres"); if(!box) return; q=norm(q);
   if(q.length<2){ box.innerHTML=""; return; }
   var res=[]; (state.all||[]).forEach(function(g){ g.students.forEach(function(s){ if(norm(s.name).indexOf(q)>-1) res.push({s:s,g:g}); }); });
-  box.innerHTML = res.length ? res.slice(0,15).map(function(r,i){ return '<div class="sr" data-si="'+i+'"><b>'+esc(r.s.name)+'</b><span>'+esc(r.g.instructor)+' · '+esc(r.g.day)+'</span></div>'; }).join("") : '<div style="color:var(--muted);font-size:.85rem;padding:8px 2px">לא נמצא חניך</div>';
+  box.innerHTML = res.length ? res.slice(0,15).map(function(r,i){ return '<div class="sr" data-si="'+i+'"><b>'+esc(r.s.name)+'</b><span>'+esc(cleanInst(r.g.instructor))+' · '+esc(r.g.day)+'</span></div>'; }).join("") : '<div style="color:var(--muted);font-size:.85rem;padding:8px 2px">לא נמצא חניך</div>';
   box.querySelectorAll("[data-si]").forEach(function(el){ el.onclick=function(){ var r=res[+el.dataset.si]; openCard(r.s,r.g); }; });
 }
 function toDate_(ds){ var p=ds.split("/"); return new Date(2000+ +p[2], p[1]-1, +p[0]); }
@@ -310,10 +320,10 @@ function renderSummary(){
   abs.sort(function(a,b){ return b.n-a.n; });
   var h='<div class="sumh">קבוצות שלא מולאו (תאריך אחרון)</div>';
   h += '<div class="sumrow"><span>סה״כ לא מולאו</span><span class="c" style="color:'+(missing.length?'var(--stop)':'var(--ok)')+'">'+missing.length+'</span></div>';
-  missing.slice(0,8).forEach(function(m){ h += '<div class="sumrow" style="font-size:.82rem;color:var(--muted)"><span>'+esc(m.g.instructor)+' · '+esc(m.g.day)+'</span><span>'+esc(m.date)+'</span></div>'; });
+  missing.slice(0,8).forEach(function(m){ h += '<div class="sumrow" style="font-size:.82rem;color:var(--muted)"><span>'+esc(cleanInst(m.g.instructor))+' · '+esc(m.g.day)+'</span><span>'+esc(m.date)+'</span></div>'; });
   h += '<div class="sumh">חניכים עם הכי הרבה חיסורים</div>';
   if(!abs.length) h += '<div class="sumrow" style="color:var(--muted);font-size:.85rem"><span>אין חיסורים עדיין</span></div>';
-  abs.slice(0,8).forEach(function(a,i){ h += '<div class="sumrow" data-abs="'+i+'" style="cursor:pointer"><span><b>'+esc(a.s.name)+'</b> · '+esc(a.g.instructor)+'</span><span class="badge-x">'+a.n+'</span></div>'; });
+  abs.slice(0,8).forEach(function(a,i){ h += '<div class="sumrow" data-abs="'+i+'" style="cursor:pointer"><span><b>'+esc(a.s.name)+'</b> · '+esc(cleanInst(a.g.instructor))+'</span><span class="badge-x">'+a.n+'</span></div>'; });
   $("sumcard").innerHTML=h;
   $("sumcard").querySelectorAll("[data-abs]").forEach(function(el){ el.onclick=function(){ var a=abs[+el.dataset.abs]; openCard(a.s,a.g); }; });
 }
@@ -322,7 +332,7 @@ function openCard(s, cur){
   var init = norm(s.name).split(" ").slice(0,2).map(function(w){return w[0];}).join("");
   var ph = (s.phone||"").replace(/\D/g,"");
   var h = '<div class="top"><div class="av '+(fem?"f":"")+'">'+esc(init)+'</div>'+
-    '<div><div class="nm">'+esc(s.name)+'</div><div class="sub">'+esc(cur.instructor)+' · '+esc(cur.day)+'</div></div>'+
+    '<div><div class="nm">'+esc(s.name)+'</div><div class="sub">'+esc(cleanInst(cur.instructor))+' · '+esc(cur.day)+'</div></div>'+
     '<button class="x" id="ovx">סגור</button></div>';
   if(ph) h += '<a class="call" href="tel:'+esc(ph)+'"><div class="ic">📞</div><div><div class="lab">התקשר להורה'+(s.parent?' — '+esc(s.parent):'')+'</div><div class="ph">'+esc(s.phone)+'</div></div></a>';
   var _att=s.attendance||{}, _vals=Object.keys(_att).map(function(k){return _att[k];});
