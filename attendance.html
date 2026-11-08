@@ -92,6 +92,7 @@ button{font-family:inherit;cursor:pointer}
 .call .lab{font-size:.74rem;color:#8fd9bf}
 .call .ph{font:600 1.3rem 'IBM Plex Mono';color:#eafff5}
 .addcontact{display:block;width:100%;background:var(--chip);border:1px solid var(--line);border-radius:12px;color:var(--navy);font:700 .9rem 'Assistant';padding:11px;margin-bottom:12px}
+.rmst{display:block;width:100%;background:transparent;border:1px solid var(--stop);border-radius:12px;color:var(--stop);font:700 .9rem 'Assistant';padding:11px;margin-top:14px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .cell{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .cell .k{font-size:.72rem;color:var(--muted)}
@@ -425,11 +426,21 @@ function openCard(s, cur){
     cell("תאריך לידה", s.dob||"—")+ cell("מין", s.gender||"—")+'</div>';
   h += '<div class="notes"><div class="h"><span class="k">הערות</span></div><div id="nlist">'+notesHtml(s)+'</div>'+
     '<div class="naddrow"><input id="nin" placeholder="הוסף הערה…"><button id="nadd">הוסף</button></div></div>';
+  if(state.isCoord) h += '<button class="rmst" id="rmst">🗑️ הסר חניך מהקבוצה</button>';   // רכזים בלבד
   $("ovbox").innerHTML = h;
   $("ov").hidden = false;
   $("ovx").onclick = closeCard;
   if($("addcontact")) $("addcontact").onclick = function(){ saveContact(s, cur); };
+  if($("rmst")) $("rmst").onclick = function(){ removeStudent(s, cur); };
   $("nadd").onclick = function(){ addNote(s, cur); };
+}
+function removeStudent(s, cur){
+  if(!confirm("להסיר את "+norm(s.name)+" מהקבוצה?\nהפעולה מוחקת אותו/ה מהרשימה בטבלה.")) return;
+  var btn=$("rmst"), old=btn.textContent; btn.disabled=true; btn.textContent="מסיר…";
+  post({action:"removeStudent", branch:cur.branch, day:cur.day, group:cur.instructor, name:norm(s.name)}).then(function(j){
+    if(j&&j.ok){ try{localStorage.removeItem("att_cache");}catch(e){} state.touched=false; closeCard(); load(); }
+    else { btn.disabled=false; btn.textContent=old; alert("לא הוסר: "+((j&&j.error)||"נסו שוב")); }
+  }).catch(function(){ btn.disabled=false; btn.textContent=old; alert("אין חיבור"); });
 }
 // ניחוש אם לכתוב "אמא של" / "אבא של" / "הורה של" לפי שם ההורה (לא בטוח → הורה)
 function _nset(s){ var o={}; s.split(/\s+/).forEach(function(w){ if(w) o[w]=1; }); return o; }
