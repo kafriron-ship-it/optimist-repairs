@@ -354,7 +354,7 @@ function doSearch(q){
   box.querySelectorAll("[data-si]").forEach(function(el){ el.onclick=function(){ var r=res[+el.dataset.si]; openCard(r.s,r.g); }; });
 }
 function toDate_(ds){ var p=ds.split("/"); return new Date(2000+ +p[2], p[1]-1, +p[0]); }
-function latestPastDate_(g){ var today=new Date(), best=null; g.dateCols.forEach(function(d){ var dt=toDate_(d.date); if(dt-today<=864e5 && (!best||dt>best.dt)) best={date:d.date,dt:dt}; }); return best; }
+function latestPastDate_(g){ var best=null; g.dateCols.forEach(function(d){ if(daysAgo_(d.date) >= 0){ var dt=toDate_(d.date); if(!best||dt>best.dt) best={date:d.date,dt:dt}; } }); return best; }   // רק תאריך שכבר קרה (היום או קודם)
 function renderSummary(){
   var all=state.all||[], missing=[], abs=[];
   all.forEach(function(g){ var lp=latestPastDate_(g); if(lp && !g.students.some(function(s){return s.attendance[lp.date];})) missing.push({g:g,date:lp.date}); });
