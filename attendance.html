@@ -427,11 +427,26 @@ function openCard(s, cur){
   if($("addcontact")) $("addcontact").onclick = function(){ saveContact(s, cur); };
   $("nadd").onclick = function(){ addNote(s, cur); };
 }
+// ניחוש אם לכתוב "אמא של" / "אבא של" / "הורה של" לפי שם ההורה (לא בטוח → הורה)
+function _nset(s){ var o={}; s.split(/\s+/).forEach(function(w){ if(w) o[w]=1; }); return o; }
+var NAME_U = _nset("טל רוני עדי שחר אור חן מור גל יובל עדן סיון רותם סתיו ליאור דור שי ניצן נוי ים אלמוג עמית נועם ליאל");
+var NAME_F = _nset("קארין נועה מיכל שרה רחל לאה תמר יעל דנה מאיה שירה ליאת אורלי גלית ענת אפרת מירב הילה שירן אלינור נטלי שני יערה מוריה איילת אביגיל נגה הגר דקלה רעות עינת קרן לימור סיגל רונית אורית אסנת מרים אביבה יהודית חנה זהבה אילנה סמדר ורד שושנה פנינה גילה יפה תקווה אסתר רבקה אלה הדס תהילה יסמין גאיה אדווה מעין יעלה דליה אורנה כרמית נירית ריקי שולמית ציפי שירלי");
+var NAME_M = _nset("דני דוד משה יוסי אבי יעקב יצחק אברהם שלמה יהודה אריה איתי איתמר עומר גיא רון ניר ערן אסף נדב עידו יונתן איל עילי אורי עוז ליעד רועי אלון עידן אמיר גדי רן בועז אבנר מאור אלעד יניב ברק נתנאל אליהו חיים מנחם שמואל בנימין נפתלי זאב אליעזר מרדכי יורם עוזי רפאל גבריאל אורן איתן עמוס יגאל אהרן אפרים ישראל צבי אשר דן גד שלומי טים גולן ארז");
+var NAME_MH = _nset("משה יהודה אריה שלמה חנניה עובדיה ירמיה נחמיה זכריה ישעיה נתניה אליה עוזיה");   // שמות זכר שמסתיימים ב-ה
+function parentTitle(p){
+  var n = norm(p).split(" ")[0] || "";
+  if(!n) return "הורה של";
+  if(NAME_U[n]) return "הורה של";
+  if(NAME_F[n]) return "אמא של";
+  if(NAME_M[n]) return "אבא של";
+  if(!NAME_MH[n] && /(ה|ת|ית)$/.test(n)) return "אמא של";   // סיומת נשית נפוצה
+  return "הורה של";
+}
 // יוצר קובץ vCard (איש קשר) ומוריד אותו — בטלפון זה נפתח כ"הוסף איש קשר"
 function saveContact(s, cur){
   function vesc(x){ return String(x||"").replace(/([\\,;])/g,"\\$1").replace(/\r?\n/g," "); }
   var br = cur.branch==="jaffa" ? "יפו" : "תל אביב";
-  var fn = (s.parent? s.parent+" · " : "") + "הורה של "+s.name+" · "+br+" · "+cur.day;
+  var fn = (s.parent? s.parent+" · " : "") + parentTitle(s.parent)+" "+s.name+" · "+br+" · "+cur.day;
   var vcard = "BEGIN:VCARD\r\nVERSION:3.0\r\n"+
     "FN:"+vesc(fn)+"\r\n"+
     (s.phone? "TEL;TYPE=CELL:"+vesc(s.phone)+"\r\n" : "")+
