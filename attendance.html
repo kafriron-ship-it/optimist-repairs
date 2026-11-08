@@ -197,12 +197,19 @@ function api(params){
 function post(body){ return fetch(API, {method:"POST", body:JSON.stringify(body)}).then(function(r){ return r.json(); }); }
 
 function load(){
-  $("main").innerHTML = '<div class="msg"><span class="spin"></span><div style="margin-top:10px">טוען נוכחות…</div></div>';
+  // מציג מיד את הנתונים האחרונים מהמטמון (טעינה מיידית), ומרענן ברקע מול הגיליון
+  var cached=null;
+  try{ var c=JSON.parse(localStorage.getItem("att_cache")||"null"); if(c&&c.groups&&c.groups.length) cached=c.groups; }catch(e){}
+  state.touched = false;
+  if(cached){ state.all=cached; render(); }
+  else $("main").innerHTML = '<div class="msg"><span class="spin"></span><div style="margin-top:10px">טוען נוכחות…</div></div>';
   api({action:"rosterAll"}).then(function(j){
-    if(!j.ok){ $("main").innerHTML = '<div class="msg">שגיאה: '+esc(j.error||"")+'</div>'; return; }
+    if(!j.ok){ if(!cached) $("main").innerHTML = '<div class="msg">שגיאה: '+esc(j.error||"")+'</div>'; return; }
+    try{ localStorage.setItem("att_cache", JSON.stringify({t:Date.now(), groups:j.groups||[]})); }catch(e){}
+    if(cached && state.touched) return;   // המשתמש כבר סימן — לא לדרוס את המסך הפעיל
     state.all = j.groups || [];
     render();
-  }).catch(function(){ $("main").innerHTML = '<div class="msg">אין חיבור. נסו שוב.</div>'; });
+  }).catch(function(){ if(!cached) $("main").innerHTML = '<div class="msg">אין חיבור. נסו שוב.</div>'; });
 }
 
 function myGroups(){
@@ -325,6 +332,7 @@ function mark(cur, date, btn){
   var s = cur.students.filter(function(x){ return x.row===row; })[0];
   var nv = (s.attendance[date]===val) ? "" : val;   // לחיצה שנייה מבטלת
   s.attendance[date] = nv;                            // אופטימי
+  state.touched = true;                               // שהרענון ברקע לא ידרוס סימון טרי
   renderStudents();
   post({action:"mark", branch:cur.branch, day:cur.day, row:row, date:date, value:nv}).then(function(j){
     if(!j||!j.ok){ s.attendance[date] = ""; renderStudents(); alert("לא נשמר, נסו שוב"); }
@@ -334,6 +342,7 @@ function mark(cur, date, btn){
 function markAllPresent(){
   var cur=state.groups[state.gi], date=state.dates[state.di], rows=[];
   cur.students.forEach(function(s){ if(s.attendance[date]!=="v"){ s.attendance[date]="v"; rows.push(s.row); } });
+  state.touched = true;
   renderStudents();
   rows.forEach(function(row){ post({action:"mark",branch:cur.branch,day:cur.day,row:row,date:date,value:"v"}).catch(function(){}); });
 }
