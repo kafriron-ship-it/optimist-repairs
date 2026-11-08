@@ -539,7 +539,7 @@ function attTabAllowed(){
     var who = ($("who").value || localStorage.getItem("who") || "").replace(/\s+/g," ").trim();
     var ww = who.split(" ").filter(Boolean);
     if(ww.length < 2) return false;                                     // שם מלא חובה
-    var coords = ["רון כפרי","טל הררי","ירדן"];
+    var coords = ["רון כפרי","טל הררי","ירדן סדן"];
     if(coords.some(function(c){ return c.split(" ").every(function(w){ return ww.indexOf(w) > -1; }); })) return true;  // רכזים (שם מלא)
     return (localStorage.getItem("att_ok") || "") === who;             // מדריך שאומת מול הטבלה
   }catch(e){ return false; }
