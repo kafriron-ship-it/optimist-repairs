@@ -99,7 +99,8 @@ button{font-family:inherit;cursor:pointer}
   <div class="box">
     <h2>מה השם המלא שלך?</h2>
     <p>כדי שנראה לך את החניכים של הקבוצה שלך. צריך שם פרטי ושם משפחה.</p>
-    <input id="gname" placeholder="שם פרטי ושם משפחה" autocomplete="name">
+    <input id="gfirst" placeholder="שם פרטי" autocomplete="given-name">
+    <input id="glast" placeholder="שם משפחה" autocomplete="family-name">
     <div class="err" id="gerr"></div>
     <button class="go" id="gsave">המשך</button>
   </div>
@@ -148,12 +149,13 @@ function boot(){
   if(!state.who || nameWords(state.who).length < 2){ openGate(); return; }   // שם מלא חובה
   load();
 }
-function openGate(){ $("gate").hidden=false; $("gname").value=state.who||""; setTimeout(function(){$("gname").focus();},100); }
+function openGate(){ $("gate").hidden=false; var p=nameWords(state.who||""); $("gfirst").value=p[0]||""; $("glast").value=p.slice(1).join(" "); setTimeout(function(){$("gfirst").focus();},100); }
 $("gsave").addEventListener("click", saveName);
-$("gname").addEventListener("keydown", function(e){ if(e.key==="Enter") saveName(); });
+["gfirst","glast"].forEach(function(id){ $(id).addEventListener("keydown", function(e){ if(e.key==="Enter") saveName(); }); });
 function saveName(){
-  var v = norm($("gname").value);
-  if(v.split(" ").length < 2){ $("gerr").textContent = "צריך שם פרטי ושם משפחה"; return; }
+  var f = norm($("gfirst").value), l = norm($("glast").value);
+  if(!f || !l){ $("gerr").textContent = "צריך שם פרטי וגם שם משפחה"; return; }
+  var v = f + " " + l;
   state.who = v; try{ localStorage.setItem("who", v); localStorage.setItem("att_who", v); }catch(e){}
   $("gate").hidden = true; load();
 }
