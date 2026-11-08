@@ -33,6 +33,17 @@ button{font-family:inherit;cursor:pointer}
 .gsel button.on{background:#214a7d;border-color:#3e6fa8;color:#fff}
 .gsel .gbr{flex-basis:100%;font:800 .72rem 'Assistant';letter-spacing:.04em;color:var(--flag);margin:8px 2px 0}
 .gsel .gbr:first-child{margin-top:0}
+.ghostbtn{background:var(--chip);border:1px solid var(--line);border-radius:10px;color:var(--ink);font:700 .86rem 'Assistant';padding:9px 14px;display:inline-flex;align-items:center;gap:6px}
+.ssearch{width:100%;background:var(--bg);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:600 .92rem 'Assistant'}
+.sres .sr{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 2px;border-top:1px solid var(--line);cursor:pointer}
+.sres .sr:first-child{border-top:0}
+.sres .sr b{font-weight:700}.sres .sr span{font-size:.75rem;color:var(--muted)}
+.sumrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 2px;border-top:1px solid var(--line);font-size:.9rem}
+.sumrow:first-of-type{border-top:0}
+.sumrow .c{font:700 .82rem 'IBM Plex Mono'}
+.sumh{font:800 .74rem 'Assistant';letter-spacing:.03em;color:var(--muted);margin:12px 2px 4px}
+.sumh:first-child{margin-top:0}
+.badge-x{background:#311416;color:var(--stop);border-radius:7px;padding:2px 8px;font:700 .8rem 'IBM Plex Mono'}
 .gttl{display:flex;justify-content:space-between;align-items:center;margin:0 2px 8px}
 .gttl .t{font-weight:800}
 .pill{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:3px 11px;font:600 .8rem 'Assistant'}
@@ -201,6 +212,10 @@ function render(){
   state.di = nearestDate(state.dates);
 
   var h = '<div class="who">שלום <b>'+esc(state.who)+'</b> · <a id="chname">שנה שם</a></div>';
+  if(state.isCoord){
+    h += '<div class="card" style="padding:10px 12px;margin-bottom:12px"><input id="ssearch" class="ssearch" placeholder="חיפוש חניך בכל הקבוצות…"><div class="sres" id="sres"></div></div>';
+    h += '<div class="card" id="sumcard" style="margin-bottom:12px"></div>';
+  }
   // תזכורת אם הנוכחות של היום ריקה
   if(needsReminder(cur, state.dates[state.di])) h += '<div class="rem">⏰ אל תשכחו למלא נוכחות לתאריך הזה</div>';
   // בוחר קבוצה (לרכזים / כמה קבוצות)
@@ -223,9 +238,13 @@ function render(){
   h += '<div class="card">';
   h += '<div class="datebar"><button class="nav" data-dd="-1">‹</button><b id="dlabel">'+esc(state.dates[state.di]||"")+'</b><button class="nav" data-dd="1">›</button></div>';
   h += '<div class="gttl"><span class="t">'+esc(cur.instructor)+' · '+esc(cur.day)+'</span><span class="pill" id="cnt"></span></div>';
+  h += '<div style="margin:0 2px 10px"><button id="allp" class="ghostbtn">✓ סמן את כולם נוכחים</button></div>';
   h += '<div id="stlist"></div></div>';
   $("main").innerHTML = h;
   $("chname").onclick = openGate;
+  if($("allp")) $("allp").onclick = markAllPresent;
+  if($("ssearch")) $("ssearch").oninput = function(){ doSearch(this.value); };
+  if($("sumcard")) renderSummary();
   document.querySelectorAll("[data-gi]").forEach(function(b){ b.onclick=function(){ state.gi=+b.dataset.gi; render(); }; });
   document.querySelectorAll("[data-dd]").forEach(function(b){ b.onclick=function(){ changeDate(+b.dataset.dd); }; });
   renderStudents();
@@ -269,6 +288,35 @@ function mark(cur, date, btn){
   }).catch(function(){ s.attendance[date]=""; renderStudents(); alert("אין חיבור"); });
 }
 
+function markAllPresent(){
+  var cur=state.groups[state.gi], date=state.dates[state.di], rows=[];
+  cur.students.forEach(function(s){ if(s.attendance[date]!=="v"){ s.attendance[date]="v"; rows.push(s.row); } });
+  renderStudents();
+  rows.forEach(function(row){ post({action:"mark",branch:cur.branch,day:cur.day,row:row,date:date,value:"v"}).catch(function(){}); });
+}
+function doSearch(q){
+  var box=$("sres"); if(!box) return; q=norm(q);
+  if(q.length<2){ box.innerHTML=""; return; }
+  var res=[]; (state.all||[]).forEach(function(g){ g.students.forEach(function(s){ if(norm(s.name).indexOf(q)>-1) res.push({s:s,g:g}); }); });
+  box.innerHTML = res.length ? res.slice(0,15).map(function(r,i){ return '<div class="sr" data-si="'+i+'"><b>'+esc(r.s.name)+'</b><span>'+esc(r.g.instructor)+' · '+esc(r.g.day)+'</span></div>'; }).join("") : '<div style="color:var(--muted);font-size:.85rem;padding:8px 2px">לא נמצא חניך</div>';
+  box.querySelectorAll("[data-si]").forEach(function(el){ el.onclick=function(){ var r=res[+el.dataset.si]; openCard(r.s,r.g); }; });
+}
+function toDate_(ds){ var p=ds.split("/"); return new Date(2000+ +p[2], p[1]-1, +p[0]); }
+function latestPastDate_(g){ var today=new Date(), best=null; g.dateCols.forEach(function(d){ var dt=toDate_(d.date); if(dt-today<=864e5 && (!best||dt>best.dt)) best={date:d.date,dt:dt}; }); return best; }
+function renderSummary(){
+  var all=state.all||[], missing=[], abs=[];
+  all.forEach(function(g){ var lp=latestPastDate_(g); if(lp && !g.students.some(function(s){return s.attendance[lp.date];})) missing.push({g:g,date:lp.date}); });
+  all.forEach(function(g){ g.students.forEach(function(s){ var n=Object.keys(s.attendance).filter(function(k){return s.attendance[k]==="x";}).length; if(n>0) abs.push({s:s,g:g,n:n}); }); });
+  abs.sort(function(a,b){ return b.n-a.n; });
+  var h='<div class="sumh">קבוצות שלא מולאו (תאריך אחרון)</div>';
+  h += '<div class="sumrow"><span>סה״כ לא מולאו</span><span class="c" style="color:'+(missing.length?'var(--stop)':'var(--ok)')+'">'+missing.length+'</span></div>';
+  missing.slice(0,8).forEach(function(m){ h += '<div class="sumrow" style="font-size:.82rem;color:var(--muted)"><span>'+esc(m.g.instructor)+' · '+esc(m.g.day)+'</span><span>'+esc(m.date)+'</span></div>'; });
+  h += '<div class="sumh">חניכים עם הכי הרבה חיסורים</div>';
+  if(!abs.length) h += '<div class="sumrow" style="color:var(--muted);font-size:.85rem"><span>אין חיסורים עדיין</span></div>';
+  abs.slice(0,8).forEach(function(a,i){ h += '<div class="sumrow" data-abs="'+i+'" style="cursor:pointer"><span><b>'+esc(a.s.name)+'</b> · '+esc(a.g.instructor)+'</span><span class="badge-x">'+a.n+'</span></div>'; });
+  $("sumcard").innerHTML=h;
+  $("sumcard").querySelectorAll("[data-abs]").forEach(function(el){ el.onclick=function(){ var a=abs[+el.dataset.abs]; openCard(a.s,a.g); }; });
+}
 function openCard(s, cur){
   var fem = norm(s.gender)==="בת";
   var init = norm(s.name).split(" ").slice(0,2).map(function(w){return w[0];}).join("");
