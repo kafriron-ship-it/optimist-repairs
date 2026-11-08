@@ -401,9 +401,10 @@ textarea{min-height:64px;resize:vertical}
 <!-- overlays: outside the tabs so they show on every tab -->
 <div class="pick" id="namePick" hidden role="dialog" aria-modal="true" aria-labelledby="nameTitle"><div>
   <h2 id="nameTitle">מה השם שלך?</h2>
-  <p class="inote" style="margin:0">ככה נדע מי דיווח ומי תיקן. מספיק שם פרטי. שואלים רק פעם אחת, ואפשר לשנות אחר כך למעלה. <a href="privacy.html">פרטיות ותנאי שימוש</a></p>
-  <input id="nameIn" type="text" maxlength="30" placeholder="שם פרטי ושם משפחה" autocomplete="name" enterkeyhint="done">
-  <div class="needmsg" id="needName" hidden>צריך לכתוב שם</div>
+  <p class="inote" style="margin:0">ככה נדע מי דיווח ומי תיקן. שם פרטי ושם משפחה — שניהם חובה. שואלים רק פעם אחת, ואפשר לשנות אחר כך למעלה. <a href="privacy.html">פרטיות ותנאי שימוש</a></p>
+  <input id="nameFirst" type="text" maxlength="20" placeholder="שם פרטי" autocomplete="given-name" enterkeyhint="next">
+  <input id="nameLast" type="text" maxlength="20" placeholder="שם משפחה" autocomplete="family-name" enterkeyhint="done" style="margin-top:8px">
+  <div class="needmsg" id="needName" hidden>צריך שם פרטי ושם משפחה</div>
   <button type="button" class="primary" id="nameSave" style="padding:14px">שמור</button>
 </div></div>
 <div class="pick lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="תמונה של התקלה"><div><img id="lbImg" alt="תמונה של התקלה"><div class="status" id="lbMsg"></div><button type="button" class="ghost" id="lbClose">סגור</button></div></div>
@@ -714,14 +715,16 @@ $("customs").addEventListener("click", e=>{ const b=e.target.closest("[data-ci]"
 $("who").value = store.get("who") || "";
 $("fixer").value = store.get("who") || "";
 function showName(){ const n = $("who").value.trim(); $("nameBtn").hidden = !n; $("nameBtn").textContent = n ? n + " ✎" : ""; $("nameBtn").setAttribute("aria-label", "שינוי שם: " + n); }
-function askName(){ $("nameIn").value = $("who").value; $("needName").hidden = true; $("nameIn").classList.remove("need"); $("namePick").hidden = false; setTimeout(()=>$("nameIn").focus(), 50); }
-function saveName(){ const n = $("nameIn").value.trim().replace(/\s+/g," ");
-  if(!n){ $("nameIn").classList.add("need"); $("needName").hidden = false; return; }
+function askName(){ const p=($("who").value||"").split(" ").filter(Boolean); $("nameFirst").value=p[0]||""; $("nameLast").value=p.slice(1).join(" "); $("needName").hidden=true; $("nameFirst").classList.remove("need"); $("nameLast").classList.remove("need"); $("namePick").hidden=false; setTimeout(()=>$("nameFirst").focus(), 50); }
+function saveName(){ const f=$("nameFirst").value.trim().replace(/\s+/g," "), l=$("nameLast").value.trim().replace(/\s+/g," ");
+  if(!f || !l){ $("nameFirst").classList.toggle("need",!f); $("nameLast").classList.toggle("need",!l); $("needName").hidden=false; return; }
+  const n=f+" "+l;
   $("who").value = n; $("fixer").value = n; store.set("who", n); $("namePick").hidden = true; showName(); updateAttTab(); }
 $("nameSave").addEventListener("click", saveName);
-$("nameIn").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); saveName(); } });
+$("nameFirst").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); $("nameLast").focus(); } });
+$("nameLast").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); saveName(); } });
 $("nameBtn").addEventListener("click", askName);
-showName(); if(!$("who").value.trim()) askName();
+showName(); if($("who").value.trim().split(" ").filter(Boolean).length < 2) askName();   // שם מלא חובה — גם למי ששמר רק שם פרטי
 // the send button stays clickable; pressing it with something missing says what is missing
 const hasBoat = () => !!$("boat").value.trim();
 const hasPart = () => !!(selected.size || customs.length || $("other").value.trim());

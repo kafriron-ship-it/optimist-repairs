@@ -220,9 +220,9 @@ function render(){
   try{ if(state.isCoord || groups.length) localStorage.setItem("att_ok", norm(state.who)); else localStorage.removeItem("att_ok"); }catch(e){}
   $("hsub").textContent = "מרכז דניאל · יפו" + (state.isCoord ? " · כל הקבוצות" : "");
   if(!groups.length){
-    $("main").innerHTML = '<div class="who">שלום <b>'+esc(state.who)+'</b> · <a id="chname">שנה שם</a></div>'+
-      '<div class="msg">לא מצאנו קבוצה למדריך הזה.<br>בדקו שהשם זהה למה שכתוב בטבלה, או שנו שם.</div>';
-    $("chname").onclick = openGate; return;
+    $("main").innerHTML = '<div class="who">שלום <b>'+esc(state.who)+'</b></div>'+
+      '<div class="msg">לא מצאנו קבוצה למדריך הזה.<br>בדקו שהשם זהה למה שכתוב בטבלה (אפשר לשנות שם בלחצן ✎ למעלה).</div>';
+    return;
   }
   if(state.gi >= groups.length) state.gi = 0;
   var cur = groups[state.gi];
@@ -230,7 +230,7 @@ function render(){
   state.dates = cur.dateCols.map(function(d){ return d.date; });
   state.di = nearestDate(state.dates);
 
-  var h = '<div class="who">שלום <b>'+esc(state.who)+'</b> · <a id="chname">שנה שם</a></div>';
+  var h = '<div class="who">שלום <b>'+esc(state.who)+'</b></div>';
   if(state.isCoord){
     h += '<div class="card" style="padding:10px 12px;margin-bottom:12px"><input id="ssearch" class="ssearch" placeholder="חיפוש חניך בכל הקבוצות…"><div class="sres" id="sres"></div></div>';
   }
@@ -266,7 +266,6 @@ function render(){
   h += '<div id="stlist"></div></div>';
   if(state.isCoord) h += '<div class="card" id="sumcard" style="margin-top:14px"></div>';   // הסיכום בסוף הגלילה
   $("main").innerHTML = h;
-  $("chname").onclick = openGate;
   if($("allp")) $("allp").onclick = markAllPresent;
   if($("ssearch")) $("ssearch").oninput = function(){ doSearch(this.value); };
   if($("sumcard")) renderSummary();
