@@ -118,7 +118,20 @@ try{ API = localStorage.getItem("att_api") || ""; }catch(e){}
 try{ if(/[?&]embed=/.test(location.search)) document.documentElement.classList.add("embed"); }catch(e){}
 var BRANCH = "jaffa";
 try{ var mb=/[#&?]branch=([^&]+)/.exec(location.search); if(mb) BRANCH=decodeURIComponent(mb[1]); }catch(e){}
-var COORDS = ["טל","ירדן","רון"];   // רואים את כל הקבוצות
+var COORDS = ["רון כפרי","טל הררי","ירדן"];   // רכזים (שם מלא; ירדן עדיין בלי שם משפחה)
+function nameWords(s){ return norm(s).split(/\s+/).filter(Boolean); }
+// התאמה מחמירה: כל מילות השם המוקלד נמצאות אצל המדריך, או להפך. דורש שם מלא.
+function matchName(instructor, who){
+  var iw = nameWords(instructor), ww = nameWords(who);
+  if(!iw.length || ww.length < 2) return false;
+  var allWin = ww.every(function(w){ return iw.indexOf(w) > -1; });
+  var allIin = iw.every(function(w){ return ww.indexOf(w) > -1; });
+  return allWin || allIin;
+}
+function isCoordName(who){
+  var ww = nameWords(who); if(ww.length < 2) return false;
+  return COORDS.some(function(c){ return nameWords(c).every(function(w){ return ww.indexOf(w) > -1; }); });
+}
 var DAYS = {0:"ראשון",1:"שני",2:"שלישי",3:"רביעי",4:"חמישי",5:"שישי",6:"שבת"};
 var $ = function(id){ return document.getElementById(id); };
 var esc = function(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); };
@@ -132,7 +145,7 @@ function fmtToday(d){ return d.getDate()+"/"+(d.getMonth()+1)+"/"+String(d.getFu
 
 function boot(){
   if(!API){ $("main").innerHTML = '<div class="msg">כדי להשתמש במסך הנוכחות צריך לפתוח אותו דרך הקישור שקיבלת מהרכז.</div>'; return; }
-  if(!state.who){ openGate(); return; }
+  if(!state.who || nameWords(state.who).length < 2){ openGate(); return; }   // שם מלא חובה
   load();
 }
 function openGate(){ $("gate").hidden=false; $("gname").value=state.who||""; setTimeout(function(){$("gname").focus();},100); }
@@ -161,12 +174,11 @@ function load(){
 }
 
 function myGroups(){
-  // כל הקבוצות משני הסניפים, מסוננות למדריך לפי השם הפרטי (אלא אם רכז רואה הכול)
-  var first = norm(state.who).split(" ")[0];
-  state.isCoord = COORDS.indexOf(first) > -1;
+  // כל הקבוצות משני הסניפים, מסוננות למדריך לפי שם מלא (אלא אם רכז רואה הכול)
+  state.isCoord = isCoordName(state.who);
   var all = state.all || [];
   if(state.isCoord) return all.slice();
-  return all.filter(function(g){ return norm(g.instructor).indexOf(first) > -1; });
+  return all.filter(function(g){ return matchName(g.instructor, state.who); });
 }
 
 function render(){
