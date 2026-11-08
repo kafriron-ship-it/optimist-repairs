@@ -35,6 +35,8 @@ button{font-family:inherit;cursor:pointer}
 .dstat.future{background:#2a2113;color:#f3c98a;border:1px solid #5a4620}
 .todayrow{display:flex;justify-content:center;margin:-4px 0 12px}
 .todaybtn{background:var(--chip);border:1px solid var(--line);border-radius:999px;color:var(--navy);font:700 .8rem 'Assistant';padding:6px 15px}
+.asin{background:var(--chip);border:1px solid var(--line);border-radius:10px;color:var(--ink);font:600 .95rem 'Assistant';padding:11px 12px;width:100%}
+.asin::placeholder{color:var(--muted)}
 .rem.tap{cursor:pointer}
 .gsel{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .gsel button{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font:600 .82rem 'Assistant';color:var(--muted)}
@@ -238,9 +240,8 @@ function render(){
   state.di = nearestDate(state.dates);
 
   var h = '<div class="who">שלום <b>'+esc(state.who)+'</b></div>';
-  if(state.isCoord){
-    h += '<div class="card" style="padding:10px 12px;margin-bottom:12px"><input id="ssearch" class="ssearch" placeholder="חיפוש חניך בכל הקבוצות…"><div class="sres" id="sres"></div></div>';
-  }
+  // חיפוש חניך — רכז בכל הקבוצות, מדריך בקבוצות שלו
+  h += '<div class="card" style="padding:10px 12px;margin-bottom:12px"><input id="ssearch" class="ssearch" placeholder="'+(state.isCoord?'חיפוש חניך בכל הקבוצות…':'חיפוש חניך בקבוצות שלי…')+'"><div class="sres" id="sres"></div></div>';
   // תזכורת: פעילויות שהתקיימו בשבועיים האחרונים ולא מולאו כלל
   var unfilled = unfilledRecent(cur);
   if(unfilled.length){
@@ -270,10 +271,25 @@ function render(){
   h += '<div class="todayrow"><button id="todaybtn" class="todaybtn">📍 לפעילות הקרובה</button></div>';
   h += '<div class="gttl"><span class="t">'+esc(cleanInst(cur.instructor))+' · '+esc(cur.day)+'</span><span class="pill" id="cnt"></span></div>';
   h += '<div style="margin:0 2px 10px"><button id="allp" class="ghostbtn">✓ סמן את כולם נוכחים</button></div>';
-  h += '<div id="stlist"></div></div>';
+  h += '<div id="stlist"></div>';
+  if(state.isCoord){   // הוספת חניך — רכזים בלבד
+    h += '<div style="margin:12px 2px 0"><button id="addst" class="ghostbtn">➕ הוסף חניך</button></div>'+
+      '<div id="addform" hidden style="margin-top:10px;display:flex;flex-direction:column;gap:8px">'+
+        '<input id="as_name" class="asin" placeholder="שם החניך (חובה)">'+
+        '<input id="as_parent" class="asin" placeholder="שם הורה">'+
+        '<input id="as_phone" class="asin" type="tel" placeholder="טלפון הורה">'+
+        '<div style="display:flex;gap:8px"><input id="as_shirt" class="asin" placeholder="מידת חולצה"><input id="as_age" class="asin" placeholder="גיל"></div>'+
+        '<div id="as_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em"></div>'+
+        '<div style="display:flex;gap:8px"><button id="as_save" class="asin" style="background:var(--flag);color:#2b1400;border:0;font-weight:800">שמור חניך</button><button id="as_cancel" class="asin" style="flex:0 0 90px">ביטול</button></div>'+
+      '</div>';
+  }
+  h += '</div>';
   if(state.isCoord) h += '<div class="card" id="sumcard" style="margin-top:14px"></div>';   // הסיכום בסוף הגלילה
   $("main").innerHTML = h;
   if($("allp")) $("allp").onclick = markAllPresent;
+  if($("addst")) $("addst").onclick = function(){ var f=$("addform"); f.hidden=!f.hidden; if(!f.hidden) $("as_name").focus(); };
+  if($("as_cancel")) $("as_cancel").onclick = function(){ $("addform").hidden=true; };
+  if($("as_save")) $("as_save").onclick = addStudent;
   if($("ssearch")) $("ssearch").oninput = function(){ doSearch(this.value); };
   if($("sumcard")) renderSummary();
   document.querySelectorAll("[data-gi]").forEach(function(b){ b.onclick=function(){ state.gi=+b.dataset.gi; render(); }; });
@@ -346,10 +362,23 @@ function markAllPresent(){
   renderStudents();
   rows.forEach(function(row){ post({action:"mark",branch:cur.branch,day:cur.day,row:row,date:date,value:"v"}).catch(function(){}); });
 }
+function addStudent(){
+  var cur=state.groups[state.gi];
+  var name=norm($("as_name").value);
+  if(!name){ $("as_err").textContent="צריך שם חניך"; return; }
+  var btn=$("as_save"), old=btn.textContent; btn.disabled=true; btn.textContent="שומר…"; $("as_err").textContent="";
+  post({action:"addStudent", branch:cur.branch, day:cur.day, group:cur.instructor, name:name,
+    parent:norm($("as_parent").value), phone:norm($("as_phone").value), shirt:norm($("as_shirt").value), age:norm($("as_age").value)
+  }).then(function(j){
+    if(j&&j.ok){ try{localStorage.removeItem("att_cache");}catch(e){} state.touched=false; load(); }
+    else { btn.disabled=false; btn.textContent=old; $("as_err").textContent="לא נשמר: "+((j&&j.error)||"נסו שוב"); }
+  }).catch(function(){ btn.disabled=false; btn.textContent=old; $("as_err").textContent="אין חיבור"; });
+}
 function doSearch(q){
   var box=$("sres"); if(!box) return; q=norm(q);
   if(q.length<2){ box.innerHTML=""; return; }
-  var res=[]; (state.all||[]).forEach(function(g){ g.students.forEach(function(s){ if(norm(s.name).indexOf(q)>-1) res.push({s:s,g:g}); }); });
+  var pool = state.isCoord ? (state.all||[]) : (state.groups||[]);   // רכז: כל הקבוצות · מדריך: שלו בלבד
+  var res=[]; pool.forEach(function(g){ g.students.forEach(function(s){ if(norm(s.name).indexOf(q)>-1) res.push({s:s,g:g}); }); });
   box.innerHTML = res.length ? res.slice(0,15).map(function(r,i){ return '<div class="sr" data-si="'+i+'"><b>'+esc(r.s.name)+'</b><span>'+esc(cleanInst(r.g.instructor))+' · '+esc(r.g.day)+'</span></div>'; }).join("") : '<div style="color:var(--muted);font-size:.85rem;padding:8px 2px">לא נמצא חניך</div>';
   box.querySelectorAll("[data-si]").forEach(function(el){ el.onclick=function(){ var r=res[+el.dataset.si]; openCard(r.s,r.g); }; });
 }
