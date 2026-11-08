@@ -214,7 +214,6 @@ function render(){
   var h = '<div class="who">שלום <b>'+esc(state.who)+'</b> · <a id="chname">שנה שם</a></div>';
   if(state.isCoord){
     h += '<div class="card" style="padding:10px 12px;margin-bottom:12px"><input id="ssearch" class="ssearch" placeholder="חיפוש חניך בכל הקבוצות…"><div class="sres" id="sres"></div></div>';
-    h += '<div class="card" id="sumcard" style="margin-bottom:12px"></div>';
   }
   // תזכורת אם הנוכחות של היום ריקה
   if(needsReminder(cur, state.dates[state.di])) h += '<div class="rem">⏰ אל תשכחו למלא נוכחות לתאריך הזה</div>';
@@ -240,6 +239,7 @@ function render(){
   h += '<div class="gttl"><span class="t">'+esc(cur.instructor)+' · '+esc(cur.day)+'</span><span class="pill" id="cnt"></span></div>';
   h += '<div style="margin:0 2px 10px"><button id="allp" class="ghostbtn">✓ סמן את כולם נוכחים</button></div>';
   h += '<div id="stlist"></div></div>';
+  if(state.isCoord) h += '<div class="card" id="sumcard" style="margin-top:14px"></div>';   // הסיכום בסוף הגלילה
   $("main").innerHTML = h;
   $("chname").onclick = openGate;
   if($("allp")) $("allp").onclick = markAllPresent;
