@@ -275,6 +275,12 @@ function openCard(s, cur){
     '<div><div class="nm">'+esc(s.name)+'</div><div class="sub">'+esc(cur.instructor)+' · '+esc(cur.day)+'</div></div>'+
     '<button class="x" id="ovx">סגור</button></div>';
   if(ph) h += '<a class="call" href="tel:'+esc(ph)+'"><div class="ic">📞</div><div><div class="lab">התקשר להורה'+(s.parent?' — '+esc(s.parent):'')+'</div><div class="ph">'+esc(s.phone)+'</div></div></a>';
+  var _att=s.attendance||{}, _vals=Object.keys(_att).map(function(k){return _att[k];});
+  var _absent=_vals.filter(function(m){return m==="x";}).length, _present=_vals.filter(function(m){return m==="v";}).length, _total=_absent+_present;
+  h += '<div class="grid" style="margin-bottom:12px">'+
+    '<div class="cell"><div class="k">נעדר</div><div class="v" style="color:var(--stop)">'+_absent+' <span style="font-size:.78rem;color:var(--muted);font-weight:600">פעמים</span></div></div>'+
+    '<div class="cell"><div class="k">נוכח</div><div class="v" style="color:var(--ok)">'+_present+' <span style="font-size:.78rem;color:var(--muted);font-weight:600">מתוך '+_total+'</span></div></div>'+
+  '</div>';
   h += '<div class="grid">'+
     cell("מידת חולצה", s.shirt||"—", true)+ cell("גיל", s.age||"—")+
     cell("תאריך לידה", s.dob||"—")+ cell("מין", s.gender||"—")+'</div>';
