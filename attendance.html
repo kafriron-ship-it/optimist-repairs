@@ -28,6 +28,14 @@ button{font-family:inherit;cursor:pointer}
 .datebar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
 .datebar b{font:800 1.05rem 'Assistant'}
 .datebar .nav{background:var(--chip);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-size:1.1rem;padding:5px 13px}
+.datebar .dctr{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1}
+.dstat{font:800 .66rem 'Assistant';letter-spacing:.03em;border-radius:999px;padding:2px 9px}
+.dstat.now{background:#163a66;color:#cfe4ff;border:1px solid #2a5a93}
+.dstat.past{background:#0f2e24;color:#7fd8ba;border:1px solid #1f6e4e}
+.dstat.future{background:#2a2113;color:#f3c98a;border:1px solid #5a4620}
+.todayrow{display:flex;justify-content:center;margin:-4px 0 12px}
+.todaybtn{background:var(--chip);border:1px solid var(--line);border-radius:999px;color:var(--navy);font:700 .8rem 'Assistant';padding:6px 15px}
+.rem.tap{cursor:pointer}
 .gsel{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .gsel button{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font:600 .82rem 'Assistant';color:var(--muted)}
 .gsel button.on{background:#214a7d;border-color:#3e6fa8;color:#fff}
@@ -225,8 +233,13 @@ function render(){
   if(state.isCoord){
     h += '<div class="card" style="padding:10px 12px;margin-bottom:12px"><input id="ssearch" class="ssearch" placeholder="חיפוש חניך בכל הקבוצות…"><div class="sres" id="sres"></div></div>';
   }
-  // תזכורת אם הנוכחות של היום ריקה
-  if(needsReminder(cur, state.dates[state.di])) h += '<div class="rem">⏰ אל תשכחו למלא נוכחות לתאריך הזה</div>';
+  // תזכורת: פעילויות שהתקיימו בשבועיים האחרונים ולא מולאו כלל
+  var unfilled = unfilledRecent(cur);
+  if(unfilled.length){
+    h += '<div class="rem tap" id="rembanner">⏰ '+(unfilled.length===1
+      ? 'פעילות '+esc(unfilled[0])+' התקיימה ועדיין לא מולאה'
+      : unfilled.length+' פעילויות מהשבועיים האחרונים לא מולאו')+' — לחצו למעבר</div>';
+  }
   // בוחר קבוצה (לרכזים / כמה קבוצות)
   if(groups.length > 1){
     var DORDER = ["ראשון","שני","שלישי","רביעי","חמישי","שישי"];
@@ -245,7 +258,8 @@ function render(){
     h += gh + '</div>';
   }
   h += '<div class="card">';
-  h += '<div class="datebar"><button class="nav" data-dd="-1">‹</button><b id="dlabel">'+esc(state.dates[state.di]||"")+'</b><button class="nav" data-dd="1">›</button></div>';
+  h += '<div class="datebar"><button class="nav" data-dd="-1">‹</button><div class="dctr"><b id="dlabel"></b><span id="dstat" class="dstat"></span></div><button class="nav" data-dd="1">›</button></div>';
+  h += '<div class="todayrow"><button id="todaybtn" class="todaybtn">📍 לפעילות הקרובה</button></div>';
   h += '<div class="gttl"><span class="t">'+esc(cleanInst(cur.instructor))+' · '+esc(cur.day)+'</span><span class="pill" id="cnt"></span></div>';
   h += '<div style="margin:0 2px 10px"><button id="allp" class="ghostbtn">✓ סמן את כולם נוכחים</button></div>';
   h += '<div id="stlist"></div></div>';
@@ -257,7 +271,27 @@ function render(){
   if($("sumcard")) renderSummary();
   document.querySelectorAll("[data-gi]").forEach(function(b){ b.onclick=function(){ state.gi=+b.dataset.gi; render(); }; });
   document.querySelectorAll("[data-dd]").forEach(function(b){ b.onclick=function(){ changeDate(+b.dataset.dd); }; });
+  if($("todaybtn")) $("todaybtn").onclick = function(){ jumpTo(nearestDate(state.dates)); };
+  if($("rembanner")) $("rembanner").onclick = function(){ var di=state.dates.indexOf(unfilled[0]); if(di>-1) jumpTo(di); };
+  updateDateUI();
   renderStudents();
+}
+function jumpTo(di){ state.di=di; updateDateUI(); renderStudents(); }
+// עבר / היום / עתיד ביחס לתאריך (ללא שעות)
+function daysAgo_(ds){ var t=new Date(); t.setHours(0,0,0,0); return Math.round((t - toDate_(ds))/864e5); }
+function dateStatus(ds){ var d=daysAgo_(ds); return d===0?{t:"היום",c:"now"}:d>0?{t:"✓ התקיימה",c:"past"}:{t:"עתידית",c:"future"}; }
+function updateDateUI(){
+  var ds=state.dates[state.di]||"";
+  if($("dlabel")) $("dlabel").textContent=ds;
+  var st=$("dstat"); if(st){ var s=dateStatus(ds); st.textContent=s.t; st.className="dstat "+s.c; }
+}
+// פעילויות שהתקיימו בשבועיים האחרונים (0–14 יום) ואף חניך לא סומן בהן
+function unfilledRecent(g){
+  var out=[];
+  g.dateCols.forEach(function(d){ var a=daysAgo_(d.date);
+    if(a>=0 && a<=14 && !g.students.some(function(s){ return s.attendance[d.date]; })) out.push(d.date);
+  });
+  return out;
 }
 
 function nearestDate(dates){
@@ -265,8 +299,7 @@ function nearestDate(dates){
   dates.forEach(function(ds,i){ var p=ds.split("/"); var dt=new Date(2000+ +p[2], p[1]-1, +p[0]); var diff=Math.abs(dt-today); if(diff<bestdiff){bestdiff=diff;best=i;} });
   return best;
 }
-function changeDate(dd){ state.di=Math.max(0,Math.min(state.dates.length-1,state.di+dd)); $("dlabel").textContent=state.dates[state.di]; renderStudents(); }
-function needsReminder(g, date){ return g.students.some(function(s){ return !s.attendance[date]; }); }
+function changeDate(dd){ state.di=Math.max(0,Math.min(state.dates.length-1,state.di+dd)); updateDateUI(); renderStudents(); }
 
 function renderStudents(){
   var cur = state.groups[state.gi]; var date = state.dates[state.di];
