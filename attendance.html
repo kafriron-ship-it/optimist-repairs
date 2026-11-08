@@ -164,7 +164,11 @@ function cleanInst(s){
     .replace(/^קבוצה\s*של\s*/,"");
   if(t.indexOf("+")>-1){ var p=t.split("+"); t = norm(p[0]) || norm(p.slice(1).join("+")); }   // עוזר אחרי + — שומר את המדריך הראשי
   var vi=norm(t).search(/\sו/); if(vi>0) t=norm(t).slice(0,vi);   // "רון כפרי וטים" → מוריד עוזר שמחובר ב-ו׳
-  return norm(t) || "קבוצה";
+  t = norm(t) || "קבוצה";
+  // שמות תצוגה מועדפים (לא משנה את הטבלה)
+  var k = t.replace(/['’`׳"]/g,"");
+  if(k==="יונתן גולן" || k==="גוני" || k==="גוני גולן") return "ג׳וני גולן";
+  return t;
 }
 var DAYS = {0:"ראשון",1:"שני",2:"שלישי",3:"רביעי",4:"חמישי",5:"שישי",6:"שבת"};
 var $ = function(id){ return document.getElementById(id); };
