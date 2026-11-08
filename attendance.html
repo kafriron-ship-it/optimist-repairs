@@ -87,6 +87,11 @@ button{font-family:inherit;cursor:pointer}
 .ov .top .nm{font:800 1.2rem 'Assistant';line-height:1.15}
 .ov .top .sub{font-size:.8rem;color:var(--muted)}
 .ov .x{margin-inline-start:auto;background:var(--chip);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-weight:700;padding:6px 11px}
+.hrow{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:10px 6px;border-bottom:1px solid var(--line);cursor:pointer}
+.hrow .hd{font-weight:700;font-size:.85rem;min-width:54px}
+.hrow .ha{color:var(--muted);font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hrow .ht{font-size:.78rem;color:var(--muted)}
+.hrow .hh{font-weight:800;color:var(--flag)}
 .call{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#14402e,#0f3326);border:1px solid #1f6e4e;border-radius:16px;padding:13px 15px;margin-bottom:12px;text-decoration:none}
 .call .ic{width:44px;height:44px;border-radius:50%;background:var(--ok);color:#06231a;display:grid;place-items:center;font-size:21px;flex:none}
 .call .lab{font-size:.74rem;color:#8fd9bf}
@@ -130,6 +135,7 @@ button{font-family:inherit;cursor:pointer}
 </div>
 
 <div class="ov" id="ov" hidden><div class="box" id="ovbox"></div></div>
+<div class="ov" id="hov" hidden><div class="box" id="hovbox"></div></div>
 
 <script>
 // כתובת המחבר אינה בקוד — היא מגיעה פעם אחת דרך הקישור הפרטי (#api=...) ונשמרת במכשיר.
@@ -247,6 +253,7 @@ function render(){
   state.di = nearestDate(state.dates);
 
   var h = '<div class="who">שלום <b>'+esc(state.who)+'</b></div>';
+  h += '<div style="margin:0 0 12px"><button class="ghostbtn" id="hoursbtn">🕐 שעות עבודה</button></div>';
   // חיפוש חניך — רכז בכל הקבוצות, מדריך בקבוצות שלו
   h += '<div class="card" style="padding:10px 12px;margin-bottom:12px"><input id="ssearch" class="ssearch" placeholder="'+(state.isCoord?'חיפוש חניך בכל הקבוצות…':'חיפוש חניך בקבוצות שלי…')+'"><div class="sres" id="sres"></div></div>';
   // תזכורת: פעילויות שהתקיימו בשבועיים האחרונים ולא מולאו כלל
@@ -293,6 +300,7 @@ function render(){
   h += '</div>';
   if(state.isCoord) h += '<div class="card" id="sumcard" style="margin-top:14px"></div>';   // הסיכום בסוף הגלילה
   $("main").innerHTML = h;
+  if($("hoursbtn")) $("hoursbtn").onclick = openHours;
   if($("allp")) $("allp").onclick = markAllPresent;
   if($("addst")) $("addst").onclick = function(){ var f=$("addform"); f.hidden=!f.hidden; if(!f.hidden) $("as_name").focus(); };
   if($("as_cancel")) $("as_cancel").onclick = function(){ $("addform").hidden=true; };
@@ -490,6 +498,104 @@ function addNote(s, cur){
   post({action:"addNote", branch:cur.branch, day:cur.day, student:s.name, note:t, by:state.who}).catch(function(){ alert("ההערה לא נשמרה"); });
 }
 function closeCard(){ $("ov").hidden = true; }
+
+// ===================== שעות עבודה =====================
+var HSTAFF = ["רון כפרי","ג׳וני גולן","מעין","ליאל עזרן","יעל שטייגמן","גלי","מיה","יסמין","איתמר","גאיה","מירב","ארז","עידו","טל הררי"];
+var HMON = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+var hstate = { inst:"", month:"", rows:[] };
+function pad2(n){ return (n<10?"0":"")+n; }
+function monthKey(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1); }
+function monthLabel(mk){ var p=mk.split("-"); return HMON[+p[1]-1]+" "+p[0]; }
+function monthDays(mk){ var p=mk.split("-"), y=+p[0], m=+p[1], n=new Date(y,m,0).getDate(), out=[]; for(var d=1;d<=n;d++) out.push(d+"/"+m+"/"+String(y).slice(2)); return out; }
+function parseT(x){ x=norm(x); if(!x) return null; var m=x.match(/^(\d{1,2}):(\d{2})$/); if(m) return +m[1]*60 + +m[2]; m=x.match(/^(\d{1,2})(\d{2})$/); if(m) return +m[1]*60 + +m[2]; if(/^\d{1,2}$/.test(x)) return +x*60; return null; }
+function toHHMM(x){ var m=parseT(x); if(m==null) return ""; return pad2(Math.floor(m/60))+":"+pad2(m%60); }
+function calcTotal(s,e){ var a=parseT(s), b=parseT(e); if(a==null||b==null) return ""; var h=(b-a)/60; if(h<0) h+=24; return String(Math.round(h*100)/100); }
+function hMineExtras(){ var seen={}; HSTAFF.forEach(function(n){ seen[norm(n)]=1; }); var ex=[]; hstate.rows.forEach(function(r){ if(r.inst && !seen[norm(r.inst)]){ seen[norm(r.inst)]=1; ex.push(r.inst); } }); return ex; }
+function openHours(){
+  hstate.month = monthKey(new Date());
+  hstate.inst = state.isCoord ? (hstate.inst||HSTAFF[0]) : norm(state.who);
+  $("hov").hidden=false; loadHours();
+}
+function closeHours(){ $("hov").hidden=true; }
+function loadHours(){
+  $("hovbox").innerHTML = '<div class="msg"><span class="spin"></span><div style="margin-top:10px">טוען…</div></div>';
+  api({action:"hoursRead", month:hstate.month}).then(function(j){
+    hstate.rows = (j&&j.ok&&j.rows) ? j.rows : [];
+    renderHours();
+  }).catch(function(){ $("hovbox").innerHTML='<div class="msg">אין חיבור</div>'; });
+}
+function renderHours(){
+  var mine = hstate.rows.filter(function(r){ return norm(r.inst)===norm(hstate.inst); });
+  mine.sort(function(a,b){ return toDate_(a.date)-toDate_(b.date); });
+  var sum = mine.reduce(function(t,r){ var n=parseFloat(r.total); return t+(isNaN(n)?0:n); },0);
+  var h = '<div class="top"><div><div class="nm">🕐 שעות עבודה</div><div class="sub">'+esc(monthLabel(hstate.month))+'</div></div><button class="x" id="hx">סגור</button></div>';
+  h += '<div class="datebar"><button class="nav" id="hprev">‹</button><div class="dctr"><b>'+esc(monthLabel(hstate.month))+'</b></div><button class="nav" id="hnext">›</button></div>';
+  if(state.isCoord){
+    var opts = HSTAFF.concat(hMineExtras());
+    h += '<div style="margin:10px 0 6px"><select id="hinst" class="asin">'+
+      opts.map(function(n){ return '<option'+(norm(n)===norm(hstate.inst)?' selected':'')+'>'+esc(n)+'</option>'; }).join('')+
+      '<option value="__other__">➕ שם אחר…</option></select></div>';
+  }
+  h += '<div class="gttl"><span class="t">'+esc(cleanInst(hstate.inst))+'</span><span class="pill">'+(Math.round(sum*100)/100)+' שע׳</span></div>';
+  h += '<div id="hlist">';
+  if(!mine.length) h += '<div class="msg" style="padding:14px 6px;text-align:right;color:var(--muted)">אין עדיין שעות לחודש הזה</div>';
+  mine.forEach(function(r,i){
+    h += '<div class="hrow" data-he="'+i+'"><div class="hd">'+esc(r.date)+'</div><div class="ha">'+esc(r.act||"—")+'</div><div class="ht" dir="ltr">'+esc(r.start||"")+(r.end?'–'+esc(r.end):'')+'</div><div class="hh">'+esc(r.total||"")+'</div></div>';
+  });
+  h += '</div>';
+  h += '<button class="ghostbtn" id="hadd" style="margin-top:12px">➕ הוסף יום</button>';
+  h += '<div id="hform" hidden style="margin-top:12px;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px">'+
+    '<select id="hf_date" class="asin"></select>'+
+    '<input id="hf_act" class="asin" placeholder="פעילות (למשל: קבוצה של שני / יפו)">'+
+    '<div style="display:flex;gap:8px"><input id="hf_start" class="asin" type="time" step="300"><input id="hf_end" class="asin" type="time" step="300"></div>'+
+    '<div style="display:flex;gap:8px;align-items:center"><input id="hf_total" class="asin" placeholder="סה״כ שעות" inputmode="decimal" style="flex:1"><span style="color:var(--muted);font-size:.78rem">מחושב לבד</span></div>'+
+    '<div id="hf_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em"></div>'+
+    '<div style="display:flex;gap:8px"><button id="hf_save" class="asin" style="background:var(--flag);color:#2b1400;border:0;font-weight:800">שמור</button>'+
+    '<button id="hf_del" class="asin" style="flex:0 0 80px;border-color:var(--stop);color:var(--stop)">מחק</button>'+
+    '<button id="hf_cancel" class="asin" style="flex:0 0 76px">ביטול</button></div></div>';
+  $("hovbox").innerHTML = h;
+  $("hx").onclick=closeHours;
+  $("hprev").onclick=function(){ shiftMonth(-1); };
+  $("hnext").onclick=function(){ shiftMonth(1); };
+  if($("hinst")) $("hinst").onchange=function(){
+    if(this.value==="__other__"){ var nm=norm(prompt("שם המדריך:")||""); if(nm) hstate.inst=nm; renderHours(); return; }
+    hstate.inst=this.value; renderHours();
+  };
+  $("hadd").onclick=function(){ openDayForm("", null); };
+  document.querySelectorAll("[data-he]").forEach(function(el){ el.onclick=function(){ var r=mine[+el.dataset.he]; openDayForm(r.date, r); }; });
+}
+function openDayForm(date, row){
+  var days=monthDays(hstate.month);
+  if(!date) date=days[0];
+  $("hf_date").innerHTML = days.map(function(d){ return '<option'+(d===date?' selected':'')+'>'+d+'</option>'; }).join('');
+  $("hf_act").value = row?(row.act||""):"";
+  $("hf_start").value = toHHMM(row?row.start:"");
+  $("hf_end").value = toHHMM(row?row.end:"");
+  $("hf_total").value = row?(row.total||""):"";
+  $("hf_err").textContent="";
+  $("hf_del").style.display = row ? "" : "none";
+  var f=$("hform"); f.hidden=false; f.scrollIntoView({behavior:"smooth",block:"center"});
+  function recompute(){ var t=calcTotal($("hf_start").value,$("hf_end").value); if(t) $("hf_total").value=t; }
+  $("hf_start").oninput=recompute; $("hf_end").oninput=recompute;
+  $("hf_cancel").onclick=function(){ f.hidden=true; };
+  $("hf_del").onclick=function(){ delDay($("hf_date").value); };
+  $("hf_save").onclick=saveDay;
+}
+function saveDay(){
+  var date=$("hf_date").value, act=norm($("hf_act").value), s=$("hf_start").value, e=$("hf_end").value;
+  var tot=norm($("hf_total").value)||calcTotal(s,e);
+  if(!act && !tot && !s){ $("hf_err").textContent="מלאו פעילות או שעות"; return; }
+  var btn=$("hf_save"); btn.disabled=true; btn.textContent="שומר…";
+  post({action:"hoursSet", month:hstate.month, inst:hstate.inst, date:date, act:act, start:s, end:e, total:tot}).then(function(j){
+    if(j&&j.ok){ loadHours(); }
+    else { btn.disabled=false; btn.textContent="שמור"; $("hf_err").textContent="לא נשמר: "+((j&&j.error)||"נסו שוב"); }
+  }).catch(function(){ btn.disabled=false; btn.textContent="שמור"; $("hf_err").textContent="אין חיבור"; });
+}
+function delDay(date){
+  if(!confirm("למחוק את השעות של "+date+"?")) return;
+  post({action:"hoursSet", month:hstate.month, inst:hstate.inst, date:date}).then(function(j){ if(j&&j.ok) loadHours(); });
+}
+function shiftMonth(d){ var p=hstate.month.split("-"); hstate.month=monthKey(new Date(+p[0], +p[1]-1+d, 1)); loadHours(); }
 $("ov").addEventListener("click", function(e){ if(e.target.id==="ov") closeCard(); });
 
 boot();
