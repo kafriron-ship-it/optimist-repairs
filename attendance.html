@@ -256,7 +256,7 @@ function render(){
   state.di = nearestDate(state.dates);
 
   var h = '<div class="who">שלום <b>'+esc(state.who)+'</b></div>';
-  h += '<div style="margin:0 0 12px"><button class="ghostbtn" id="hoursbtn">🕐 שעות עבודה</button></div>';
+  if(HOURS_ON) h += '<div style="margin:0 0 12px"><button class="ghostbtn" id="hoursbtn">🕐 שעות עבודה</button></div>';
   // חיפוש חניך — רכז בכל הקבוצות, מדריך בקבוצות שלו
   h += '<div class="card" style="padding:10px 12px;margin-bottom:12px"><input id="ssearch" class="ssearch" placeholder="'+(state.isCoord?'חיפוש חניך בכל הקבוצות…':'חיפוש חניך בקבוצות שלי…')+'"><div class="sres" id="sres"></div></div>';
   // תזכורת: פעילויות שהתקיימו בשבועיים האחרונים ולא מולאו כלל
@@ -503,6 +503,7 @@ function addNote(s, cur){
 function closeCard(){ $("ov").hidden = true; }
 
 // ===================== שעות עבודה =====================
+var HOURS_ON = false;   // בינתיים סגור לכולם — שנה ל-true כדי להחזיר את כפתור "שעות עבודה"
 var HSTAFF = ["רון כפרי","ג׳וני גולן","מעין גלעד","ליאל עזרן","יעל שטייגמן","גלי מלכא","מיה סניפר","יסמין קרסנובסקי","איתמר ברייר","גאיה בן סימון","מירב לבנוני","ארז איתן","עידן חן","טל הררי"];
 var HMON = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
 var hstate = { inst:"", month:"", rows:[] };
