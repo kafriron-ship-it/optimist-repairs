@@ -256,7 +256,7 @@ function render(){
   state.di = nearestDate(state.dates);
 
   var h = '<div class="who">שלום <b>'+esc(state.who)+'</b></div>';
-  if(HOURS_ON) h += '<div style="margin:0 0 12px"><button class="ghostbtn" id="hoursbtn">🕐 שעות עבודה</button></div>';
+  if(hoursOK()) h += '<div style="margin:0 0 12px"><button class="ghostbtn" id="hoursbtn">🕐 שעות עבודה</button></div>';
   // חיפוש חניך — רכז בכל הקבוצות, מדריך בקבוצות שלו
   h += '<div class="card" style="padding:10px 12px;margin-bottom:12px"><input id="ssearch" class="ssearch" placeholder="'+(state.isCoord?'חיפוש חניך בכל הקבוצות…':'חיפוש חניך בקבוצות שלי…')+'"><div class="sres" id="sres"></div></div>';
   // תזכורת: פעילויות שהתקיימו בשבועיים האחרונים ולא מולאו כלל
@@ -503,7 +503,10 @@ function addNote(s, cur){
 function closeCard(){ $("ov").hidden = true; }
 
 // ===================== שעות עבודה =====================
-var HOURS_ON = false;   // בינתיים סגור לכולם — שנה ל-true כדי להחזיר את כפתור "שעות עבודה"
+var HOURS_ON = false;   // בינתיים סגור לכולם — שנה ל-true כדי לפתוח לכולם
+var HOURS_WHO = ["רון כפרי"];   // משתמשים שרואים את מסך השעות גם כשהוא סגור לכולם
+function hoursOK(){ try{ return HOURS_ON || HOURS_WHO.indexOf(norm(state.who))>-1; }catch(e){ return HOURS_ON; } }
+function hoursAdmin(){ try{ return state.isCoord || HOURS_WHO.indexOf(norm(state.who))>-1; }catch(e){ return state.isCoord; } }
 var HSTAFF = ["רון כפרי","ג׳וני גולן","מעין גלעד","ליאל עזרן","יעל שטייגמן","גלי מלכא","מיה סניפר","יסמין קרסנובסקי","איתמר ברייר","גאיה בן סימון","מירב לבנוני","ארז איתן","עידן חן","טל הררי"];
 var HMON = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
 var hstate = { inst:"", month:"", rows:[], sched:[] };
@@ -517,7 +520,7 @@ function calcTotal(s,e){ var a=parseT(s), b=parseT(e); if(a==null||b==null) retu
 function hMineExtras(){ var seen={}; HSTAFF.forEach(function(n){ seen[norm(n)]=1; }); var ex=[]; hstate.rows.forEach(function(r){ if(r.inst && !seen[norm(r.inst)]){ seen[norm(r.inst)]=1; ex.push(r.inst); } }); return ex; }
 function openHours(){
   hstate.month = monthKey(new Date());
-  hstate.inst = state.isCoord ? (hstate.inst||HSTAFF[0]) : norm(state.who);
+  hstate.inst = hoursAdmin() ? (hstate.inst||HSTAFF[0]) : norm(state.who);
   $("hov").hidden=false; loadHours();
 }
 function closeHours(){ $("hov").hidden=true; }
@@ -542,7 +545,7 @@ function renderHours(){
   var sum = mine.reduce(function(t,r){ var n=parseFloat(r.total); return t+(isNaN(n)?0:n); },0);
   var h = '<div class="top"><div><div class="nm">🕐 שעות עבודה</div><div class="sub">'+esc(monthLabel(hstate.month))+'</div></div><button class="x" id="hx">סגור</button></div>';
   h += '<div class="datebar"><button class="nav" id="hprev">‹</button><div class="dctr"><b>'+esc(monthLabel(hstate.month))+'</b></div><button class="nav" id="hnext">›</button></div>';
-  if(state.isCoord){
+  if(hoursAdmin()){
     var opts = HSTAFF.concat(hMineExtras());
     h += '<div style="margin:10px 0 6px"><select id="hinst" class="asin">'+
       opts.map(function(n){ return '<option'+(norm(n)===norm(hstate.inst)?' selected':'')+'>'+esc(n)+'</option>'; }).join('')+
@@ -558,7 +561,7 @@ function renderHours(){
   });
   h += '</div>';
   h += '<button class="ghostbtn" id="hadd" style="margin-top:12px">➕ הוסף יום</button>';
-  if(state.isCoord) h += '<button class="ghostbtn" id="hsub" style="margin-top:8px">🔄 החלפה בין מדריכים</button>';
+  if(hoursAdmin()) h += '<button class="ghostbtn" id="hsub" style="margin-top:8px">🔄 החלפה בין מדריכים</button>';
   h += '<button class="ghostbtn" id="hsched" style="margin-top:8px">📅 ימים קבועים</button>';
   h += '<button class="ghostbtn" id="hauto" style="margin-top:8px">✨ מילוי אוטומטי מהקבוע</button>';
   h += '<div id="schedbox" hidden style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px"></div>';
@@ -573,7 +576,7 @@ function renderHours(){
     '<div style="display:flex;gap:8px"><button id="hf_save" class="asin" style="background:var(--flag);color:#2b1400;border:0;font-weight:800">שמור</button>'+
     '<button id="hf_del" class="asin" style="flex:0 0 80px;border-color:var(--stop);color:var(--stop)">מחק</button>'+
     '<button id="hf_cancel" class="asin" style="flex:0 0 76px">ביטול</button></div></div>';
-  if(state.isCoord){
+  if(hoursAdmin()){
     var sopts = HSTAFF.concat(hMineExtras()).map(function(n){ return '<option>'+esc(n)+'</option>'; }).join('');
     h += '<div id="sform" hidden style="margin-top:12px;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px">'+
       '<div style="font-weight:800;font-size:.95rem">🔄 החלפה — העברת שעות</div>'+
