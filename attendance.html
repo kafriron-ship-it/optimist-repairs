@@ -504,7 +504,7 @@ function closeCard(){ $("ov").hidden = true; }
 
 // ===================== שעות עבודה =====================
 var HOURS_ON = false;   // בינתיים סגור לכולם — שנה ל-true כדי לפתוח לכולם
-var HOURS_WHO = ["רון כפרי"];   // משתמשים שרואים את מסך השעות גם כשהוא סגור לכולם
+var HOURS_WHO = ["רון כפרי","טל הררי"];   // משתמשים שרואים את מסך השעות גם כשהוא סגור לכולם
 function hoursOK(){ try{ return HOURS_ON || HOURS_WHO.indexOf(norm(state.who))>-1; }catch(e){ return HOURS_ON; } }
 function hoursAdmin(){ try{ return state.isCoord || HOURS_WHO.indexOf(norm(state.who))>-1; }catch(e){ return state.isCoord; } }
 var HSTAFF = ["רון כפרי","ג׳וני גולן","מעין גלעד","ליאל עזרן","יעל שטייגמן","גלי מלכא","מיה סניפר","יסמין קרסנובסקי","איתמר ברייר","גאיה בן סימון","מירב לבנוני","ארז איתן","עידן חן","טל הררי"];
