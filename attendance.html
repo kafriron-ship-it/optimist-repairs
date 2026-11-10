@@ -506,7 +506,7 @@ function closeCard(){ $("ov").hidden = true; }
 var HOURS_ON = false;   // בינתיים סגור לכולם — שנה ל-true כדי להחזיר את כפתור "שעות עבודה"
 var HSTAFF = ["רון כפרי","ג׳וני גולן","מעין גלעד","ליאל עזרן","יעל שטייגמן","גלי מלכא","מיה סניפר","יסמין קרסנובסקי","איתמר ברייר","גאיה בן סימון","מירב לבנוני","ארז איתן","עידן חן","טל הררי"];
 var HMON = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
-var hstate = { inst:"", month:"", rows:[] };
+var hstate = { inst:"", month:"", rows:[], sched:[] };
 function pad2(n){ return (n<10?"0":"")+n; }
 function monthKey(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1); }
 function monthLabel(mk){ var p=mk.split("-"); return HMON[+p[1]-1]+" "+p[0]; }
@@ -523,10 +523,18 @@ function openHours(){
 function closeHours(){ $("hov").hidden=true; }
 function loadHours(){
   $("hovbox").innerHTML = '<div class="msg"><span class="spin"></span><div style="margin-top:10px">טוען…</div></div>';
-  api({action:"hoursRead", month:hstate.month}).then(function(j){
+  Promise.all([ api({action:"hoursRead", month:hstate.month}), api({action:"schedRead"}) ]).then(function(res){
+    var j=res[0], s=res[1];
     hstate.rows = (j&&j.ok&&j.rows) ? j.rows : [];
+    hstate.sched = (s&&s.rows) ? s.rows : [];
     renderHours();
   }).catch(function(){ $("hovbox").innerHTML='<div class="msg">אין חיבור</div>'; });
+}
+// השורה הקבועה של המדריך הנבחר ליום-בשבוע של תאריך נתון (אם יש)
+function schedFor(date){
+  var p=date.split("/"); var dow=new Date(2000+ +p[2], p[1]-1, +p[0]).getDay();
+  var hit=null; (hstate.sched||[]).forEach(function(r){ if(norm(r.inst)===norm(hstate.inst) && String(r.dow)===String(dow)) hit=r; });
+  return hit;
 }
 function renderHours(){
   var mine = hstate.rows.filter(function(r){ return norm(r.inst)===norm(hstate.inst); });
@@ -539,6 +547,8 @@ function renderHours(){
     h += '<div style="margin:10px 0 6px"><select id="hinst" class="asin">'+
       opts.map(function(n){ return '<option'+(norm(n)===norm(hstate.inst)?' selected':'')+'>'+esc(n)+'</option>'; }).join('')+
       '<option value="__other__">➕ שם אחר…</option></select></div>';
+    h += '<button class="ghostbtn" id="hsum" style="margin:0 0 6px">📊 סיכום כל המדריכים לחודש</button>';
+    h += '<div id="sumbox" hidden style="margin:0 0 10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px"></div>';
   }
   h += '<div class="gttl"><span class="t">'+esc(cleanInst(hstate.inst))+'</span><span class="pill">'+(Math.round(sum*100)/100)+' שע׳</span></div>';
   h += '<div id="hlist">';
@@ -552,9 +562,11 @@ function renderHours(){
   h += '<button class="ghostbtn" id="hsched" style="margin-top:8px">📅 ימים קבועים</button>';
   h += '<button class="ghostbtn" id="hauto" style="margin-top:8px">✨ מילוי אוטומטי מהקבוע</button>';
   h += '<div id="schedbox" hidden style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px"></div>';
+  var acts={}; hstate.rows.concat(hstate.sched||[]).forEach(function(r){ var a=norm(r.act); if(a) acts[a]=1; });
+  h += '<datalist id="actlist">'+Object.keys(acts).map(function(a){ return '<option value="'+esc(a)+'">'; }).join('')+'</datalist>';
   h += '<div id="hform" hidden style="margin-top:12px;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px">'+
     '<select id="hf_date" class="asin"></select>'+
-    '<input id="hf_act" class="asin" placeholder="פעילות (למשל: קבוצה של שני / יפו)">'+
+    '<input id="hf_act" class="asin" list="actlist" placeholder="פעילות (למשל: קבוצה של שני / יפו)">'+
     '<div style="display:flex;gap:8px"><input id="hf_start" class="asin" type="time" step="300"><input id="hf_end" class="asin" type="time" step="300"></div>'+
     '<div style="display:flex;gap:8px;align-items:center"><input id="hf_total" class="asin" placeholder="סה״כ שעות" inputmode="decimal" style="flex:1"><span style="color:var(--muted);font-size:.78rem">מחושב לבד</span></div>'+
     '<div id="hf_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em"></div>'+
@@ -571,7 +583,7 @@ function renderHours(){
       '<select id="sf_date" class="asin"></select>'+
       '<label style="font-size:.8rem;color:var(--muted)">מדריך מחליף (אליו עוברות השעות)</label>'+
       '<select id="sf_to" class="asin">'+sopts+'</select>'+
-      '<input id="sf_act" class="asin" placeholder="פעילות">'+
+      '<input id="sf_act" class="asin" list="actlist" placeholder="פעילות">'+
       '<div style="display:flex;gap:8px"><input id="sf_start" class="asin" type="time" step="300"><input id="sf_end" class="asin" type="time" step="300"></div>'+
       '<div style="display:flex;gap:8px;align-items:center"><input id="sf_total" class="asin" placeholder="סה״כ שעות" inputmode="decimal" style="flex:1"><span style="color:var(--muted);font-size:.78rem">מחושב לבד</span></div>'+
       '<div id="sf_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em"></div>'+
@@ -590,6 +602,7 @@ function renderHours(){
   if($("hsub")) $("hsub").onclick=openSubForm;
   if($("hsched")) $("hsched").onclick=openSched;
   if($("hauto")) $("hauto").onclick=autoFill;
+  if($("hsum")) $("hsum").onclick=toggleSummary;
   document.querySelectorAll("[data-he]").forEach(function(el){ el.onclick=function(){ var r=mine[+el.dataset.he]; openDayForm(r.date, r); }; });
 }
 function findRow_(inst, date){ for(var i=0;i<hstate.rows.length;i++){ var r=hstate.rows[i]; if(norm(r.inst)===norm(inst) && r.date===date) return r; } return null; }
@@ -630,15 +643,17 @@ function openDayForm(date, row){
   var days=monthDays(hstate.month);
   if(!date) date=days[0];
   $("hf_date").innerHTML = days.map(function(d){ return '<option'+(d===date?' selected':'')+'>'+d+'</option>'; }).join('');
-  $("hf_act").value = row?(row.act||""):"";
-  $("hf_start").value = toHHMM(row?row.start:"");
-  $("hf_end").value = toHHMM(row?row.end:"");
-  $("hf_total").value = row?(row.total||""):"";
+  function setVals(act,s,e,tot){ $("hf_act").value=act||""; $("hf_start").value=toHHMM(s); $("hf_end").value=toHHMM(e); $("hf_total").value=tot||""; }
+  // יום קיים → מילוי מהשורה; יום חדש → מילוי-מראש מהלו"ז הקבוע (אם יש)
+  if(row){ setVals(row.act, row.start, row.end, row.total); }
+  else { var sc=schedFor(date); if(sc) setVals(sc.act, sc.start, sc.end, calcTotal(sc.start,sc.end)); else setVals("","","",""); }
   $("hf_err").textContent="";
   $("hf_del").style.display = row ? "" : "none";
   var f=$("hform"); f.hidden=false; f.scrollIntoView({behavior:"smooth",block:"center"});
   function recompute(){ var t=calcTotal($("hf_start").value,$("hf_end").value); if(t) $("hf_total").value=t; }
   $("hf_start").oninput=recompute; $("hf_end").oninput=recompute;
+  if(!row){ $("hf_date").onchange=function(){ var sc=schedFor(this.value); if(sc) setVals(sc.act, sc.start, sc.end, calcTotal(sc.start,sc.end)); }; }
+  else { $("hf_date").onchange=null; }
   $("hf_cancel").onclick=function(){ f.hidden=true; };
   $("hf_del").onclick=function(){ delDay($("hf_date").value); };
   $("hf_save").onclick=saveDay;
@@ -686,14 +701,17 @@ function openSched(){
 }
 function saveSched(){
   var btn=$("sc_save"); btn.disabled=true; btn.textContent="שומר…";
-  var jobs=HDOW.map(function(dw){
-    var act=norm(document.querySelector('.sc_act[data-dw="'+dw+'"]').value);
-    var s=document.querySelector('.sc_s[data-dw="'+dw+'"]').value;
-    var e=document.querySelector('.sc_e[data-dw="'+dw+'"]').value;
-    return post({action:"schedSet", inst:hstate.inst, dow:dw, act:act, start:s, end:e});
+  var rows=HDOW.map(function(dw){
+    return { dow:dw,
+      act:norm(document.querySelector('.sc_act[data-dw="'+dw+'"]').value),
+      start:document.querySelector('.sc_s[data-dw="'+dw+'"]').value,
+      end:document.querySelector('.sc_e[data-dw="'+dw+'"]').value };
   });
-  Promise.all(jobs).then(function(){ btn.disabled=false; btn.textContent="שמור ימים קבועים"; var el=$("sc_err"); if(el){ el.style.color="#22c55e"; el.textContent="נשמר ✓"; } })
-  .catch(function(){ btn.disabled=false; btn.textContent="שמור ימים קבועים"; var el=$("sc_err"); if(el){ el.style.color="var(--stop)"; el.textContent="שגיאה בשמירה"; } });
+  post({action:"schedSetBulk", inst:hstate.inst, rows:rows}).then(function(j){
+    btn.disabled=false; btn.textContent="שמור ימים קבועים"; var el=$("sc_err");
+    if(j&&j.ok){ if(el){ el.style.color="#22c55e"; el.textContent="נשמר ✓"; } }
+    else if(el){ el.style.color="var(--stop)"; el.textContent="שגיאה בשמירה"; }
+  }).catch(function(){ btn.disabled=false; btn.textContent="שמור ימים קבועים"; var el=$("sc_err"); if(el){ el.style.color="var(--stop)"; el.textContent="אין חיבור"; } });
 }
 function autoFill(){
   if(!confirm("למלא את "+monthLabel(hstate.month)+" לפי הימים הקבועים של "+cleanInst(hstate.inst)+"?\n(לא ידרוס ימים קיימים)")) return;
@@ -701,6 +719,36 @@ function autoFill(){
     if(j&&j.ok){ alert("נוספו "+(j.added||0)+" ימים"); loadHours(); }
     else alert("לא בוצע: "+((j&&j.error)||"נסו שוב"));
   }).catch(function(){ alert("אין חיבור"); });
+}
+// ----- סיכום חודשי לרכז (צבירה מכל המדריכים) -----
+function toggleSummary(){
+  var box=$("sumbox"); if(!box) return;
+  if(!box.hidden){ box.hidden=true; return; }
+  box.hidden=false;
+  var agg={};
+  hstate.rows.forEach(function(r){
+    var n=norm(r.inst); if(!n) return;
+    var t=parseFloat(r.total); if(isNaN(t)) t=0;
+    if(!agg[n]) agg[n]={inst:n, total:0, days:0};
+    agg[n].total+=t; agg[n].days++;
+  });
+  var list=Object.keys(agg).map(function(k){ return agg[k]; }).sort(function(a,b){ return b.total-a.total; });
+  var grand=list.reduce(function(s,x){ return s+x.total; },0);
+  if(!list.length){ box.innerHTML='<div style="color:var(--muted);font-size:.85rem">אין שעות החודש</div>'; return; }
+  var r2=function(n){ return Math.round(n*100)/100; };
+  var H='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b>'+esc(monthLabel(hstate.month))+'</b><button id="sumcopy" class="asin" style="flex:0 0 auto;padding:6px 12px;font-size:.8rem">📋 העתק</button></div>';
+  list.forEach(function(x){
+    H+='<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)"><span>'+esc(cleanInst(x.inst))+' <span style="color:var(--muted);font-size:.78rem">· '+x.days+' ימים</span></span><b>'+r2(x.total)+' שע׳</b></div>';
+  });
+  H+='<div style="display:flex;justify-content:space-between;padding:9px 0 0;font-weight:800"><span>סה״כ</span><span>'+r2(grand)+' שע׳</span></div>';
+  box.innerHTML=H;
+  $("sumcopy").onclick=function(){
+    var txt="שעות עבודה — "+monthLabel(hstate.month)+"\n";
+    list.forEach(function(x){ txt+=cleanInst(x.inst)+": "+r2(x.total)+" שע׳ ("+x.days+" ימים)\n"; });
+    txt+="סה״כ: "+r2(grand)+" שע׳";
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(function(){ $("sumcopy").textContent="הועתק ✓"; setTimeout(function(){ if($("sumcopy")) $("sumcopy").textContent="📋 העתק"; },1500); }); }
+    else { prompt("העתק:", txt); }
+  };
 }
 $("ov").addEventListener("click", function(e){ if(e.target.id==="ov") closeCard(); });
 
