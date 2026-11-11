@@ -284,6 +284,7 @@ textarea{min-height:64px;resize:vertical}
     <button role="tab" id="tab-boats" data-tab="boats" aria-selected="false">תיקונים <span class="badge" id="boatsBadge">0</span></button>
     <button role="tab" id="tab-stats" data-tab="stats" aria-selected="false">נתונים</button>
     <button role="tab" id="tab-att" data-tab="att" aria-selected="false" hidden>נוכחות</button>
+    <button role="tab" id="tab-hours" data-tab="hours" aria-selected="false" hidden>שעות</button>
   </nav>
 </header>
 
@@ -379,6 +380,7 @@ textarea{min-height:64px;resize:vertical}
 
 <!-- BOATS -->
 <section id="view-att" hidden><iframe id="attFrame" title="נוכחות חניכים" style="width:100%;height:calc(100dvh - 118px);border:0;display:block"></iframe></section>
+<section id="view-hours" hidden><iframe id="hoursFrame" title="שעות עבודה" style="width:100%;height:calc(100dvh - 118px);border:0;display:block"></iframe></section>
 <section id="view-boats" hidden>
   <div class="chips bfilter"></div>
   <input id="fixer" type="hidden">
@@ -527,11 +529,13 @@ let have = new Set(JSON.parse(store.get("have") || "[]"));
 /* ---------- tabs ---------- */
 function showTab(t){
   if(t==="parts") t = "boats";
-  if(!["report","boats","stats","att"].includes(t)) t = "report";
+  if(!["report","boats","stats","att","hours"].includes(t)) t = "report";
   if(t==="stats" && !statsTabAllowed()) t = "report";   // נתונים — רכזים בלבד
+  if(t==="hours" && !hoursTabAllowed()) t = "report";   // שעות — לפי רשימת היתר
   document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
-  ["report","boats","stats","att"].forEach(v=>$("view-"+v).hidden = v!==t);
+  ["report","boats","stats","att","hours"].forEach(v=>$("view-"+v).hidden = v!==t);
   if(t==="att"){ const f=$("attFrame"); if(f && !f.getAttribute("src")) f.setAttribute("src","attendance.html?embed=1"); }
+  if(t==="hours"){ const f=$("hoursFrame"); if(f && !f.getAttribute("src")) f.setAttribute("src","attendance.html?embed=1&hours=1"); }
 }
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{ location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
 // כתובת המחבר מוטמעת בקוד (מעורפלת — הסתרה, לא אבטחה) כדי שהקישור הראשי יעבוד לבד, בלי קישור נפרד
@@ -569,7 +573,11 @@ function updateAttTab(){ try{ $("tab-att").hidden = !attTabAllowed(); if($("tab-
 // טאב "נתונים" (סטטיסטיקות) — רק לרכזים
 function statsTabAllowed(){ try{ var who=($("who").value||localStorage.getItem("who")||"").replace(/\s+/g," ").trim(); return attIsCoord(who); }catch(e){ return false; } }
 function updateStatsTab(){ try{ $("tab-stats").hidden = !statsTabAllowed(); if($("tab-stats").hidden && location.hash==="#stats") showTab("report"); }catch(e){} }
-updateAttTab(); updateStatsTab(); ensureRoster();
+// טאב "שעות" — רק למי שברשימת ההיתר (כמו במסך השעות)
+var HOURS_WHO=["רון כפרי","טל הררי"];
+function hoursTabAllowed(){ try{ var who=($("who").value||localStorage.getItem("who")||"").replace(/\s+/g," ").trim(); return HOURS_WHO.some(function(c){ return attWords(c).every(function(w){ return attWords(who).indexOf(w)>-1; }); }); }catch(e){ return false; } }
+function updateHoursTab(){ try{ $("tab-hours").hidden = !hoursTabAllowed(); if($("tab-hours").hidden && location.hash==="#hours") showTab("report"); }catch(e){} }
+updateAttTab(); updateStatsTab(); updateHoursTab(); ensureRoster();
 window.addEventListener("hashchange",()=>showTab(location.hash.slice(1)));
 showTab(location.hash.slice(1));
 
@@ -742,7 +750,7 @@ function askName(){ const p=($("who").value||"").split(" ").filter(Boolean); $("
 function saveName(){ const f=$("nameFirst").value.trim().replace(/\s+/g," "), l=$("nameLast").value.trim().replace(/\s+/g," ");
   if(!f || !l){ $("nameFirst").classList.toggle("need",!f); $("nameLast").classList.toggle("need",!l); $("needName").hidden=false; return; }
   const n=f+" "+l;
-  $("who").value = n; $("fixer").value = n; store.set("who", n); $("namePick").hidden = true; showName(); updateAttTab(); ensureRoster(); }
+  $("who").value = n; $("fixer").value = n; store.set("who", n); $("namePick").hidden = true; showName(); updateAttTab(); updateStatsTab(); updateHoursTab(); ensureRoster(); }
 $("nameSave").addEventListener("click", saveName);
 $("nameFirst").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); $("nameLast").focus(); } });
 $("nameLast").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); saveName(); } });

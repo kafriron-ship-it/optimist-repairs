@@ -92,6 +92,9 @@ button{font-family:inherit;cursor:pointer}
 .ov .box{background:var(--bg);border-top-left-radius:20px;border-top-right-radius:20px;width:100%;max-width:560px;max-height:92vh;overflow:auto;padding:16px;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
 /* חלון השעות — מסך מלא, עם מרווח תחתון שלא נחתך ע"י סרגל הניווט של הטלפון */
 #hov .box{max-width:560px;height:100vh;height:100dvh;max-height:100dvh;border-radius:0;padding-top:calc(16px + env(safe-area-inset-top))}
+/* מצב "שעות בלבד" (טאב נפרד): רק מסך השעות */
+body.hoursonly #main{display:none}
+body.hoursonly #hov{background:var(--bg)}
 .ov .top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .ov .av{width:50px;height:50px;border-radius:13px;background:#214a7d;color:#fff;display:grid;place-items:center;font:800 1.2rem 'Assistant';flex:none}
 .ov .av.f{background:#7a3a63}
@@ -157,6 +160,7 @@ try{ API = localStorage.getItem("att_api") || ""; }catch(e){}
   if(m){ API = decodeURIComponent(m[1]); try{ localStorage.setItem("att_api", API); }catch(e){} try{ history.replaceState(null,"",location.pathname); }catch(e){} }
 })();
 try{ if(/[?&]embed=/.test(location.search)) document.documentElement.classList.add("embed"); }catch(e){}
+var HOURS_MODE=false; try{ HOURS_MODE=/[?&]hours=1/.test(location.search); }catch(e){}   // טאב "שעות" נפרד
 var BRANCH = "jaffa";
 try{ var mb=/[#&?]branch=([^&]+)/.exec(location.search); if(mb) BRANCH=decodeURIComponent(mb[1]); }catch(e){}
 var COORDS = ["טל הררי","ירדן סדן"];   // רכזים (שם מלא)
@@ -206,7 +210,14 @@ function fmtToday(d){ return d.getDate()+"/"+(d.getMonth()+1)+"/"+String(d.getFu
 function boot(){
   if(!API){ $("main").innerHTML = '<div class="msg">כדי להשתמש במסך הנוכחות צריך לפתוח אותו דרך הקישור שקיבלת מהרכז.</div>'; return; }
   if(!state.who || nameWords(state.who).length < 2){ openGate(); return; }   // שם מלא חובה
+  if(HOURS_MODE){ startHoursOnly(); return; }
   load();
+}
+function startHoursOnly(){
+  state.isCoord = isCoordName(state.who);
+  if(!hoursOK()){ $("main").innerHTML = '<div class="msg">אין לך הרשאה למסך השעות.</div>'; return; }
+  document.body.classList.add("hoursonly");
+  openHours();
 }
 function openGate(){ $("gate").hidden=false; var p=nameWords(state.who||""); $("gfirst").value=p[0]||""; $("glast").value=p.slice(1).join(" "); setTimeout(function(){$("gfirst").focus();},100); }
 $("gsave").addEventListener("click", saveName);
@@ -216,7 +227,7 @@ function saveName(){
   if(!f || !l){ $("gerr").textContent = "צריך שם פרטי וגם שם משפחה"; return; }
   var v = f + " " + l;
   state.who = v; try{ localStorage.setItem("who", v); localStorage.setItem("att_who", v); }catch(e){}
-  $("gate").hidden = true; load();
+  $("gate").hidden = true; if(HOURS_MODE) startHoursOnly(); else load();
 }
 
 function api(params){
@@ -267,7 +278,6 @@ function render(){
   state.di = nearestDate(state.dates);
 
   var h = '<div class="who">שלום <b>'+esc(state.who)+'</b></div>';
-  if(hoursOK()) h += '<div style="margin:0 0 12px"><button class="ghostbtn" id="hoursbtn">🕐 שעות עבודה</button></div>';
   // חיפוש חניך — רכז בכל הקבוצות, מדריך בקבוצות שלו
   h += '<div class="card" style="padding:10px 12px;margin-bottom:12px"><input id="ssearch" class="ssearch" placeholder="'+(state.isCoord?'חיפוש חניך בכל הקבוצות…':'חיפוש חניך בקבוצות שלי…')+'"><div class="sres" id="sres"></div></div>';
   // תזכורת: פעילויות שהתקיימו בשבועיים האחרונים ולא מולאו כלל
@@ -571,7 +581,7 @@ function renderHours(){
   var mine = hstate.rows.filter(function(r){ return norm(r.inst)===norm(hstate.inst); });
   mine.sort(function(a,b){ return toDate_(a.date)-toDate_(b.date); });
   var sum = mine.reduce(function(t,r){ var n=parseFloat(r.total); return t+(isNaN(n)?0:n); },0);
-  var h = '<div class="top"><div><div class="nm">🕐 שעות עבודה</div><div class="sub">'+esc(monthLabel(hstate.month))+'</div></div><button class="x" id="hx">סגור</button></div>';
+  var h = '<div class="top"><div><div class="nm">🕐 שעות עבודה</div><div class="sub">'+esc(monthLabel(hstate.month))+'</div></div>'+(HOURS_MODE?'':'<button class="x" id="hx">סגור</button>')+'</div>';
   h += '<div class="datebar"><button class="nav" id="hprev">‹</button><div class="dctr"><b>'+esc(monthLabel(hstate.month))+'</b></div><button class="nav" id="hnext">›</button></div>';
   if(hoursAdmin()){
     var opts = HSTAFF.concat(hMineExtras());
@@ -609,7 +619,7 @@ function renderHours(){
     '<button id="hf_del" class="asin" style="flex:0 0 80px;border-color:var(--stop);color:var(--stop)">מחק</button>'+
     '<button id="hf_cancel" class="asin" style="flex:0 0 76px">ביטול</button></div></div>';
   $("hovbox").innerHTML = h;
-  $("hx").onclick=closeHours;
+  if($("hx")) $("hx").onclick=closeHours;
   $("hprev").onclick=function(){ shiftMonth(-1); };
   $("hnext").onclick=function(){ shiftMonth(1); };
   if($("hinst")) $("hinst").onchange=function(){
