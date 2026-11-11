@@ -21,6 +21,7 @@ header .s{font-size:.72rem;opacity:.85}
 .bd{padding:14px}
 button{font-family:inherit;cursor:pointer}
 .rem{display:flex;align-items:center;gap:9px;background:#2a2113;border:1px solid #5a4620;color:#f3c98a;border-radius:12px;padding:10px 12px;font-size:.86rem;font-weight:700;margin-bottom:14px}
+.reasonbox{background:#2a1a1a;border:1px solid var(--stop);border-radius:12px;padding:10px;margin:-4px 2px 10px}
 .actrow{display:flex;gap:8px;align-items:stretch;margin-bottom:8px}
 .actsub{flex:0 0 auto;background:transparent;border:1px solid var(--flag);color:var(--flag);border-radius:12px;font:800 .8rem 'Assistant';padding:8px 12px;white-space:nowrap}
 .actsub.pend{border-color:var(--line);color:var(--muted)}
@@ -401,14 +402,23 @@ function renderStudents(){
   var html = cur.students.map(function(s, idx){
     var v = s.attendance[date]||"";
     if(v==="v") present++;
+    var ask = state.askReason && state.askReason.row===s.row && state.askReason.date===date;
     return '<div class="st">'+
       '<button class="nm" data-card="'+idx+'">'+esc(s.name)+(s.notes&&s.notes.length?' ⚠️':'')+'<small>'+esc(s.parent||"")+(s.shirt?' · חולצה '+esc(s.shirt):'')+'</small></button>'+
       '<div class="seg">'+
         '<button data-mark="v" data-row="'+s.row+'" class="'+(v==="v"?"ok":"")+'">✓</button>'+
         '<button data-mark="x" data-row="'+s.row+'" class="'+(v==="x"?"no":"")+'">✗</button>'+
-      '</div></div>';
+      '</div></div>'+
+      (ask ? '<div class="reasonbox"><input id="reason_in" class="asin" placeholder="סיבה להיעדרות (למשל: חולה / הודיעו מראש)"><div style="display:flex;gap:8px;margin-top:6px"><button id="reason_save" class="asin" style="background:var(--flag);color:#2b1400;border:0;font-weight:800">שמור סיבה</button><button id="reason_skip" class="asin" style="flex:0 0 76px">דלג</button></div></div>' : '');
   }).join("");
   $("stlist").innerHTML = html;
+  if($("reason_in")){
+    var asR=state.askReason, aS=cur.students.filter(function(x){return x.row===asR.row;})[0];
+    $("reason_in").focus();
+    $("reason_skip").onclick=function(){ state.askReason=null; renderStudents(); };
+    $("reason_save").onclick=function(){ var t=norm($("reason_in").value); state.askReason=null; if(t&&aS) saveReason(aS, cur, asR.date, t); else renderStudents(); };
+    $("reason_in").onkeydown=function(e){ if(e.key==="Enter") $("reason_save").click(); };
+  }
   if($("submark")){ var sd=subDoneFor(subAct(cur), date); $("submark").innerHTML = sd ? '<div class="rem" style="background:#13301f;border-color:#2e6b45;color:#8fe3b0">🔄 '+esc(cleanInst(sd.chosen))+' מחליף את '+esc(cleanInst(sd.requester))+' בפעילות זו</div>' : ''; }
   $("cnt").innerHTML = '<b>'+present+'</b> / '+cur.students.length+' נוכחים';
   document.querySelectorAll("#stlist [data-mark]").forEach(function(b){ b.onclick=function(){ mark(cur, date, b); }; });
@@ -421,6 +431,7 @@ function mark(cur, date, btn){
   var nv = (s.attendance[date]===val) ? "" : val;   // לחיצה שנייה מבטלת
   s.attendance[date] = nv;                            // אופטימי
   state.touched = true;                               // שהרענון ברקע לא ידרוס סימון טרי
+  state.askReason = (nv==="x") ? {row:row, date:date} : null;   // סימון נעדר → תיבת סיבה
   renderStudents();
   post({action:"mark", branch:cur.branch, day:cur.day, row:row, date:date, value:nv}).then(function(j){
     if(!j||!j.ok){ s.attendance[date] = ""; renderStudents(); alert("לא נשמר, נסו שוב"); }
@@ -548,6 +559,13 @@ function addNote(s, cur){
   s.notes = s.notes||[]; s.notes.push({note:t, by:state.who, at:Date.now()});
   $("nlist").innerHTML = notesHtml(s); $("nin").value="";
   post({action:"addNote", branch:cur.branch, day:cur.day, student:s.name, note:t, by:state.who}).catch(function(){ alert("ההערה לא נשמרה"); });
+}
+// שמירת סיבת היעדרות כהערה על החניך
+function saveReason(s, cur, date, reason){
+  var note = "נעדר "+date+": "+reason;
+  s.notes = s.notes||[]; s.notes.push({note:note, by:state.who, at:Date.now()});
+  renderStudents();
+  post({action:"addNote", branch:cur.branch, day:cur.day, student:s.name, note:note, by:state.who}).catch(function(){ alert("הסיבה לא נשמרה"); });
 }
 function closeCard(){ $("ov").hidden = true; }
 
