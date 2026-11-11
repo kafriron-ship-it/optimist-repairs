@@ -64,6 +64,10 @@ button{font-family:inherit;cursor:pointer}
 .gsel .dayhdr.sel .cnt{background:var(--flag);color:#2b1400}
 .gsel .dayhdr .chev{color:var(--muted);font-size:.85rem}
 .gsel .daygroups{display:flex;flex-wrap:wrap;gap:6px;padding:4px 4px 8px}
+.hchips{display:flex;flex-wrap:wrap;gap:6px}
+.hchip{background:var(--chip);border:1px solid var(--line);border-radius:999px;color:var(--ink);font:700 .85rem 'Assistant';padding:7px 12px;cursor:pointer}
+.hchip.on{border-color:var(--flag);color:var(--flag);background:rgba(240,138,40,.1)}
+.hflbl{font-size:.78rem;color:var(--muted);margin-bottom:-2px}
 .ghostbtn{background:var(--chip);border:1px solid var(--line);border-radius:10px;color:var(--ink);font:700 .86rem 'Assistant';padding:9px 14px;display:inline-flex;align-items:center;gap:6px}
 .ssearch{width:100%;background:var(--bg);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:600 .92rem 'Assistant'}
 .sres .sr{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 2px;border-top:1px solid var(--line);cursor:pointer}
@@ -653,17 +657,22 @@ function renderHours(){
     h += '<div class="hrow" data-he="'+i+'"><div class="hd">'+esc(r.date)+'</div><div class="ha">'+esc(r.act||"—")+'</div><div class="ht" dir="ltr">'+esc(r.start||"")+(r.end?'–'+esc(r.end):'')+'</div><div class="hh">'+esc(r.total||"")+'</div></div>';
   });
   h += '</div>';
-  h += '<button class="ghostbtn" id="hadd" style="margin-top:12px">➕ הוסף יום</button>';
+  h += '<button class="ghostbtn" id="hadd" style="margin-top:12px;border-color:var(--flag)">➕ הוסף עבודה</button>';
   h += '<button class="ghostbtn" id="hsched" style="margin-top:8px">📅 ימים קבועים</button>';
   h += '<button class="ghostbtn" id="hauto" style="margin-top:8px">✨ מילוי אוטומטי מהקבוע</button>';
   h += '<div id="schedbox" hidden style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px"></div>';
   var acts={}; hstate.rows.concat(hstate.sched||[]).forEach(function(r){ var a=norm(r.act); if(a) acts[a]=1; });
   h += '<datalist id="actlist">'+Object.keys(acts).map(function(a){ return '<option value="'+esc(a)+'">'; }).join('')+'</datalist>';
   h += '<div id="hform" hidden style="margin-top:12px;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px">'+
-    '<select id="hf_date" class="asin"></select>'+
-    '<input id="hf_act" class="asin" list="actlist" placeholder="פעילות (למשל: קבוצה של שני / יפו)">'+
+    '<div class="hflbl">תאריך</div>'+
+    '<input id="hf_date" class="asin" type="date">'+
+    '<div class="hflbl">מה עשית?</div>'+
+    '<div class="hchips" id="hf_acts"></div>'+
+    '<input id="hf_act" class="asin" list="actlist" placeholder="או כתבו משהו אחר…">'+
+    '<div class="hflbl">שעות</div>'+
+    '<div class="hchips"><button type="button" class="hchip" data-slot="am">☀️ בוקר 10–14</button><button type="button" class="hchip" data-slot="pm">🌤 צהריים 14–18</button></div>'+
     '<div style="display:flex;gap:8px"><input id="hf_start" class="asin" type="time" step="300"><input id="hf_end" class="asin" type="time" step="300"></div>'+
-    '<div style="display:flex;gap:8px;align-items:center"><input id="hf_total" class="asin" placeholder="סה״כ שעות" inputmode="decimal" style="flex:1"><span style="color:var(--muted);font-size:.78rem">מחושב לבד</span></div>'+
+    '<div style="display:flex;gap:8px;align-items:center"><input id="hf_total" class="asin" placeholder="סה״כ שעות" inputmode="decimal" style="flex:1"><span style="color:var(--muted);font-size:.78rem;white-space:nowrap">סה״כ — מחושב לבד</span></div>'+
     '<div id="hf_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em"></div>'+
     '<div style="display:flex;gap:8px"><button id="hf_save" class="asin" style="background:var(--flag);color:#2b1400;border:0;font-weight:800">שמור</button>'+
     '<button id="hf_del" class="asin" style="flex:0 0 80px;border-color:var(--stop);color:var(--stop)">מחק</button>'+
@@ -781,32 +790,57 @@ function rejectReq(id){
   if(!confirm("לדחות את הבקשה?")) return;
   post({action:"subReqReject", id:id}).then(function(j){ if(j&&j.ok) loadHours(); });
 }
+// d/m/yy ↔ yyyy-mm-dd (לשדה תאריך)
+function isoOf(dmy){ var p=String(dmy||"").split("/"); if(p.length<3) return ""; return "20"+p[2]+"-"+pad2(+p[1])+"-"+pad2(+p[0]); }
+function dmyOf(iso){ var p=String(iso||"").split("-"); if(p.length<3) return ""; return (+p[2])+"/"+(+p[1])+"/"+p[0].slice(2); }
+function todayDmy(){ var d=new Date(); return d.getDate()+"/"+(d.getMonth()+1)+"/"+String(d.getFullYear()).slice(2); }
+var HACTS=["🔄 החלפה","⛵ יום עבודה על סירות","🧰 ציוד"];
+function hActLabel(a){ return String(a).replace(/^[^֐-׿A-Za-z0-9]+\s*/,""); }   // בלי האימוג'י
 function openDayForm(date, row){
-  var days=monthDays(hstate.month);
-  if(!date) date=days[0];
-  $("hf_date").innerHTML = days.map(function(d){ return '<option'+(d===date?' selected':'')+'>'+d+'</option>'; }).join('');
-  function setVals(act,s,e,tot){ $("hf_act").value=act||""; $("hf_start").value=toHHMM(s); $("hf_end").value=toHHMM(e); $("hf_total").value=tot||""; }
+  // ברירת מחדל: היום (אם מסתכלים על החודש הנוכחי), אחרת ה-1 בחודש המוצג
+  if(!date) date = (hstate.month===monthKey(new Date())) ? todayDmy() : monthDays(hstate.month)[0];
+  $("hf_date").value = isoOf(date);
+  $("hf_date").disabled = !!row;   // עריכת יום קיים — התאריך נעול (כדי לשנות תאריך: מחק והוסף)
+  function setVals(act,s,e,tot){ $("hf_act").value=act||""; $("hf_start").value=toHHMM(s); $("hf_end").value=toHHMM(e); $("hf_total").value=tot||""; marks(); }
+  // כפתורי "מה עשית": החלפה / סירות / ציוד + הפעילות הקבועה של היום (אם יש)
+  function renderActs(){
+    var list=HACTS.map(hActLabel), sc=schedFor(dmyOf($("hf_date").value)||date);
+    var H=(sc&&sc.act?'<button type="button" class="hchip" data-act="'+esc(sc.act)+'">📅 '+esc(sc.act)+'</button>':'')+
+      HACTS.map(function(a,i){ return '<button type="button" class="hchip" data-act="'+esc(list[i])+'">'+esc(a)+'</button>'; }).join('');
+    $("hf_acts").innerHTML=H;
+    document.querySelectorAll("#hf_acts [data-act]").forEach(function(b){ b.onclick=function(){ $("hf_act").value=b.dataset.act; if(b.dataset.act===(sc&&sc.act) && !$("hf_start").value) setVals(sc.act, sc.start, sc.end, calcTotal(sc.start,sc.end)); marks(); }; });
+    marks();
+  }
+  function marks(){
+    var a=norm($("hf_act").value), s=$("hf_start").value, e=$("hf_end").value;
+    document.querySelectorAll("#hf_acts [data-act]").forEach(function(b){ b.classList.toggle("on", norm(b.dataset.act)===a); });
+    document.querySelectorAll("#hform [data-slot]").forEach(function(b){ var t=b.dataset.slot==="am"?SLOT_AM:SLOT_PM; b.classList.toggle("on", s===t.start && e===t.end); });
+  }
   // יום קיים → מילוי מהשורה; יום חדש → מילוי-מראש מהלו"ז הקבוע (אם יש)
   if(row){ setVals(row.act, row.start, row.end, row.total); }
   else { var sc=schedFor(date); if(sc) setVals(sc.act, sc.start, sc.end, calcTotal(sc.start,sc.end)); else setVals("","","",""); }
+  renderActs();
   $("hf_err").textContent="";
   $("hf_del").style.display = row ? "" : "none";
   var f=$("hform"); f.hidden=false; f.scrollIntoView({behavior:"smooth",block:"center"});
-  function recompute(){ var t=calcTotal($("hf_start").value,$("hf_end").value); if(t) $("hf_total").value=t; }
-  $("hf_start").oninput=recompute; $("hf_end").oninput=recompute;
-  if(!row){ $("hf_date").onchange=function(){ var sc=schedFor(this.value); if(sc) setVals(sc.act, sc.start, sc.end, calcTotal(sc.start,sc.end)); }; }
-  else { $("hf_date").onchange=null; }
+  function recompute(){ var t=calcTotal($("hf_start").value,$("hf_end").value); if(t) $("hf_total").value=t; marks(); }
+  $("hf_start").oninput=recompute; $("hf_end").oninput=recompute; $("hf_act").oninput=marks;
+  document.querySelectorAll("#hform [data-slot]").forEach(function(b){ b.onclick=function(){ var t=b.dataset.slot==="am"?SLOT_AM:SLOT_PM; $("hf_start").value=t.start; $("hf_end").value=t.end; $("hf_total").value=t.total; marks(); }; });
+  $("hf_date").onchange = row ? null : function(){ var d=dmyOf(this.value); var sc=schedFor(d); if(sc) setVals(sc.act, sc.start, sc.end, calcTotal(sc.start,sc.end)); renderActs(); };
   $("hf_cancel").onclick=function(){ f.hidden=true; };
-  $("hf_del").onclick=function(){ delDay($("hf_date").value); };
+  $("hf_del").onclick=function(){ delDay(dmyOf($("hf_date").value)); };
   $("hf_save").onclick=saveDay;
 }
 function saveDay(){
-  var date=$("hf_date").value, act=norm($("hf_act").value), s=$("hf_start").value, e=$("hf_end").value;
+  var date=dmyOf($("hf_date").value), act=norm($("hf_act").value), s=$("hf_start").value, e=$("hf_end").value;
   var tot=norm($("hf_total").value)||calcTotal(s,e);
+  if(!date){ $("hf_err").textContent="בחרו תאריך"; return; }
   if(!act && !tot && !s){ $("hf_err").textContent="מלאו פעילות או שעות"; return; }
+  if(!act){ $("hf_err").textContent="בחרו מה עשית (או כתבו)"; return; }
+  var month=monthOf(date);
   var btn=$("hf_save"); btn.disabled=true; btn.textContent="שומר…";
-  post({action:"hoursSet", month:hstate.month, inst:hstate.inst, date:date, act:act, start:s, end:e, total:tot}).then(function(j){
-    if(j&&j.ok){ loadHours(); }
+  post({action:"hoursSet", month:month, inst:hstate.inst, date:date, act:act, start:s, end:e, total:tot}).then(function(j){
+    if(j&&j.ok){ hstate.month=month; loadHours(); }
     else { btn.disabled=false; btn.textContent="שמור"; $("hf_err").textContent="לא נשמר: "+((j&&j.error)||"נסו שוב"); }
   }).catch(function(){ btn.disabled=false; btn.textContent="שמור"; $("hf_err").textContent="אין חיבור"; });
 }
