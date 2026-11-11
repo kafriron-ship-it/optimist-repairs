@@ -44,6 +44,14 @@ button{font-family:inherit;cursor:pointer}
 .gsel .gbr{flex-basis:100%;font:800 .72rem 'Assistant';letter-spacing:.04em;color:var(--flag);margin:10px 2px 0}
 .gsel .gbr:first-child{margin-top:0}
 .gsel .gday{flex-basis:100%;font:700 .74rem 'Assistant';color:var(--ink);margin:4px 2px -2px;padding-inline-start:4px;opacity:.85}
+.gsel.acc{flex-direction:column;gap:4px}
+.gsel.acc .gbr{margin:10px 2px 2px}
+.gsel .dayhdr{display:flex;justify-content:space-between;align-items:center;width:100%;background:var(--chip);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font:700 .92rem 'Assistant';color:var(--ink)}
+.gsel .dayhdr.open{background:#1b2740;border-color:#3e6fa8}
+.gsel .dayhdr .cnt{display:inline-block;min-width:18px;text-align:center;background:var(--line);border-radius:999px;font:700 .72rem 'Assistant';padding:1px 7px;margin-inline-start:6px;color:var(--muted)}
+.gsel .dayhdr.sel .cnt{background:var(--flag);color:#2b1400}
+.gsel .dayhdr .chev{color:var(--muted);font-size:.85rem}
+.gsel .daygroups{display:flex;flex-wrap:wrap;gap:6px;padding:4px 4px 8px}
 .ghostbtn{background:var(--chip);border:1px solid var(--line);border-radius:10px;color:var(--ink);font:700 .86rem 'Assistant';padding:9px 14px;display:inline-flex;align-items:center;gap:6px}
 .ssearch{width:100%;background:var(--bg);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:600 .92rem 'Assistant'}
 .sres .sr{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 2px;border-top:1px solid var(--line);cursor:pointer}
@@ -279,13 +287,32 @@ function render(){
       var d=DORDER.indexOf(ga.day)-DORDER.indexOf(gb.day); if(d) return d;
       return norm(ga.instructor).localeCompare(norm(gb.instructor),"he");
     });
-    var lastBr="", lastDay="", gh='<div class="gsel">';
-    order.forEach(function(i){ var g=groups[i];
-      if(state.isCoord && g.branch!==lastBr){ lastBr=g.branch; lastDay=""; gh += '<div class="gbr">'+esc(BR[g.branch]||g.branch)+'</div>'; }
-      if(state.isCoord && g.day!==lastDay){ lastDay=g.day; gh += '<div class="gday">'+esc(g.day)+'</div>'; }
-      gh += '<button data-gi="'+i+'" class="'+(i===state.gi?"on":"")+'">'+esc(cleanInst(g.instructor))+(state.isCoord?'':' · '+esc(g.day))+'</button>';
-    });
-    h += gh + '</div>';
+    if(state.isCoord){
+      // אקורדיון: ענף → יום (נפתח בלחיצה) → קבוצות
+      var tree={}, brOrder=[];
+      order.forEach(function(i){ var g=groups[i], br=BR[g.branch]||g.branch;
+        if(!tree[br]){ tree[br]={}; brOrder.push(br); }
+        (tree[br][g.day]=tree[br][g.day]||[]).push(i);
+      });
+      var curG=groups[state.gi]||groups[order[0]];
+      var curKey=(BR[curG.branch]||curG.branch)+"|"+curG.day;
+      if(state.openDay==null) state.openDay = curKey;
+      var gh='<div class="gsel acc">';
+      brOrder.forEach(function(br){
+        gh += '<div class="gbr">'+esc(br)+'</div>';
+        Object.keys(tree[br]).sort(function(a,b){ return DORDER.indexOf(a)-DORDER.indexOf(b); }).forEach(function(day){
+          var key=br+"|"+day, open=(state.openDay===key), idxs=tree[br][day];
+          var hasSel=idxs.indexOf(state.gi)>-1;
+          gh += '<button class="dayhdr'+(open?" open":"")+(hasSel?" sel":"")+'" data-day="'+esc(key)+'"><span>'+esc(day)+' <span class="cnt">'+idxs.length+'</span></span><span class="chev">'+(open?"▾":"▸")+'</span></button>';
+          if(open) gh += '<div class="daygroups">'+idxs.map(function(i){ return '<button data-gi="'+i+'" class="'+(i===state.gi?"on":"")+'">'+esc(cleanInst(groups[i].instructor))+'</button>'; }).join('')+'</div>';
+        });
+      });
+      h += gh + '</div>';
+    } else {
+      var gh2='<div class="gsel">';
+      order.forEach(function(i){ var g=groups[i]; gh2 += '<button data-gi="'+i+'" class="'+(i===state.gi?"on":"")+'">'+esc(cleanInst(g.instructor))+' · '+esc(g.day)+'</button>'; });
+      h += gh2 + '</div>';
+    }
   }
   h += '<div class="card">';
   h += '<div class="datebar"><button class="nav" data-dd="-1">‹</button><div class="dctr"><b id="dlabel"></b><span id="dstat" class="dstat"></span></div><button class="nav" data-dd="1">›</button></div>';
@@ -315,6 +342,7 @@ function render(){
   if($("ssearch")) $("ssearch").oninput = function(){ doSearch(this.value); };
   if($("sumcard")) renderSummary();
   document.querySelectorAll("[data-gi]").forEach(function(b){ b.onclick=function(){ state.gi=+b.dataset.gi; render(); }; });
+  document.querySelectorAll("[data-day]").forEach(function(b){ b.onclick=function(){ state.openDay = (state.openDay===b.dataset.day) ? "" : b.dataset.day; render(); }; });
   document.querySelectorAll("[data-dd]").forEach(function(b){ b.onclick=function(){ changeDate(+b.dataset.dd); }; });
   if($("todaybtn")) $("todaybtn").onclick = function(){ jumpTo(nearestDate(state.dates)); };
   if($("rembanner")) $("rembanner").onclick = function(){ var di=state.dates.indexOf(unfilled[0]); if(di>-1) jumpTo(di); };
