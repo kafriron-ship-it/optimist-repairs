@@ -688,7 +688,6 @@ function renderHours(){
   h += '<button class="ghostbtn" id="hadd" style="margin-top:12px;border-color:var(--flag)">➕ הוסף עבודה</button>';
   h += '<button class="ghostbtn" id="hsched" style="margin-top:8px">📅 פעילויות קבועות</button>';
   if(hoursAdmin()){
-    h += '<button class="ghostbtn" id="hauto" style="margin-top:8px">✨ מילוי החודש מהקבוע</button>';
     h += '<button class="ghostbtn" id="hfromg" style="margin-top:8px">⚡ פעילויות קבועות לכולם מהקבוצות</button>';
   }
   h += '<div id="schedbox" hidden style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px"></div>';
@@ -721,7 +720,6 @@ function renderHours(){
   if($("hsched")) $("hsched").onclick=openSched;
   if(hstate.schedOpen) renderSched(hstate.schedMsg);
   if($("hfromg")) $("hfromg").onclick=schedFromGroups;
-  if($("hauto")) $("hauto").onclick=autoFill;
   if($("hsum")) $("hsum").onclick=toggleSummary;
   document.querySelectorAll("[data-he]").forEach(function(el){ el.onclick=function(){ var r=mine[+el.dataset.he]; openDayForm(r.date, r); }; });
 }
@@ -1009,25 +1007,20 @@ function schedFromGroups(){
     .then(function(){ alert("נוצרו "+todo.length+" פעילויות קבועות ✓"); loadHours(); })
     .catch(function(){ alert("חלק לא נשמר — נסו שוב"); loadHours(); });
 }
-// מילוי אוטומטי חודשי: בחודש הנוכחי, מי שיש לו פעילויות קבועות ואין לו עדיין אף שורה החודש — ממולא לבד (פעם אחת).
-// כל מדריך — לעצמו, כשהוא פותח את מסך השעות (רכז ממלא לאחרים בכפתור "מילוי החודש מהקבוע").
+// מילוי אוטומטי חודשי — בלי כפתור: מי שיש לו פעילויות קבועות, החודש הנוכחי שלו מתמלא לבד.
+// מתמלא פעם אחת לחודש: רק אם עדיין אין לו החודש אף שורה של הפעילויות הקבועות שלו (כך יום שנמחק/בוטל לא חוזר).
+// רכז/מנהל שפותח את המסך ממלא לכל המדריכים; מדריך — לעצמו. מתחיל מחודש העלייה לכולם.
+var AUTO_FILL_FROM="2026-12";
 var _autoFilled={};
 function autoFillMonth(){
-  var cur=monthKey(new Date()); if(hstate.month!==cur || _autoFilled[cur]) return;
+  var cur=monthKey(new Date()); if(hstate.month!==cur || cur<AUTO_FILL_FROM || _autoFilled[cur]) return;
   _autoFilled[cur]=1;
-  var have={}; hstate.rows.forEach(function(r){ have[norm(r.inst)]=1; });
-  var insts={}; (hstate.sched||[]).forEach(function(r){ insts[norm(r.inst)]=1; });
-  var todo=Object.keys(insts).filter(function(n){ return !have[n] && n===norm(state.who); });
+  var fixed={}; (hstate.sched||[]).forEach(function(r){ var n=norm(r.inst); (fixed[n]=fixed[n]||{})[norm(r.act)]=1; });
+  var filled={}; hstate.rows.forEach(function(r){ var n=norm(r.inst); if(fixed[n] && fixed[n][norm(r.act)]) filled[n]=1; });
+  var todo=Object.keys(fixed).filter(function(n){ return !filled[n] && (hoursAdmin() || n===norm(state.who)); });
   if(!todo.length) return;
   todo.reduce(function(pr,inst){ return pr.then(function(){ return post({action:"schedFill", inst:inst, month:cur}).catch(function(){}); }); }, Promise.resolve())
     .then(function(){ if(hstate.month===cur) loadHours(); });
-}
-function autoFill(){
-  if(!confirm("למלא את "+monthLabel(hstate.month)+" לפי הימים הקבועים של "+cleanInst(hstate.inst)+"?\n(לא ידרוס ימים קיימים)")) return;
-  post({action:"schedFill", inst:hstate.inst, month:hstate.month}).then(function(j){
-    if(j&&j.ok){ alert("נוספו "+(j.added||0)+" ימים"); loadHours(); }
-    else alert("לא בוצע: "+((j&&j.error)||"נסו שוב"));
-  }).catch(function(){ alert("אין חיבור"); });
 }
 // ----- סיכום חודשי לרכז (צבירה מכל המדריכים) -----
 function toggleSummary(){
