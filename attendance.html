@@ -117,6 +117,22 @@ body.hoursonly #hov{background:var(--bg)}
 .ov .top .nm{font:800 1.2rem 'Assistant';line-height:1.15}
 .ov .top .sub{font-size:.8rem;color:var(--muted)}
 .ov .x{margin-inline-start:auto;background:var(--chip);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-weight:700;padding:6px 11px}
+.hsumc{display:flex;gap:10px;margin:4px 0 12px}
+.hsumc .c{flex:1;background:var(--chip);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.hsumc .c .v{font:800 1.6rem 'Assistant';line-height:1.1}
+.hsumc .c .v small{font-size:.8rem;font-weight:700;color:var(--muted);margin-inline-start:3px}
+.hsumc .c .k{font-size:.78rem;color:var(--muted);font-weight:700}
+.hsec{font:800 .8rem 'Assistant';color:var(--muted);margin:12px 2px 6px}
+.hcard{display:flex;align-items:center;gap:12px;padding:9px 10px;border:1px solid var(--line);border-radius:12px;margin-bottom:6px;cursor:pointer;background:var(--surface)}
+.hcard.plan{opacity:.6;border-style:dashed}
+.hcard .dt{min-width:42px;text-align:center;line-height:1.1}
+.hcard .dt b{display:block;font-size:1.15rem}
+.hcard .dt span{font-size:.72rem;color:var(--muted);font-weight:700}
+.hcard .mid{flex:1;min-width:0}
+.hcard .mid .a{font-weight:700;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hcard .mid .t{font-size:.78rem;color:var(--muted)}
+.hcard .hrs{font:800 1rem 'Assistant';color:var(--flag);white-space:nowrap}
+.hcard .hrs small{font-size:.7rem;color:var(--muted);margin-inline-start:2px}
 .hrow{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:10px 6px;border-bottom:1px solid var(--line);cursor:pointer}
 .hrow .hd{font-weight:700;font-size:.85rem;min-width:54px}
 .hrow .ha{color:var(--muted);font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -627,6 +643,7 @@ function loadHours(){
     hstate.sched = (s&&s.rows) ? s.rows : [];
     hstate.reqs = (q&&q.rows) ? q.rows : [];
     renderHours();
+    autoFillMonth();
   }).catch(function(){ $("hovbox").innerHTML='<div class="msg">אין חיבור</div>'; });
 }
 // השורה הקבועה של המדריך הנבחר ליום-בשבוע של תאריך נתון (אם יש)
@@ -650,16 +667,30 @@ function renderHours(){
     h += '<button class="ghostbtn" id="hsum" style="margin:0 0 6px">📊 סיכום כל המדריכים לחודש</button>';
     h += '<div id="sumbox" hidden style="margin:0 0 10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px"></div>';
   }
-  h += '<div class="gttl"><span class="t">'+esc(cleanInst(hstate.inst))+'</span><span class="pill">'+(Math.round(sum*100)/100)+' שע׳</span></div>';
+  // "השעות שלי": כמה עבדתי עד היום + מה מתוכנן, ורשימה מסודרת לפי תאריך
+  var today0=new Date(); today0.setHours(0,0,0,0);
+  var hnum=function(r){ var n=parseFloat(r.total); return isNaN(n)?0:n; }, r2=function(n){ return Math.round(n*100)/100; };
+  var done=mine.filter(function(r){ return toDate_(r.date)<=today0; }), plan=mine.filter(function(r){ return toDate_(r.date)>today0; });
+  var doneH=done.reduce(function(t,r){ return t+hnum(r); },0), planH=plan.reduce(function(t,r){ return t+hnum(r); },0);
+  if(hoursAdmin()) h += '<div class="gttl"><span class="t">'+esc(cleanInst(hstate.inst))+'</span></div>';
+  h += '<div class="hsumc"><div class="c"><div class="k">עבדת החודש</div><div class="v">'+r2(doneH)+'<small>שע׳</small></div><div class="k">'+done.length+' ימים</div></div>'+
+       (plan.length?'<div class="c" style="opacity:.75"><div class="k">מתוכנן עד סוף החודש</div><div class="v">'+r2(planH)+'<small>שע׳</small></div><div class="k">'+plan.length+' ימים</div></div>':'')+'</div>';
+  var WD=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"];
+  var card=function(r){ var i=mine.indexOf(r), d=toDate_(r.date), isPlan=d>today0;
+    return '<div class="hcard'+(isPlan?' plan':'')+'" data-he="'+i+'"><div class="dt"><b>'+d.getDate()+'/'+(d.getMonth()+1)+'</b><span>יום '+WD[d.getDay()]+'</span></div>'+
+      '<div class="mid"><div class="a">'+esc(r.act||"—")+'</div><div class="t" dir="ltr" style="text-align:right">'+esc(r.start||"")+(r.end?'–'+esc(r.end):'')+'</div></div>'+
+      '<div class="hrs">'+esc(r.total||"")+'<small>שע׳</small></div></div>'; };
   h += '<div id="hlist">';
   if(!mine.length) h += '<div class="msg" style="padding:14px 6px;text-align:right;color:var(--muted)">אין עדיין שעות לחודש הזה</div>';
-  mine.forEach(function(r,i){
-    h += '<div class="hrow" data-he="'+i+'"><div class="hd">'+esc(r.date)+'</div><div class="ha">'+esc(r.act||"—")+'</div><div class="ht" dir="ltr">'+esc(r.start||"")+(r.end?'–'+esc(r.end):'')+'</div><div class="hh">'+esc(r.total||"")+'</div></div>';
-  });
+  if(done.length) h += '<div class="hsec">✅ עבדתי</div>'+done.map(card).join('');
+  if(plan.length) h += '<div class="hsec">🗓 מתוכנן</div>'+plan.map(card).join('');
   h += '</div>';
   h += '<button class="ghostbtn" id="hadd" style="margin-top:12px;border-color:var(--flag)">➕ הוסף עבודה</button>';
-  h += '<button class="ghostbtn" id="hsched" style="margin-top:8px">📅 ימים קבועים</button>';
-  h += '<button class="ghostbtn" id="hauto" style="margin-top:8px">✨ מילוי אוטומטי מהקבוע</button>';
+  h += '<button class="ghostbtn" id="hsched" style="margin-top:8px">📅 פעילויות קבועות</button>';
+  if(hoursAdmin()){
+    h += '<button class="ghostbtn" id="hauto" style="margin-top:8px">✨ מילוי החודש מהקבוע</button>';
+    h += '<button class="ghostbtn" id="hfromg" style="margin-top:8px">⚡ פעילויות קבועות לכולם מהקבוצות</button>';
+  }
   h += '<div id="schedbox" hidden style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px"></div>';
   var acts={}; hstate.rows.concat(hstate.sched||[]).forEach(function(r){ var a=norm(r.act); if(a) acts[a]=1; });
   h += '<datalist id="actlist">'+Object.keys(acts).map(function(a){ return '<option value="'+esc(a)+'">'; }).join('')+'</datalist>';
@@ -688,6 +719,8 @@ function renderHours(){
   };
   $("hadd").onclick=function(){ openDayForm("", null); };
   if($("hsched")) $("hsched").onclick=openSched;
+  if(hstate.schedOpen) renderSched(hstate.schedMsg);
+  if($("hfromg")) $("hfromg").onclick=schedFromGroups;
   if($("hauto")) $("hauto").onclick=autoFill;
   if($("hsum")) $("hsum").onclick=toggleSummary;
   document.querySelectorAll("[data-he]").forEach(function(el){ el.onclick=function(){ var r=mine[+el.dataset.he]; openDayForm(r.date, r); }; });
@@ -849,45 +882,145 @@ function delDay(date){
   post({action:"hoursSet", month:hstate.month, inst:hstate.inst, date:date}).then(function(j){ if(j&&j.ok) loadHours(); });
 }
 function shiftMonth(d){ var p=hstate.month.split("-"); hstate.month=monthKey(new Date(+p[0], +p[1]-1+d, 1)); loadHours(); }
-// ----- ימים קבועים -----
+// ----- פעילויות קבועות: רשימה + שאלון "הוסף פעילות קבועה" (יום → פעילות → שעות) -----
 var HDOW = [0,1,2,3,4,5];   // ראשון..שישי
+function schedAct(g){ return g.day+" · "+(BRN[g.branch]||g.branch); }
+function groupsOfInst(inst){ return (state.all||[]).filter(function(g){ return matchName(g.instructor, inst) || matchName(cleanInst(g.instructor), inst); }); }
+function mySched(){ return (hstate.sched||[]).filter(function(r){ return norm(r.inst)===norm(hstate.inst); }).sort(function(a,b){ return (+a.dow)-(+b.dow); }); }
+// קבוצות של המדריך שעוד אין להן פעילות קבועה ושהשעות שלהן ידועות → הצעה בלחיצה אחת
+function schedSuggestions(){
+  var taken={}; mySched().forEach(function(r){ taken[String(r.dow)]=1; });
+  return groupsOfInst(hstate.inst).filter(function(g){ var d=dowOf(g.day); return d>=0 && !taken[String(d)] && defaultTimes(g); });
+}
 function openSched(){
   var box=$("schedbox"); box.hidden=false;
   box.innerHTML='<div class="msg" style="padding:10px"><span class="spin"></span> טוען…</div>';
   box.scrollIntoView({behavior:"smooth",block:"center"});
-  api({action:"schedRead"}).then(function(j){
-    var mine={}; ((j&&j.rows)||[]).forEach(function(r){ if(norm(r.inst)===norm(hstate.inst)) mine[String(r.dow)]=r; });
-    var H='<div style="font-weight:800;font-size:.95rem;margin-bottom:4px">📅 ימים קבועים — '+esc(cleanInst(hstate.inst))+'</div>';
-    H+='<div style="color:var(--muted);font-size:.78rem;margin-bottom:10px">מלאו שעות ליום כדי לקבוע אותו; רוקנו כדי לבטל.</div>';
-    HDOW.forEach(function(dw){
-      var r=mine[String(dw)]||{};
-      H+='<div style="display:grid;grid-template-columns:54px 1fr;gap:8px;align-items:start;margin-bottom:10px">'+
-        '<div style="font-weight:700;padding-top:10px">'+DAYS[dw]+'</div>'+
-        '<div style="display:flex;flex-direction:column;gap:6px">'+
-          '<input class="asin sc_act" data-dw="'+dw+'" placeholder="פעילות (למשל: יפו)" value="'+esc(r.act||"")+'">'+
-          '<div style="display:flex;gap:6px"><input class="asin sc_s" data-dw="'+dw+'" type="time" step="300" value="'+esc(toHHMM(r.start||""))+'"><input class="asin sc_e" data-dw="'+dw+'" type="time" step="300" value="'+esc(toHHMM(r.end||""))+'"></div>'+
-        '</div></div>';
-    });
-    H+='<div id="sc_err" style="font-size:.82rem;font-weight:700;min-height:1em;margin-bottom:4px"></div>';
-    H+='<div style="display:flex;gap:8px"><button id="sc_save" class="asin" style="background:var(--flag);color:#2b1400;border:0;font-weight:800">שמור ימים קבועים</button><button id="sc_cancel" class="asin" style="flex:0 0 76px">סגור</button></div>';
-    box.innerHTML=H;
-    $("sc_cancel").onclick=function(){ box.hidden=true; };
-    $("sc_save").onclick=saveSched;
-  }).catch(function(){ box.innerHTML='<div class="msg">אין חיבור</div>'; });
+  hstate.schedOpen=true; hstate.schedMsg="";
+  api({action:"schedRead"}).then(function(j){ hstate.sched=(j&&j.rows)||[]; renderSched(); })
+    .catch(function(){ box.innerHTML='<div class="msg">אין חיבור</div>'; });
 }
-function saveSched(){
-  var btn=$("sc_save"); btn.disabled=true; btn.textContent="שומר…";
-  var rows=HDOW.map(function(dw){
-    return { dow:dw,
-      act:norm(document.querySelector('.sc_act[data-dw="'+dw+'"]').value),
-      start:document.querySelector('.sc_s[data-dw="'+dw+'"]').value,
-      end:document.querySelector('.sc_e[data-dw="'+dw+'"]').value };
+function renderSched(msg){
+  var box=$("schedbox"); if(!box) return;
+  box.hidden=false; hstate.schedMsg=msg||"";
+  var mine=mySched(), sug=schedSuggestions();
+  var H='<div style="font-weight:800;font-size:.95rem;margin-bottom:4px">📅 פעילויות קבועות — '+esc(cleanInst(hstate.inst))+'</div>';
+  H+='<div style="color:var(--muted);font-size:.78rem;margin-bottom:10px">פעילות קבועה נכנסת לבד לשעות של כל חודש.</div>';
+  if(msg) H+='<div style="color:#22c55e;font-weight:800;font-size:.85rem;margin-bottom:8px">'+esc(msg)+'</div>';
+  if(!mine.length) H+='<div style="color:var(--muted);font-size:.85rem;margin-bottom:8px">אין עדיין פעילויות קבועות.</div>';
+  mine.forEach(function(r){
+    H+='<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;margin-bottom:6px">'+
+      '<div style="flex:1"><b>יום '+esc(DAYS[+r.dow]||r.dow)+'</b> · '+esc(r.act||"")+' <span dir="ltr" style="color:var(--muted);font-size:.85rem">'+esc(toHHMM(r.start))+(r.end?'–'+esc(toHHMM(r.end)):'')+'</span></div>'+
+      '<button class="hchip" data-scdel="'+esc(r.dow)+'" style="color:var(--stop);border-color:var(--stop)">הסר</button></div>';
   });
-  post({action:"schedSetBulk", inst:hstate.inst, rows:rows}).then(function(j){
-    btn.disabled=false; btn.textContent="שמור ימים קבועים"; var el=$("sc_err");
-    if(j&&j.ok){ if(el){ el.style.color="#22c55e"; el.textContent="נשמר ✓"; } }
-    else if(el){ el.style.color="var(--stop)"; el.textContent="שגיאה בשמירה"; }
-  }).catch(function(){ btn.disabled=false; btn.textContent="שמור ימים קבועים"; var el=$("sc_err"); if(el){ el.style.color="var(--stop)"; el.textContent="אין חיבור"; } });
+  sug.forEach(function(g,k){
+    var t=defaultTimes(g);
+    H+='<button class="ghostbtn" data-scsug="'+k+'" style="width:100%;margin-bottom:6px;justify-content:flex-start">✨ להוסיף: יום '+esc(g.day)+' · '+esc(BRN[g.branch]||g.branch)+' · <span dir="ltr">'+t.start+'–'+t.end+'</span></button>';
+  });
+  H+='<button class="ghostbtn" id="sc_add" style="margin-top:4px;border-color:var(--flag)">➕ הוסף פעילות קבועה</button>';
+  H+='<div id="sc_q"></div>';
+  H+='<div style="margin-top:10px"><button id="sc_cancel" class="asin" style="flex:0 0 76px">סגור</button></div>';
+  box.innerHTML=H;
+  $("sc_cancel").onclick=function(){ box.hidden=true; hstate.schedOpen=false; };
+  $("sc_add").onclick=openSchedQ;
+  document.querySelectorAll("[data-scdel]").forEach(function(b){ b.onclick=function(){
+    if(!confirm("להסיר את הפעילות הקבועה של יום "+(DAYS[+b.dataset.scdel]||"")+"?\n(שעות שכבר נרשמו נשארות)")) return;
+    b.disabled=true; schedSave({dow:b.dataset.scdel, act:"", start:"", end:""}, "הוסר ✓", false);
+  }; });
+  document.querySelectorAll("[data-scsug]").forEach(function(b){ b.onclick=function(){
+    var g=sug[+b.dataset.scsug], t=defaultTimes(g); b.disabled=true;
+    schedSave({dow:dowOf(g.day), act:schedAct(g), start:t.start, end:t.end}, "נוסף ✓ ונכנס לשעות של החודש", true);
+  }; });
+}
+// השאלון: יום → מה → שעות
+function openSchedQ(){
+  var p=$("sc_q"), q={dow:null, act:"", g:null};
+  var taken={}; mySched().forEach(function(r){ taken[String(r.dow)]=r; });
+  function draw(){
+    var H='<div class="card" style="padding:12px;margin-top:10px;display:flex;flex-direction:column;gap:8px">';
+    H+='<div class="hflbl">1. באיזה יום?</div><div class="hchips">'+HDOW.map(function(d){ return '<button type="button" class="hchip'+(q.dow===d?' on':'')+'" data-qd="'+d+'">'+DAYS[d]+'</button>'; }).join('')+'</div>';
+    if(q.dow!==null){
+      if(taken[String(q.dow)]) H+='<div style="color:var(--flag);font-size:.78rem">⚠️ כבר יש פעילות קבועה ביום '+DAYS[q.dow]+' ('+esc(taken[String(q.dow)].act)+') — היא תוחלף.</div>';
+      var dayName=DAYS[q.dow], myG=groupsOfInst(hstate.inst).filter(function(g){ return g.day===dayName; });
+      var others=(state.all||[]).filter(function(g){ return g.day===dayName && myG.indexOf(g)<0; });
+      var fixed=["ריכוז","יום עבודה על סירות","ציוד"];
+      H+='<div class="hflbl">2. מה הפעילות?</div><div class="hchips">'+
+        myG.map(function(g,k){ return '<button type="button" class="hchip'+(q.g===g?' on':'')+'" data-qg="'+k+'">⛵ הקבוצה שלי · '+esc(BRN[g.branch]||g.branch)+'</button>'; }).join('')+
+        fixed.map(function(a){ return '<button type="button" class="hchip'+(!q.g&&q.act===a?' on':'')+'" data-qa="'+esc(a)+'">'+esc(a)+'</button>'; }).join('')+'</div>';
+      if(others.length) H+='<select id="q_other" class="asin"><option value="">קבוצה אחרת ביום '+esc(dayName)+'…</option>'+others.map(function(g,k){ return '<option value="'+k+'"'+(q.g===g?' selected':'')+'>'+esc(cleanInst(g.instructor))+' · '+esc(BRN[g.branch]||g.branch)+'</option>'; }).join('')+'</select>';
+      H+='<input id="q_act" class="asin" placeholder="או כתבו פעילות אחרת…" value="'+esc(q.g?"":(fixed.indexOf(q.act)<0?q.act:""))+'">';
+      if(q.act){
+        H+='<div class="hflbl">3. באילו שעות?</div><div class="hchips"><button type="button" class="hchip" data-qs="am">☀️ בוקר 10–14</button><button type="button" class="hchip" data-qs="pm">🌤 צהריים 14–18</button></div>'+
+           '<div style="display:flex;gap:8px"><input id="q_s" class="asin" type="time" step="300"><input id="q_e" class="asin" type="time" step="300"></div>'+
+           '<div id="q_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em"></div>'+
+           '<button id="q_save" class="asin" style="background:var(--flag);color:#2b1400;border:0;font-weight:800">שמור פעילות קבועה</button>';
+      }
+    }
+    H+='</div>';
+    p.innerHTML=H;
+    p.querySelectorAll("[data-qd]").forEach(function(b){ b.onclick=function(){ q.dow=+b.dataset.qd; q.act=""; q.g=null; draw(); }; });
+    p.querySelectorAll("[data-qg]").forEach(function(b){ b.onclick=function(){ var g=groupsOfInst(hstate.inst).filter(function(x){ return x.day===DAYS[q.dow]; })[+b.dataset.qg]; q.g=g; q.act=schedAct(g); draw(); }; });
+    p.querySelectorAll("[data-qa]").forEach(function(b){ b.onclick=function(){ q.g=null; q.act=b.dataset.qa; draw(); }; });
+    if($("q_other")) $("q_other").onchange=function(){ if(this.value==="") return; var dn=DAYS[q.dow], my=groupsOfInst(hstate.inst).filter(function(g){ return g.day===dn; }); var g=(state.all||[]).filter(function(x){ return x.day===dn && my.indexOf(x)<0; })[+this.value]; q.g=g; q.act=schedAct(g); draw(); };
+    if($("q_act")) $("q_act").onchange=function(){ var v=norm(this.value); if(v){ q.g=null; q.act=v; draw(); } };
+    if($("q_save")){
+      function mk(){ var s=$("q_s").value, e=$("q_e").value; p.querySelectorAll("[data-qs]").forEach(function(b){ var t=b.dataset.qs==="am"?SLOT_AM:SLOT_PM; b.classList.toggle("on", s===t.start&&e===t.end); }); }
+      function setT(t){ $("q_s").value=t.start; $("q_e").value=t.end; mk(); }
+      var dt=q.g?defaultTimes(q.g):null; if(dt) setT(dt);
+      p.querySelectorAll("[data-qs]").forEach(function(b){ b.onclick=function(){ setT(b.dataset.qs==="am"?SLOT_AM:SLOT_PM); }; });
+      $("q_s").oninput=function(){ var e=plus4(this.value); if(e) $("q_e").value=e; mk(); };
+      $("q_e").oninput=mk;
+      $("q_save").onclick=function(){
+        var s=$("q_s").value, e=$("q_e").value;
+        if(!s||!e){ $("q_err").textContent="בחרו שעות"; return; }
+        this.disabled=true; this.textContent="שומר…";
+        schedSave({dow:q.dow, act:q.act, start:s, end:e}, "נוסף ✓ ונכנס לשעות של החודש", true);
+      };
+    }
+    p.scrollIntoView({behavior:"smooth",block:"center"});
+  }
+  draw();
+}
+// שמירת פעילות קבועה אחת (+ מילוי החודש הנוכחי לפיה)
+function schedSave(row, okMsg, fill){
+  var inst=hstate.inst, cur=monthKey(new Date());
+  post({action:"schedSet", inst:inst, dow:row.dow, act:row.act, start:row.start, end:row.end}).then(function(j){
+    if(!j||!j.ok) throw new Error((j&&j.error)||"");
+    return fill ? post({action:"schedFill", inst:inst, month:cur}) : null;
+  }).then(function(){
+    hstate.schedMsg=okMsg; loadHours();   // טוען מחדש שעות + קבועות; חלון הקבועות נשאר פתוח
+  }).catch(function(err){ alert("לא נשמר: "+((err&&err.message)||"נסו שוב")); renderSched(); });
+}
+// רכז: יוצר פעילויות קבועות לכל המדריכים מתוך הקבוצות שהשעות שלהן ידועות (ושאין להן עדיין קבוע באותו יום)
+function schedFromGroups(){
+  var taken={}; (hstate.sched||[]).forEach(function(r){ taken[norm(r.inst)+"|"+r.dow]=1; });
+  var todo=[];
+  (state.all||[]).forEach(function(g){
+    var t=defaultTimes(g), d=dowOf(g.day); if(!t||d<0) return;
+    var inst=HSTAFF.filter(function(n){ return matchName(g.instructor,n) || matchName(cleanInst(g.instructor),n); })[0]; if(!inst) return;
+    var k=norm(inst)+"|"+d; if(taken[k]) return; taken[k]=1;
+    todo.push({inst:inst, dow:d, act:schedAct(g), start:t.start, end:t.end});
+  });
+  if(!todo.length){ alert("אין קבוצות חדשות עם שעות ידועות.\nכשנדע לכל קבוצה מתי היא — זה ימלא לבד."); return; }
+  if(!confirm("ליצור "+todo.length+" פעילויות קבועות?\n\n"+todo.map(function(x){ return cleanInst(x.inst)+" · יום "+DAYS[x.dow]+" · "+x.start+"–"+x.end; }).join("\n"))) return;
+  var cur=monthKey(new Date());
+  todo.reduce(function(pr,x){ return pr.then(function(){ return post({action:"schedSet", inst:x.inst, dow:x.dow, act:x.act, start:x.start, end:x.end}); }); }, Promise.resolve())
+    .then(function(){ var insts={}; todo.forEach(function(x){ insts[x.inst]=1; }); return Object.keys(insts).reduce(function(pr,n){ return pr.then(function(){ return post({action:"schedFill", inst:n, month:cur}); }); }, Promise.resolve()); })
+    .then(function(){ alert("נוצרו "+todo.length+" פעילויות קבועות ✓"); loadHours(); })
+    .catch(function(){ alert("חלק לא נשמר — נסו שוב"); loadHours(); });
+}
+// מילוי אוטומטי חודשי: בחודש הנוכחי, מי שיש לו פעילויות קבועות ואין לו עדיין אף שורה החודש — ממולא לבד (פעם אחת).
+// כל מדריך — לעצמו, כשהוא פותח את מסך השעות (רכז ממלא לאחרים בכפתור "מילוי החודש מהקבוע").
+var _autoFilled={};
+function autoFillMonth(){
+  var cur=monthKey(new Date()); if(hstate.month!==cur || _autoFilled[cur]) return;
+  _autoFilled[cur]=1;
+  var have={}; hstate.rows.forEach(function(r){ have[norm(r.inst)]=1; });
+  var insts={}; (hstate.sched||[]).forEach(function(r){ insts[norm(r.inst)]=1; });
+  var todo=Object.keys(insts).filter(function(n){ return !have[n] && n===norm(state.who); });
+  if(!todo.length) return;
+  todo.reduce(function(pr,inst){ return pr.then(function(){ return post({action:"schedFill", inst:inst, month:cur}).catch(function(){}); }); }, Promise.resolve())
+    .then(function(){ if(hstate.month===cur) loadHours(); });
 }
 function autoFill(){
   if(!confirm("למלא את "+monthLabel(hstate.month)+" לפי הימים הקבועים של "+cleanInst(hstate.inst)+"?\n(לא ידרוס ימים קיימים)")) return;
@@ -1106,7 +1239,14 @@ var SLOT_AM={start:"10:00", end:"14:00", total:"4"}, SLOT_PM={start:"14:00", end
 var PM_INST=["רון כפרי"];
 function isChanav(g){ return /חנ["״'׳]?ב/.test(String((g&&g.instructor)||"")); }
 function plus4(t){ var m=parseT(t); if(m==null) return ""; m=(m+240)%1440; return pad2(Math.floor(m/60))+":"+pad2(m%60); }
+// הכנה עתידית: שעות לכל קבוצה. כשנדע מתי כל קבוצה — מוסיפים כאן שורה, ואז ההצעות + "פעילויות קבועות לכולם" + המילוי החודשי עובדים לבד.
+// day: יום הקבוצה · branch: "jaffa"/"ta" · name: (לא חובה) חלק משם הקבוצה · slot: "am"/"pm"
+var GROUP_SLOTS = [
+  // {day:"רביעי", branch:"ta", name:"מיה", slot:"pm"},
+];
 function defaultTimes(g){
+  var gs=GROUP_SLOTS.filter(function(x){ return g && x.day===g.day && x.branch===g.branch && (!x.name || String(g.instructor||"").indexOf(x.name)>-1); })[0];
+  if(gs) return gs.slot==="am" ? SLOT_AM : SLOT_PM;
   if(isChanav(g)) return SLOT_AM;
   if(PM_INST.indexOf(norm(cleanInst((g&&g.instructor)||"")))>-1) return SLOT_PM;
   return null;
