@@ -138,7 +138,7 @@ body.hoursonly #hov{background:var(--bg)}
 </head>
 <body>
 <div class="wrap">
-  <header><div class="lg">⛵</div><div><h1>נוכחות חניכים</h1><div class="s" id="hsub">מרכז דניאל</div></div></header>
+  <header><div class="lg">⛵</div><div><h1>לוח פעילות</h1><div class="s" id="hsub">מרכז דניאל</div></div></header>
   <div class="bd" id="main"><div class="msg"><span class="spin"></span><div style="margin-top:10px">טוען…</div></div></div>
 </div>
 
@@ -174,6 +174,7 @@ function nameWords(s){ return norm(s).split(/\s+/).filter(Boolean); }
 function matchName(instructor, who){
   var iw = nameWords(instructor), ww = nameWords(who);
   if(!iw.length || ww.length < 2) return false;
+  if(iw.indexOf(ww[0]) > -1) return true;   // השם הפרטי של המדריך מופיע בשם הקבוצה (גם בשמות מבולגנים)
   var allWin = ww.every(function(w){ return iw.indexOf(w) > -1; });
   var allIin = iw.every(function(w){ return ww.indexOf(w) > -1; });
   return allWin || allIin;
@@ -288,8 +289,6 @@ function render(){
 
   var h = '<div class="who">שלום <b>'+esc(state.who)+'</b></div>';
   h += '<div id="subui"></div>';   // החלפות: בקשה מהפעילות, הצעות עבורך, אישור רכז
-  // חיפוש חניך — רכז בכל הקבוצות, מדריך בקבוצות שלו
-  h += '<div class="card" style="padding:10px 12px;margin-bottom:12px"><input id="ssearch" class="ssearch" placeholder="'+(state.isCoord?'חיפוש חניך בכל הקבוצות…':'חיפוש חניך בקבוצות שלי…')+'"><div class="sres" id="sres"></div></div>';
   // תזכורת: פעילויות שהתקיימו בשבועיים האחרונים ולא מולאו כלל
   var unfilled = unfilledRecent(cur);
   if(unfilled.length){
