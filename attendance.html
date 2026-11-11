@@ -511,7 +511,7 @@ function hoursOK(){ try{ return HOURS_ON || HOURS_WHO.indexOf(norm(state.who))>-
 function hoursAdmin(){ try{ return state.isCoord || HOURS_WHO.indexOf(norm(state.who))>-1; }catch(e){ return state.isCoord; } }
 var HSTAFF = ["רון כפרי","ג׳וני גולן","מעין גלעד","ליאל עזרן","יעל שטייגמן","גלי מלכא","מיה סניפר","יסמין קרסנובסקי","איתמר ברייר","גאיה בן סימון","מירב לבנוני","ארז איתן","עידן חן","טל הררי"];
 var HMON = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
-var hstate = { inst:"", month:"", rows:[], sched:[] };
+var hstate = { inst:"", month:"", rows:[], sched:[], reqs:[] };
 function pad2(n){ return (n<10?"0":"")+n; }
 function monthKey(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1); }
 function monthLabel(mk){ var p=mk.split("-"); return HMON[+p[1]-1]+" "+p[0]; }
@@ -528,10 +528,11 @@ function openHours(){
 function closeHours(){ $("hov").hidden=true; }
 function loadHours(){
   $("hovbox").innerHTML = '<div class="msg"><span class="spin"></span><div style="margin-top:10px">טוען…</div></div>';
-  Promise.all([ api({action:"hoursRead", month:hstate.month}), api({action:"schedRead"}) ]).then(function(res){
-    var j=res[0], s=res[1];
+  Promise.all([ api({action:"hoursRead", month:hstate.month}), api({action:"schedRead"}), api({action:"subReqList", pending:1}) ]).then(function(res){
+    var j=res[0], s=res[1], q=res[2];
     hstate.rows = (j&&j.ok&&j.rows) ? j.rows : [];
     hstate.sched = (s&&s.rows) ? s.rows : [];
+    hstate.reqs = (q&&q.rows) ? q.rows : [];
     renderHours();
   }).catch(function(){ $("hovbox").innerHTML='<div class="msg">אין חיבור</div>'; });
 }
@@ -563,9 +564,13 @@ function renderHours(){
   });
   h += '</div>';
   h += '<button class="ghostbtn" id="hadd" style="margin-top:12px">➕ הוסף יום</button>';
-  if(hoursAdmin()) h += '<button class="ghostbtn" id="hsub" style="margin-top:8px">🔄 החלפה בין מדריכים</button>';
+  h += '<button class="ghostbtn" id="hreq" style="margin-top:8px">🔄 אני צריך החלפה</button>';
+  var myOffers = hstate.reqs.filter(function(r){ return r.proposed.map(norm).indexOf(norm(state.who))>-1 && r.accepted.map(norm).indexOf(norm(state.who))<0 && norm(r.requester)!==norm(state.who); });
+  if(myOffers.length) h += '<button class="ghostbtn" id="hoffers" style="margin-top:8px;border-color:var(--flag);color:var(--flag);font-weight:800">🔔 הצעות החלפה עבורך ('+myOffers.length+')</button>';
+  if(hoursAdmin() && hstate.reqs.length) h += '<button class="ghostbtn" id="happr" style="margin-top:8px;border-color:var(--flag);color:var(--flag);font-weight:800">📥 בקשות החלפה לאישור ('+hstate.reqs.length+')</button>';
   h += '<button class="ghostbtn" id="hsched" style="margin-top:8px">📅 ימים קבועים</button>';
   h += '<button class="ghostbtn" id="hauto" style="margin-top:8px">✨ מילוי אוטומטי מהקבוע</button>';
+  h += '<div id="reqbox" hidden style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px"></div>';
   h += '<div id="schedbox" hidden style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px"></div>';
   var acts={}; hstate.rows.concat(hstate.sched||[]).forEach(function(r){ var a=norm(r.act); if(a) acts[a]=1; });
   h += '<datalist id="actlist">'+Object.keys(acts).map(function(a){ return '<option value="'+esc(a)+'">'; }).join('')+'</datalist>';
@@ -578,23 +583,6 @@ function renderHours(){
     '<div style="display:flex;gap:8px"><button id="hf_save" class="asin" style="background:var(--flag);color:#2b1400;border:0;font-weight:800">שמור</button>'+
     '<button id="hf_del" class="asin" style="flex:0 0 80px;border-color:var(--stop);color:var(--stop)">מחק</button>'+
     '<button id="hf_cancel" class="asin" style="flex:0 0 76px">ביטול</button></div></div>';
-  if(hoursAdmin()){
-    var sopts = HSTAFF.concat(hMineExtras()).map(function(n){ return '<option>'+esc(n)+'</option>'; }).join('');
-    h += '<div id="sform" hidden style="margin-top:12px;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px">'+
-      '<div style="font-weight:800;font-size:.95rem">🔄 החלפה — העברת שעות</div>'+
-      '<label style="font-size:.8rem;color:var(--muted)">מדריך מקורי (ממנו יורדות השעות)</label>'+
-      '<select id="sf_from" class="asin">'+sopts+'</select>'+
-      '<label style="font-size:.8rem;color:var(--muted)">איזה יום להעביר (רק ימים עם שעות)</label>'+
-      '<select id="sf_date" class="asin"></select>'+
-      '<label style="font-size:.8rem;color:var(--muted)">מדריך מחליף (אליו עוברות השעות)</label>'+
-      '<select id="sf_to" class="asin">'+sopts+'</select>'+
-      '<input id="sf_act" class="asin" list="actlist" placeholder="פעילות">'+
-      '<div style="display:flex;gap:8px"><input id="sf_start" class="asin" type="time" step="300"><input id="sf_end" class="asin" type="time" step="300"></div>'+
-      '<div style="display:flex;gap:8px;align-items:center"><input id="sf_total" class="asin" placeholder="סה״כ שעות" inputmode="decimal" style="flex:1"><span style="color:var(--muted);font-size:.78rem">מחושב לבד</span></div>'+
-      '<div id="sf_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em"></div>'+
-      '<div style="display:flex;gap:8px"><button id="sf_save" class="asin" style="background:var(--flag);color:#2b1400;border:0;font-weight:800">בצע החלפה</button>'+
-      '<button id="sf_cancel" class="asin" style="flex:0 0 76px">ביטול</button></div></div>';
-  }
   $("hovbox").innerHTML = h;
   $("hx").onclick=closeHours;
   $("hprev").onclick=function(){ shiftMonth(-1); };
@@ -604,7 +592,9 @@ function renderHours(){
     hstate.inst=this.value; renderHours();
   };
   $("hadd").onclick=function(){ openDayForm("", null); };
-  if($("hsub")) $("hsub").onclick=openSubForm;
+  if($("hreq")) $("hreq").onclick=openReqForm;
+  if($("hoffers")) $("hoffers").onclick=openOffers;
+  if($("happr")) $("happr").onclick=openApprovals;
   if($("hsched")) $("hsched").onclick=openSched;
   if($("hauto")) $("hauto").onclick=autoFill;
   if($("hsum")) $("hsum").onclick=toggleSummary;
@@ -612,45 +602,101 @@ function renderHours(){
 }
 function findRow_(inst, date){ for(var i=0;i<hstate.rows.length;i++){ var r=hstate.rows[i]; if(norm(r.inst)===norm(inst) && r.date===date) return r; } return null; }
 function daysWithHours(inst){ return hstate.rows.filter(function(r){ return norm(r.inst)===norm(inst); }).sort(function(a,b){ return toDate_(a.date)-toDate_(b.date); }); }
-function openSubForm(){
-  // ברירת מחדל: מדריך שיש לו שעות החודש (אחרת — הראשון שיש לו)
-  var has={}; hstate.rows.forEach(function(r){ has[norm(r.inst)]=1; });
-  $("sf_from").value = has[norm(hstate.inst)] ? hstate.inst : (hstate.rows[0] ? hstate.rows[0].inst : hstate.inst);
-  $("sf_err").textContent="";
-  function fillDates(){
-    var days=daysWithHours($("sf_from").value);
-    if(!days.length){ $("sf_date").innerHTML='<option value="">— אין שעות החודש —</option>'; }
-    else { $("sf_date").innerHTML = days.map(function(r){ return '<option value="'+esc(r.date)+'">'+esc(r.date)+' · '+esc(r.act||"")+' '+esc(r.start||"")+(r.end?'–'+esc(r.end):'')+'</option>'; }).join(''); }
-    fillHours();
+function allInstOpts(){ return HSTAFF.concat(hMineExtras()); }
+// ----- מדריך מבקש החלפה ליום שלו ומציע מדריכים -----
+function openReqForm(){
+  var box=$("reqbox"); box.hidden=false;
+  var me=norm(state.who), days=daysWithHours(me);
+  var H='<div style="font-weight:800;font-size:.95rem;margin-bottom:8px">🔄 אני צריך החלפה</div>';
+  if(!days.length){
+    H+='<div style="color:var(--muted);font-size:.85rem">אין לך שעות רשומות לחודש הזה. הוסיפו קודם את היום שצריך החלפה.</div>'+
+       '<div style="margin-top:10px"><button id="rq_cancel" class="asin" style="flex:0 0 76px">סגור</button></div>';
+    box.innerHTML=H; $("rq_cancel").onclick=function(){ box.hidden=true; }; box.scrollIntoView({behavior:"smooth",block:"center"}); return;
   }
-  function fillHours(){
-    var r=findRow_($("sf_from").value, $("sf_date").value);
-    $("sf_act").value = r?(r.act||""):"";
-    $("sf_start").value = toHHMM(r?r.start:"");
-    $("sf_end").value = toHHMM(r?r.end:"");
-    $("sf_total").value = r?(r.total||""):"";
-  }
-  fillDates();
-  function recompute(){ var t=calcTotal($("sf_start").value,$("sf_end").value); if(t) $("sf_total").value=t; }
-  $("sf_from").onchange=fillDates; $("sf_date").onchange=fillHours;
-  $("sf_start").oninput=recompute; $("sf_end").oninput=recompute;
-  $("sf_cancel").onclick=function(){ $("sform").hidden=true; };
-  $("sf_save").onclick=saveSub;
-  var f=$("sform"); f.hidden=false; f.scrollIntoView({behavior:"smooth",block:"center"});
+  H+='<label style="font-size:.8rem;color:var(--muted)">לאיזה יום/פעילות צריך החלפה?</label>'+
+     '<select id="rq_date" class="asin" style="margin-bottom:10px">'+days.map(function(r){ return '<option value="'+esc(r.date)+'">'+esc(r.date)+' · '+esc(r.act||"")+' '+esc(r.start||"")+(r.end?'–'+esc(r.end):'')+'</option>'; }).join('')+'</select>';
+  H+='<label style="font-size:.8rem;color:var(--muted)">למי להציע את ההחלפה? (אפשר כמה)</label>'+
+     '<div style="display:flex;flex-direction:column;gap:2px;margin:6px 0 10px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:6px">'+
+       allInstOpts().filter(function(n){ return norm(n)!==me; }).map(function(n){ return '<label style="display:flex;gap:8px;align-items:center;padding:5px 2px"><input type="checkbox" class="rq_p" value="'+esc(n)+'">'+esc(cleanInst(n))+'</label>'; }).join('')+'</div>';
+  H+='<div id="rq_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em"></div>';
+  H+='<div style="display:flex;gap:8px"><button id="rq_send" class="asin" style="background:var(--flag);color:#2b1400;border:0;font-weight:800">שלח בקשה</button><button id="rq_cancel" class="asin" style="flex:0 0 76px">ביטול</button></div>';
+  box.innerHTML=H;
+  $("rq_cancel").onclick=function(){ box.hidden=true; };
+  $("rq_send").onclick=submitReq;
+  box.scrollIntoView({behavior:"smooth",block:"center"});
 }
-function saveSub(){
-  var from=$("sf_from").value, to=$("sf_to").value, date=$("sf_date").value;
-  var act=norm($("sf_act").value), s=$("sf_start").value, e=$("sf_end").value;
-  var tot=norm($("sf_total").value)||calcTotal(s,e);
-  if(!date){ $("sf_err").textContent="למדריך הזה אין שעות החודש להעברה"; return; }
-  if(norm(from)===norm(to)){ $("sf_err").textContent="בחרו שני מדריכים שונים"; return; }
-  if(!act && !tot && !s){ $("sf_err").textContent="אין שעות להעביר ביום הזה"; return; }
-  if(!confirm("להעביר את השעות של "+date+" מ־"+cleanInst(from)+" אל "+cleanInst(to)+"?")) return;
-  var btn=$("sf_save"); btn.disabled=true; btn.textContent="מעביר…";
-  post({action:"hoursMove", month:hstate.month, from:from, to:to, date:date, act:act, start:s, end:e, total:tot}).then(function(j){
-    if(j&&j.ok){ hstate.inst=to; loadHours(); }
-    else { btn.disabled=false; btn.textContent="בצע החלפה"; $("sf_err").textContent="לא בוצע: "+((j&&j.error)||"נסו שוב"); }
-  }).catch(function(){ btn.disabled=false; btn.textContent="בצע החלפה"; $("sf_err").textContent="אין חיבור"; });
+function submitReq(){
+  var me=norm(state.who), date=$("rq_date").value;
+  var proposed=[].slice.call(document.querySelectorAll(".rq_p:checked")).map(function(c){ return c.value; });
+  if(!proposed.length){ $("rq_err").textContent="בחרו לפחות מדריך אחד להציע"; return; }
+  var r=findRow_(me, date); if(!r){ $("rq_err").textContent="לא נמצא היום שנבחר"; return; }
+  var btn=$("rq_send"); btn.disabled=true; btn.textContent="שולח…";
+  post({action:"subReqCreate", requester:me, month:hstate.month, date:date, act:r.act, start:r.start, end:r.end, total:r.total, proposed:proposed}).then(function(j){
+    if(j&&j.ok){ $("reqbox").innerHTML='<div style="color:#22c55e;font-weight:800">הבקשה נשלחה ✓ הרכז יקבל אותה לאישור.</div>'; loadHours(); }
+    else { btn.disabled=false; btn.textContent="שלח בקשה"; $("rq_err").textContent="לא נשלח: "+((j&&j.error)||"נסו שוב"); }
+  }).catch(function(){ btn.disabled=false; btn.textContent="שלח בקשה"; $("rq_err").textContent="אין חיבור"; });
+}
+// ----- מדריך שהוצע — רואה הצעות ומאשר שהוא מוכן לקחת -----
+function openOffers(){
+  var box=$("reqbox"); box.hidden=false;
+  var me=norm(state.who);
+  var mine=hstate.reqs.filter(function(r){ return r.proposed.map(norm).indexOf(me)>-1 && r.accepted.map(norm).indexOf(me)<0 && norm(r.requester)!==me; });
+  var H='<div style="font-weight:800;font-size:.95rem;margin-bottom:8px">🔔 הצעות החלפה עבורך</div>';
+  if(!mine.length) H+='<div style="color:var(--muted);font-size:.85rem">אין הצעות ממתינות.</div>';
+  mine.forEach(function(r){
+    H+='<div style="border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px">'+
+       '<div><b>'+esc(cleanInst(r.requester))+'</b> צריך החלפה</div>'+
+       '<div style="color:var(--muted);font-size:.85rem" dir="rtl">'+esc(r.date)+' · '+esc(r.act||"")+' <span dir="ltr">'+esc(r.start||"")+(r.end?'–'+esc(r.end):'')+'</span></div>'+
+       '<button class="asin rq_take" data-id="'+esc(r.id)+'" style="margin-top:8px;background:var(--flag);color:#2b1400;border:0;font-weight:800">אני יכול לקחת</button></div>';
+  });
+  H+='<button id="rq_cancel" class="asin" style="flex:0 0 76px;margin-top:4px">סגור</button>';
+  box.innerHTML=H;
+  $("rq_cancel").onclick=function(){ box.hidden=true; };
+  document.querySelectorAll(".rq_take").forEach(function(b){ b.onclick=function(){ acceptOffer(b.dataset.id, b); }; });
+  box.scrollIntoView({behavior:"smooth",block:"center"});
+}
+function acceptOffer(id, btn){
+  btn.disabled=true; btn.textContent="שולח…";
+  post({action:"subReqAccept", id:id, inst:norm(state.who)}).then(function(j){
+    if(j&&j.ok){ loadHours(); }
+    else { btn.disabled=false; btn.textContent="אני יכול לקחת"; alert("לא בוצע: "+((j&&j.error)||"נסו שוב")); }
+  }).catch(function(){ btn.disabled=false; btn.textContent="אני יכול לקחת"; alert("אין חיבור"); });
+}
+// ----- הרכז — רואה בקשות ממתינות, בוחר מחליף (מעדיף מי שאישר) ומאשר -----
+function openApprovals(){
+  var box=$("reqbox"); box.hidden=false;
+  var H='<div style="font-weight:800;font-size:.95rem;margin-bottom:8px">📥 בקשות החלפה לאישור</div>';
+  if(!hstate.reqs.length) H+='<div style="color:var(--muted);font-size:.85rem">אין בקשות ממתינות.</div>';
+  hstate.reqs.forEach(function(r){
+    var opts=r.proposed.map(function(n){ var acc=r.accepted.map(norm).indexOf(norm(n))>-1; return '<option value="'+esc(n)+'">'+esc(cleanInst(n))+(acc?' ✓ אישר':'')+'</option>'; }).join('');
+    H+='<div style="border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px">'+
+       '<div><b>'+esc(cleanInst(r.requester))+'</b> ביקש החלפה</div>'+
+       '<div style="color:var(--muted);font-size:.85rem" dir="rtl">'+esc(r.date)+' · '+esc(r.act||"")+' <span dir="ltr">'+esc(r.start||"")+(r.end?'–'+esc(r.end):'')+'</span></div>'+
+       '<div style="color:var(--muted);font-size:.78rem;margin-top:4px">אישרו: '+(r.accepted.length?esc(r.accepted.map(cleanInst).join(", ")):'אף אחד עדיין')+'</div>'+
+       '<label style="font-size:.8rem;color:var(--muted);display:block;margin-top:6px">בחר מחליף</label>'+
+       '<select class="asin ap_sel" data-id="'+esc(r.id)+'">'+opts+'</select>'+
+       '<div style="display:flex;gap:8px;margin-top:8px"><button class="asin ap_ok" data-id="'+esc(r.id)+'" style="background:var(--flag);color:#2b1400;border:0;font-weight:800">אשר החלפה</button>'+
+       '<button class="asin ap_no" data-id="'+esc(r.id)+'" style="flex:0 0 76px;border-color:var(--stop);color:var(--stop)">דחה</button></div></div>';
+  });
+  H+='<button id="rq_cancel" class="asin" style="flex:0 0 76px;margin-top:4px">סגור</button>';
+  box.innerHTML=H;
+  $("rq_cancel").onclick=function(){ box.hidden=true; };
+  document.querySelectorAll(".ap_ok").forEach(function(b){ b.onclick=function(){ var sel=document.querySelector('.ap_sel[data-id="'+b.dataset.id+'"]'); approveReq(b.dataset.id, sel?sel.value:"", b); }; });
+  document.querySelectorAll(".ap_no").forEach(function(b){ b.onclick=function(){ rejectReq(b.dataset.id); }; });
+  box.scrollIntoView({behavior:"smooth",block:"center"});
+}
+function approveReq(id, chosen, btn){
+  if(!chosen){ alert("בחרו מחליף"); return; }
+  if(!confirm("לאשר ולהעביר את השעות אל "+cleanInst(chosen)+"?")) return;
+  btn.disabled=true; btn.textContent="מאשר…";
+  post({action:"subReqApprove", id:id, chosen:chosen}).then(function(j){
+    if(j&&j.ok){ loadHours(); }
+    else { btn.disabled=false; btn.textContent="אשר החלפה"; alert("לא בוצע: "+((j&&j.error)||"נסו שוב")); }
+  }).catch(function(){ btn.disabled=false; btn.textContent="אשר החלפה"; alert("אין חיבור"); });
+}
+function rejectReq(id){
+  if(!confirm("לדחות את הבקשה?")) return;
+  post({action:"subReqReject", id:id}).then(function(j){ if(j&&j.ok) loadHours(); });
 }
 function openDayForm(date, row){
   var days=monthDays(hstate.month);
