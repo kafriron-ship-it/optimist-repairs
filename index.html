@@ -185,6 +185,12 @@ textarea{min-height:64px;resize:vertical}
 .toggle{display:flex;align-items:center;gap:10px;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;font-weight:600}
 .toggle input{width:22px;height:22px;accent-color:var(--stop)}
 .primary{background:var(--flag);color:var(--flag-ink);border:0;border-radius:12px;padding:16px;font:800 1.15rem var(--body);cursor:pointer}
+#fbBtn{position:fixed;left:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:60;width:48px;height:48px;border-radius:50%;border:0;background:var(--flag);color:var(--flag-ink);font-size:1.3rem;box-shadow:0 5px 16px rgba(0,0,0,.28);cursor:pointer}
+#fbModal{position:fixed;inset:0;z-index:70;background:rgba(5,10,20,.6);display:flex;align-items:flex-end;justify-content:center}
+#fbModal .fbcard{background:var(--surface);color:var(--ink);border-top-left-radius:18px;border-top-right-radius:18px;width:100%;max-width:460px;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
+#fbModal .fbh{font:800 1.1rem var(--body)}
+#fbModal .fbsub{color:var(--muted);font-size:.85rem;margin-top:-4px}
+#fbModal .fbrow{display:flex;gap:8px;align-items:stretch}
 .primary:disabled{opacity:.45;cursor:not-allowed}
 .toast{min-height:1.4em;font-weight:600;color:var(--ok);text-align:center}
 .toast.err{color:var(--stop)}
@@ -286,6 +292,15 @@ textarea{min-height:64px;resize:vertical}
     <button role="tab" id="tab-att" data-tab="att" aria-selected="false" hidden>נוכחות</button>
     <button role="tab" id="tab-hours" data-tab="hours" aria-selected="false" hidden>שעות</button>
   </nav>
+  <button id="fbBtn" type="button" aria-label="משוב על האפליקציה" title="משוב / רעיון לשיפור">💬</button>
+  <div id="fbModal" hidden>
+    <div class="fbcard">
+      <div class="fbh">💬 משוב / רעיון לשיפור</div>
+      <div class="fbsub">מה אפשר לשפר באפליקציה? נשמח לשמוע כל הערה</div>
+      <textarea id="fbText" rows="4" maxlength="400" placeholder="כתבו כאן…"></textarea>
+      <div class="fbrow"><button type="button" class="primary" id="fbSend" style="flex:1;padding:12px">שלח</button><button type="button" class="ghost" id="fbCancel">ביטול</button></div>
+    </div>
+  </div>
 </header>
 
 <!-- REPORT -->
@@ -682,6 +697,15 @@ $("reqKind").addEventListener("click", e=>{ const b=e.target.closest("[data-rk]"
   $("reqKind").querySelectorAll("[data-rk]").forEach(x=>x.setAttribute("aria-pressed", x===b)); $("reqText").placeholder = REQ_HINT[reqKind]; });
 $("reqOpen").addEventListener("click", ()=>{ $("reqPanel").hidden = false; $("reqOpen").hidden = true; $("reqText").focus(); });
 $("reqCancel").addEventListener("click", ()=>{ $("reqPanel").hidden = true; $("reqOpen").hidden = !!pin; });
+$("fbBtn").addEventListener("click", ()=>{ $("fbModal").hidden=false; $("fbText").focus(); });
+$("fbCancel").addEventListener("click", ()=>{ $("fbModal").hidden=true; });
+$("fbModal").addEventListener("click", e=>{ if(e.target.id==="fbModal") $("fbModal").hidden=true; });
+$("fbSend").addEventListener("click", ()=>{
+  const text=$("fbText").value.trim(); if(!text){ $("fbText").focus(); return; }
+  const by=($("who").value||localStorage.getItem("who")||"").trim();
+  $("fbText").value=""; $("fbModal").hidden=true; toast("תודה! המשוב נשלח");
+  api("request",{text, by, type:(typeof curType!=="undefined"?curType:""), kind:"app"}).catch(e=> toast("המשוב לא נשלח, נסו שוב",true));
+});
 $("reqSend").addEventListener("click", ()=>{
   const text = $("reqText").value.trim(); if(!text) { $("reqText").focus(); return; }
   if(!db){ toast("אין חיבור",true); return; }
