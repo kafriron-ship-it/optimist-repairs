@@ -41,8 +41,9 @@ button{font-family:inherit;cursor:pointer}
 .gsel{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .gsel button{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font:600 .82rem 'Assistant';color:var(--muted)}
 .gsel button.on{background:#214a7d;border-color:#3e6fa8;color:#fff}
-.gsel .gbr{flex-basis:100%;font:800 .72rem 'Assistant';letter-spacing:.04em;color:var(--flag);margin:8px 2px 0}
+.gsel .gbr{flex-basis:100%;font:800 .72rem 'Assistant';letter-spacing:.04em;color:var(--flag);margin:10px 2px 0}
 .gsel .gbr:first-child{margin-top:0}
+.gsel .gday{flex-basis:100%;font:700 .74rem 'Assistant';color:var(--ink);margin:4px 2px -2px;padding-inline-start:4px;opacity:.85}
 .ghostbtn{background:var(--chip);border:1px solid var(--line);border-radius:10px;color:var(--ink);font:700 .86rem 'Assistant';padding:9px 14px;display:inline-flex;align-items:center;gap:6px}
 .ssearch{width:100%;background:var(--bg);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:600 .92rem 'Assistant'}
 .sres .sr{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 2px;border-top:1px solid var(--line);cursor:pointer}
@@ -278,10 +279,11 @@ function render(){
       var d=DORDER.indexOf(ga.day)-DORDER.indexOf(gb.day); if(d) return d;
       return norm(ga.instructor).localeCompare(norm(gb.instructor),"he");
     });
-    var lastBr="", gh='<div class="gsel">';
+    var lastBr="", lastDay="", gh='<div class="gsel">';
     order.forEach(function(i){ var g=groups[i];
-      if(state.isCoord && g.branch!==lastBr){ lastBr=g.branch; gh += '<div class="gbr">'+esc(BR[g.branch]||g.branch)+'</div>'; }
-      gh += '<button data-gi="'+i+'" class="'+(i===state.gi?"on":"")+'">'+esc(cleanInst(g.instructor))+' · '+esc(g.day)+'</button>';
+      if(state.isCoord && g.branch!==lastBr){ lastBr=g.branch; lastDay=""; gh += '<div class="gbr">'+esc(BR[g.branch]||g.branch)+'</div>'; }
+      if(state.isCoord && g.day!==lastDay){ lastDay=g.day; gh += '<div class="gday">'+esc(g.day)+'</div>'; }
+      gh += '<button data-gi="'+i+'" class="'+(i===state.gi?"on":"")+'">'+esc(cleanInst(g.instructor))+(state.isCoord?'':' · '+esc(g.day))+'</button>';
     });
     h += gh + '</div>';
   }
@@ -405,18 +407,13 @@ function doSearch(q){
 function toDate_(ds){ var p=ds.split("/"); return new Date(2000+ +p[2], p[1]-1, +p[0]); }
 function latestPastDate_(g){ var best=null; g.dateCols.forEach(function(d){ if(daysAgo_(d.date) >= 0){ var dt=toDate_(d.date); if(!best||dt>best.dt) best={date:d.date,dt:dt}; } }); return best; }   // רק תאריך שכבר קרה (היום או קודם)
 function renderSummary(){
-  var all=state.all||[], missing=[], abs=[];
+  var all=state.all||[], missing=[];
   all.forEach(function(g){ var lp=latestPastDate_(g); if(lp && !g.students.some(function(s){return s.attendance[lp.date];})) missing.push({g:g,date:lp.date}); });
-  all.forEach(function(g){ g.students.forEach(function(s){ var n=Object.keys(s.attendance).filter(function(k){return s.attendance[k]==="x";}).length; if(n>0) abs.push({s:s,g:g,n:n}); }); });
-  abs.sort(function(a,b){ return b.n-a.n; });
   var h='<div class="sumh">קבוצות שלא מולאו (תאריך אחרון)</div>';
   h += '<div class="sumrow"><span>סה״כ לא מולאו</span><span class="c" style="color:'+(missing.length?'var(--stop)':'var(--ok)')+'">'+missing.length+'</span></div>';
+  if(!missing.length) h += '<div class="sumrow" style="color:var(--muted);font-size:.85rem"><span>הכול מולא ✓</span></div>';
   missing.slice(0,8).forEach(function(m){ h += '<div class="sumrow" style="font-size:.82rem;color:var(--muted)"><span>'+esc(cleanInst(m.g.instructor))+' · '+esc(m.g.day)+'</span><span>'+esc(m.date)+'</span></div>'; });
-  h += '<div class="sumh">חניכים עם הכי הרבה חיסורים</div>';
-  if(!abs.length) h += '<div class="sumrow" style="color:var(--muted);font-size:.85rem"><span>אין חיסורים עדיין</span></div>';
-  abs.slice(0,8).forEach(function(a,i){ h += '<div class="sumrow" data-abs="'+i+'" style="cursor:pointer"><span><b>'+esc(a.s.name)+'</b> · '+esc(cleanInst(a.g.instructor))+'</span><span class="badge-x">'+a.n+'</span></div>'; });
   $("sumcard").innerHTML=h;
-  $("sumcard").querySelectorAll("[data-abs]").forEach(function(el){ el.onclick=function(){ var a=abs[+el.dataset.abs]; openCard(a.s,a.g); }; });
 }
 function openCard(s, cur){
   var fem = norm(s.gender)==="בת";

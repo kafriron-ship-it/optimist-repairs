@@ -528,6 +528,7 @@ let have = new Set(JSON.parse(store.get("have") || "[]"));
 function showTab(t){
   if(t==="parts") t = "boats";
   if(!["report","boats","stats","att"].includes(t)) t = "report";
+  if(t==="stats" && !statsTabAllowed()) t = "report";   // נתונים — רכזים בלבד
   document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
   ["report","boats","stats","att"].forEach(v=>$("view-"+v).hidden = v!==t);
   if(t==="att"){ const f=$("attFrame"); if(f && !f.getAttribute("src")) f.setAttribute("src","attendance.html?embed=1"); }
@@ -565,7 +566,10 @@ function attTabAllowed(){
   }catch(e){ return false; }
 }
 function updateAttTab(){ try{ $("tab-att").hidden = !attTabAllowed(); if($("tab-att").hidden && location.hash==="#att") showTab("report"); }catch(e){} }
-updateAttTab(); ensureRoster();
+// טאב "נתונים" (סטטיסטיקות) — רק לרכזים
+function statsTabAllowed(){ try{ var who=($("who").value||localStorage.getItem("who")||"").replace(/\s+/g," ").trim(); return attIsCoord(who); }catch(e){ return false; } }
+function updateStatsTab(){ try{ $("tab-stats").hidden = !statsTabAllowed(); if($("tab-stats").hidden && location.hash==="#stats") showTab("report"); }catch(e){} }
+updateAttTab(); updateStatsTab(); ensureRoster();
 window.addEventListener("hashchange",()=>showTab(location.hash.slice(1)));
 showTab(location.hash.slice(1));
 
@@ -938,7 +942,7 @@ function itemRow(r, title){
       ${openMore.has(r.id)?`<div class="extra"><span>דווח ע"י ${esc(r.reporter||"ללא שם")} · ${date}${done && r.fixedBy ? ` · תוקן ע"י ${esc(r.fixedBy)}` : ""}</span><button class="del" data-del="${r.id}">מחק דיווח</button>
         <div class="addc"><input type="text" maxlength="200" placeholder="הוסף הערה, למשל: זה בעצם סירה 54" data-cin="${r.id}" aria-label="הערה"><button type="button" class="ghost" data-csend="${r.id}">שלח</button></div></div>`:""}
     </div>
-    ${done?`<button class="undo" data-fix="${r.id}" data-st="open">החזר</button>`:`<button class="fixbtn" data-fix="${r.id}" data-st="fixed">תוקן ✓</button>`}
+    ${done?`<button class="undo" data-fix="${r.id}" data-st="open">החזר</button>`:`<button class="fixbtn" data-fix="${r.id}" data-st="fixed">סמן כתוקן ✓</button>`}
     <button class="dots" data-more="${r.id}" aria-label="פרטים נוספים" aria-expanded="${openMore.has(r.id)}">⋯</button>
   </div>`;
 }
@@ -1073,7 +1077,6 @@ function renderStats(){
         <span>${rs.length ? `${done} מתוך ${rs.length} דיווחים כבר תוקנו` : "עוד לא היו דיווחים בתקופה הזו"}</span>
         ${avg===null?"":`<span>בממוצע ${avg<1?"פחות מיום":avg.toFixed(1)+" ימים"} עד תיקון</span>`}</div>
     </div>
-    <h2 class="stitle">סירות שנשברות הכי הרבה</h2>${bars(topN(byBoat,8))}
     <h2 class="stitle">חלקים שנשברים הכי הרבה</h2>${bars(topN(byPart,10))}
     ${byType.size>1?`<h2 class="stitle">לפי סוג סירה</h2>${bars(topN(byType,4))}`:""}
   </div>`;
