@@ -20,6 +20,7 @@ header h1{font:400 1.18rem 'Secular One'}
 header .s{font-size:.72rem;opacity:.85}
 .bd{padding:14px}
 button{font-family:inherit;cursor:pointer}
+.undobtn{flex:none;background:transparent;color:inherit;border:1.5px solid currentColor;border-radius:9px;font:800 .78rem 'Assistant',sans-serif;padding:5px 10px;cursor:pointer}
 .rem{display:flex;align-items:center;gap:9px;background:#2a2113;border:1px solid #5a4620;color:#f3c98a;border-radius:12px;padding:10px 12px;font-size:.86rem;font-weight:700;margin-bottom:14px}
 .reasonbox{background:#2a1a1a;border:1px solid var(--stop);border-radius:12px;padding:10px;margin:-4px 2px 10px}
 .actrow{display:flex;gap:8px;align-items:stretch;margin-bottom:8px}
@@ -520,7 +521,6 @@ function render(){
       '</div>';
   }
   h += '</div>';
-  if(state.isCoord) h += '<div class="card" id="sumcard" style="margin-top:14px"></div>';   // הסיכום בסוף הגלילה
   $("main").innerHTML = h;
   if($("hoursbtn")) $("hoursbtn").onclick = openHours;
   if($("backhome")) $("backhome").onclick = function(){ state.view="home"; render(); window.scrollTo(0,0); };
@@ -530,7 +530,6 @@ function render(){
   if($("as_cancel")) $("as_cancel").onclick = function(){ $("addform").hidden=true; };
   if($("as_save")) $("as_save").onclick = addStudent;
   if($("ssearch")) $("ssearch").oninput = function(){ doSearch(this.value); };
-  if($("sumcard")) renderSummary();
   document.querySelectorAll("[data-gi]").forEach(function(b){ b.onclick=function(){ state.gi=+b.dataset.gi; render(); }; });
   document.querySelectorAll("[data-day]").forEach(function(b){ b.onclick=function(){ state.openDay = (state.openDay===b.dataset.day) ? "" : b.dataset.day; render(); }; });
   document.querySelectorAll("[data-dd]").forEach(function(b){ b.onclick=function(){ changeDate(+b.dataset.dd); }; });
@@ -590,13 +589,15 @@ function renderStudents(){
   if($("submark")){
     var act=subAct(cur), rs=(state.reqs||[]).filter(function(r){ return r.act===act && r.date===date; });
     var pick=function(s){ return rs.filter(function(r){return r.status===s;})[0]; };
-    var x, mk='';
-    if((x=pick("בוטל"))) mk='<div class="rem" style="background:#2a1414;border-color:#8a2e2e;color:#f08a8a">🔴 הפעילות בוטלה (ביקש: '+esc(cleanInst(x.requester))+')</div>';
-    else if((x=pick("ביטול ממתין"))) mk='<div class="rem" style="background:#2a1414;border-color:#8a2e2e;color:#f08a8a">🔴 '+esc(cleanInst(x.requester))+' ביקש לבטל — ממתין לרכז</div>';
-    else if((x=pick("הושלם"))) mk='<div class="rem" style="background:#13301f;border-color:#2e6b45;color:#8fe3b0">🟢 '+esc(cleanInst(x.chosen))+' מחליף את '+esc(cleanInst(x.requester))+'</div>';
-    else if((x=pick("פתוח"))) mk='<div class="rem" style="background:#2a2712;border-color:#8a7a1e;color:#f0dd8a">🟡 רכז אישר — ממתין שמחליף ייקח (ביקש: '+esc(cleanInst(x.requester))+')</div>';
-    else if((x=pick("ממתין"))) mk='<div class="rem" style="background:#2a1e12;border-color:#a85a1e;color:#f0b98a">🟠 '+esc(cleanInst(x.requester))+' ביקש החלפה — ממתין לרכז</div>';
-    $("submark").innerHTML=mk;
+    var x, sty='', txt='';
+    if((x=pick("בוטל"))){ sty='background:#2a1414;border-color:#8a2e2e;color:#f08a8a'; txt='🔴 הפעילות נדחתה (ביקש: '+esc(cleanInst(x.requester))+')'; }
+    else if((x=pick("ביטול ממתין"))){ sty='background:#2a1414;border-color:#8a2e2e;color:#f08a8a'; txt='🔴 '+esc(cleanInst(x.requester))+' ביקש לדחות — ממתין לרכז'; }
+    else if((x=pick("הושלם"))){ sty='background:#13301f;border-color:#2e6b45;color:#8fe3b0'; txt='🟢 '+esc(cleanInst(x.chosen))+' מחליף את '+esc(cleanInst(x.requester)); }
+    else if((x=pick("פתוח"))){ sty='background:#2a2712;border-color:#8a7a1e;color:#f0dd8a'; txt='🟡 רכז אישר — ממתין שמחליף ייקח (ביקש: '+esc(cleanInst(x.requester))+')'; }
+    else if((x=pick("ממתין"))){ sty='background:#2a1e12;border-color:#a85a1e;color:#f0b98a'; txt='🟠 '+esc(cleanInst(x.requester))+' ביקש החלפה — ממתין לרכז'; }
+    // (טל) לרכז תמיד יש "ביטול" — גם אחרי שהחלפה/דחייה כבר אושרה
+    $("submark").innerHTML = x ? '<div class="rem" style="'+sty+'"><span style="flex:1">'+txt+'</span>'+(state.isCoord?'<button class="undobtn" id="subundo">✕ ביטול</button>':'')+'</div>' : '';
+    if($("subundo")) $("subundo").onclick=function(){ subUndo(x, this); };
   }
   $("cnt").innerHTML = '<b>'+present+'</b> / '+cur.students.length+' נוכחים';
   document.querySelectorAll("#stlist [data-mark]").forEach(function(b){ b.onclick=function(){ mark(cur, date, b); }; });
@@ -644,16 +645,6 @@ function doSearch(q){
   box.querySelectorAll("[data-si]").forEach(function(el){ el.onclick=function(){ var r=res[+el.dataset.si]; openCard(r.s,r.g); }; });
 }
 function toDate_(ds){ var p=ds.split("/"); return new Date(2000+ +p[2], p[1]-1, +p[0]); }
-function latestPastDate_(g){ var best=null; g.dateCols.forEach(function(d){ if(daysAgo_(d.date) >= 0){ var dt=toDate_(d.date); if(!best||dt>best.dt) best={date:d.date,dt:dt}; } }); return best; }   // רק תאריך שכבר קרה (היום או קודם)
-function renderSummary(){
-  var all=state.all||[], missing=[];
-  all.forEach(function(g){ var lp=latestPastDate_(g); if(lp && !g.students.some(function(s){return s.attendance[lp.date];})) missing.push({g:g,date:lp.date}); });
-  var h='<div class="sumh">קבוצות שלא מולאו (תאריך אחרון)</div>';
-  h += '<div class="sumrow"><span>סה״כ לא מולאו</span><span class="c" style="color:'+(missing.length?'var(--stop)':'var(--ok)')+'">'+missing.length+'</span></div>';
-  if(!missing.length) h += '<div class="sumrow" style="color:var(--muted);font-size:.85rem"><span>הכול מולא ✓</span></div>';
-  missing.slice(0,8).forEach(function(m){ h += '<div class="sumrow" style="font-size:.82rem;color:var(--muted)"><span>'+esc(cleanInst(m.g.instructor))+' · '+esc(m.g.day)+'</span><span>'+esc(m.date)+'</span></div>'; });
-  $("sumcard").innerHTML=h;
-}
 function openCard(s, cur){
   var fem = norm(s.gender)==="בת";
   var init = norm(s.name).split(" ").slice(0,2).map(function(w){return w[0];}).join("");
@@ -1371,6 +1362,18 @@ function attApprove(id, approved, btn){
   if(!approved.length){ alert("בחרו לפחות מדריך אחד לאשר"); return; }
   btn.disabled=true; btn.textContent="מאשר…";
   post({action:"subReqApprove", id:id, approved:approved}).then(function(j){ if(j&&j.ok){ afterSub("אושר ✓ ההצעה נפתחה למחליפים."); } else { btn.disabled=false; btn.textContent="אשר ופתח"; alert("לא בוצע: "+((j&&j.error)||"")); } }).catch(function(){ btn.disabled=false; btn.textContent="אשר ופתח"; alert("אין חיבור"); });
+}
+// רכז מבטל החלפה/דחייה בכל שלב — השרת מחזיר את השעות למדריך המקורי
+function subUndo(r, btn){
+  var q = r.status==="הושלם" ? "לבטל את ההחלפה? "+cleanInst(r.chosen)+" לא יחליף, והשעות יחזרו ל"+cleanInst(r.requester)+"."
+        : r.status==="בוטל" ? "לבטל את הדחייה? הפעילות חוזרת, והשעות יחזרו ל"+cleanInst(r.requester)+"."
+        : "לבטל את הבקשה של "+cleanInst(r.requester)+"?";
+  if(!confirm(q)) return;
+  btn.disabled=true; btn.textContent="מבטל…";
+  post({action:"subReqUndo", id:r.id}).then(function(j){
+    if(j&&j.ok){ state.reqs=(state.reqs||[]).filter(function(y){ return y.id!==r.id; }); if($("submark")) renderStudents(); afterSub("בוטל ✓"); }
+    else { btn.disabled=false; btn.textContent="✕ ביטול"; alert("לא בוצע: "+((j&&j.error)||"")); }
+  }).catch(function(){ btn.disabled=false; btn.textContent="✕ ביטול"; alert("אין חיבור"); });
 }
 function attReject(id){ if(!confirm("לדחות את הבקשה?")) return; post({action:"subReqReject", id:id}).then(function(j){ if(j&&j.ok) afterSub("הבקשה נדחתה."); }); }
 // ----- שיוך שעות קבועות לקבוצה (רכז) → יום-קבוע + מילוי אוטומטי חודשי -----
