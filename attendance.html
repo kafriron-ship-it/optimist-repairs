@@ -118,6 +118,8 @@ body.hoursonly #hov{background:var(--bg)}
 .ov .top .sub{font-size:.8rem;color:var(--muted)}
 .ov .x{margin-inline-start:auto;background:var(--chip);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-weight:700;padding:6px 11px}
 .hsumc{display:flex;gap:10px;margin:4px 0 12px}
+.hsug{border:1px dashed var(--flag);border-radius:12px;padding:8px 10px;margin-bottom:6px}
+.hsug .q{font-weight:800;font-size:.88rem;margin-bottom:6px}
 .hsumc .c{flex:1;background:var(--chip);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
 .hsumc .c .v{font:800 1.6rem 'Assistant';line-height:1.1}
 .hsumc .c .v small{font-size:.8rem;font-weight:700;color:var(--muted);margin-inline-start:3px}
@@ -225,7 +227,7 @@ function cleanInst(s){
   if(k==="יונתן גולן" || k==="גוני" || k==="גוני גולן") return "ג׳וני גולן";
   if(k.indexOf("ארז איתן")===0) return "ארז איתן";   // "אייל"/"אליה" הם עוזרים — לא חלק מהשם
   // שמות משפחה (מטל) — השלמה למדריכים שרשומים בשם פרטי בלבד
-  var LN = {"מעין":"מעין גלעד","מעיין":"מעין גלעד","גלי":"גלי מלכא","מיה":"מיה סניפר","יסמין":"יסמין קרסנובסקי","איתמר":"איתמר ברייר","גאיה":"גאיה בן סימון","גיאה":"גאיה בן סימון","מירב":"מירב לבנוני","עידו":"עידן חן","עידן":"עידן חן"};
+  var LN = {"מעין":"מעין גלעד","מעיין":"מעין גלעד","גלי":"גלי מלכא","מיה":"מיה סניפר","יסמין":"יסמין קרסנובסקי","איתמר":"איתמר ברייר","גאיה":"גאיה בן סימון","גיאה":"גאיה בן סימון","מירב":"מירב לבנוני","עידו":"עידו חן","עידן":"עידו חן"};
   if(LN[k]) return LN[k];
   return t;
 }
@@ -618,7 +620,7 @@ var HOURS_ON = false;   // בינתיים סגור לכולם — שנה ל-true
 var HOURS_WHO = ["רון כפרי","טל הררי"];   // משתמשים שרואים את מסך השעות גם כשהוא סגור לכולם
 function hoursOK(){ try{ return HOURS_ON || HOURS_WHO.indexOf(norm(state.who))>-1; }catch(e){ return HOURS_ON; } }
 function hoursAdmin(){ try{ return state.isCoord || HOURS_WHO.indexOf(norm(state.who))>-1; }catch(e){ return state.isCoord; } }
-var HSTAFF = ["רון כפרי","ג׳וני גולן","מעין גלעד","ליאל עזרן","יעל שטייגמן","גלי מלכא","מיה סניפר","יסמין קרסנובסקי","איתמר ברייר","גאיה בן סימון","מירב לבנוני","ארז איתן","עידן חן","טל הררי"];
+var HSTAFF = ["רון כפרי","ג׳וני גולן","מעין גלעד","ליאל עזרן","יעל שטייגמן","גלי מלכא","מיה סניפר","יסמין קרסנובסקי","איתמר ברייר","גאיה בן סימון","מירב לבנוני","ארז איתן","עידו חן","טל הררי"];
 var HMON = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
 var hstate = { inst:"", month:"", rows:[], sched:[], reqs:[] };
 function pad2(n){ return (n<10?"0":"")+n; }
@@ -680,6 +682,9 @@ function renderHours(){
     return '<div class="hcard'+(isPlan?' plan':'')+'" data-he="'+i+'"><div class="dt"><b>'+d.getDate()+'/'+(d.getMonth()+1)+'</b><span>יום '+WD[d.getDay()]+'</span></div>'+
       '<div class="mid"><div class="a">'+esc(r.act||"—")+'</div><div class="t" dir="ltr" style="text-align:right">'+esc(r.start||"")+(r.end?'–'+esc(r.end):'')+'</div></div>'+
       '<div class="hrs">'+esc(r.total||"")+'<small>שע׳</small></div></div>'; };
+  if(hstate.flash){ h += '<div style="color:#22c55e;font-weight:800;font-size:.85rem;margin-bottom:8px">'+esc(hstate.flash)+'</div>'; hstate.flash=""; }
+  var sugM=schedSuggestions();
+  if(sugM.length) h += '<div id="hsugbox" style="margin-bottom:12px"><div class="hflbl" style="margin-bottom:6px">📅 בחרו פעם אחת, והשעות יתמלאו לבד כל חודש:</div>'+sugHTML(sugM)+'</div>';
   h += '<div id="hlist">';
   if(!mine.length) h += '<div class="msg" style="padding:14px 6px;text-align:right;color:var(--muted)">אין עדיין שעות לחודש הזה</div>';
   if(done.length) h += '<div class="hsec">✅ עבדתי</div>'+done.map(card).join('');
@@ -718,6 +723,7 @@ function renderHours(){
   $("hadd").onclick=function(){ openDayForm("", null); };
   if($("hsched")) $("hsched").onclick=openSched;
   if(hstate.schedOpen) renderSched(hstate.schedMsg);
+  if($("hsugbox")) bindSug($("hsugbox"), sugM);
   if($("hsum")) $("hsum").onclick=toggleSummary;
   document.querySelectorAll("[data-he]").forEach(function(el){ el.onclick=function(){ var r=mine[+el.dataset.he]; openDayForm(r.date, r); }; });
 }
@@ -883,10 +889,24 @@ var HDOW = [0,1,2,3,4,5];   // ראשון..שישי
 function schedAct(g){ return g.day+" · "+(BRN[g.branch]||g.branch); }
 function groupsOfInst(inst){ return (state.all||[]).filter(function(g){ return matchName(g.instructor, inst) || matchName(cleanInst(g.instructor), inst); }); }
 function mySched(){ return (hstate.sched||[]).filter(function(r){ return norm(r.inst)===norm(hstate.inst); }).sort(function(a,b){ return (+a.dow)-(+b.dow); }); }
-// קבוצות של המדריך שעוד אין להן פעילות קבועה ושהשעות שלהן ידועות → הצעה בלחיצה אחת
+// קבוצות של המדריך שעוד אין להן פעילות קבועה → שאלה אחת: בוקר או צהריים (פתוח לכולם — טל)
 function schedSuggestions(){
   var taken={}; mySched().forEach(function(r){ taken[String(r.dow)]=1; });
-  return groupsOfInst(hstate.inst).filter(function(g){ var d=dowOf(g.day); return d>=0 && !taken[String(d)] && defaultTimes(g); });
+  return groupsOfInst(hstate.inst).filter(function(g){ var d=dowOf(g.day); if(d<0 || taken[String(d)]) return false; taken[String(d)]=1; return true; });
+}
+function sugHTML(sug){
+  return sug.map(function(g,k){
+    return '<div class="hsug"><div class="q">⛵ הקבוצה שלך ביום '+esc(g.day)+' · '+esc(BRN[g.branch]||g.branch)+' — מתי?</div><div class="hchips">'+
+      '<button type="button" class="hchip" data-sgk="'+k+'" data-sgs="am">☀️ בוקר 10–14</button>'+
+      '<button type="button" class="hchip" data-sgk="'+k+'" data-sgs="pm">🌤 צהריים 14–18</button></div></div>';
+  }).join('');
+}
+function bindSug(root, sug){
+  root.querySelectorAll("[data-sgk]").forEach(function(b){ b.onclick=function(){
+    var g=sug[+b.dataset.sgk], t=b.dataset.sgs==="am"?SLOT_AM:SLOT_PM;
+    root.querySelectorAll("[data-sgk]").forEach(function(x){ x.disabled=true; }); b.textContent="שומר…";
+    schedSave({dow:dowOf(g.day), act:schedAct(g), start:t.start, end:t.end}, "נוסף ✓ — השעות של הקבוצה ייכנסו לבד כל חודש", true);
+  }; });
 }
 function openSched(){
   var box=$("schedbox"); box.hidden=false;
@@ -909,10 +929,7 @@ function renderSched(msg){
       '<div style="flex:1"><b>יום '+esc(DAYS[+r.dow]||r.dow)+'</b> · '+esc(r.act||"")+' <span dir="ltr" style="color:var(--muted);font-size:.85rem">'+esc(toHHMM(r.start))+(r.end?'–'+esc(toHHMM(r.end)):'')+'</span></div>'+
       '<button class="hchip" data-scdel="'+esc(r.dow)+'" style="color:var(--stop);border-color:var(--stop)">הסר</button></div>';
   });
-  sug.forEach(function(g,k){
-    var t=defaultTimes(g);
-    H+='<button class="ghostbtn" data-scsug="'+k+'" style="width:100%;margin-bottom:6px;justify-content:flex-start">✨ להוסיף: יום '+esc(g.day)+' · '+esc(BRN[g.branch]||g.branch)+' · <span dir="ltr">'+t.start+'–'+t.end+'</span></button>';
-  });
+  H+=sugHTML(sug);
   H+='<button class="ghostbtn" id="sc_add" style="margin-top:4px;border-color:var(--flag)">➕ הוסף פעילות קבועה</button>';
   H+='<div id="sc_q"></div>';
   H+='<div style="margin-top:10px"><button id="sc_cancel" class="asin" style="flex:0 0 76px">סגור</button></div>';
@@ -923,10 +940,7 @@ function renderSched(msg){
     if(!confirm("להסיר את הפעילות הקבועה של יום "+(DAYS[+b.dataset.scdel]||"")+"?\n(שעות שכבר נרשמו נשארות)")) return;
     b.disabled=true; schedSave({dow:b.dataset.scdel, act:"", start:"", end:""}, "הוסר ✓", false);
   }; });
-  document.querySelectorAll("[data-scsug]").forEach(function(b){ b.onclick=function(){
-    var g=sug[+b.dataset.scsug], t=defaultTimes(g); b.disabled=true;
-    schedSave({dow:dowOf(g.day), act:schedAct(g), start:t.start, end:t.end}, "נוסף ✓ ונכנס לשעות של החודש", true);
-  }; });
+  bindSug(box, sug);
 }
 // השאלון: יום → מה → שעות
 function openSchedQ(){
@@ -984,7 +998,7 @@ function schedSave(row, okMsg, fill){
     if(!j||!j.ok) throw new Error((j&&j.error)||"");
     return fill ? post({action:"schedFill", inst:inst, month:cur}) : null;
   }).then(function(){
-    hstate.schedMsg=okMsg; loadHours();   // טוען מחדש שעות + קבועות; חלון הקבועות נשאר פתוח
+    hstate.schedMsg=okMsg; if(!hstate.schedOpen) hstate.flash=okMsg; loadHours();   // טוען מחדש שעות + קבועות; חלון הקבועות נשאר פתוח
   }).catch(function(err){ alert("לא נשמר: "+((err&&err.message)||"נסו שוב")); renderSched(); });
 }
 // פעילויות קבועות מתוך הקבוצות (בלי כפתור): לכל קבוצה שידוע מי המדריך ומתי היא (GROUP_SLOTS / חנ"ב / רון)
