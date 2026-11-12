@@ -557,7 +557,7 @@ document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()
 var ATT_ENC="DEAaQUBWSxsdUkEFFEBAVlwDA1gLH1ADCRsDUFAeC0dBQhwtL1IXUlEbLnZDUws/N1gkR2BYBw1cBR4tAGYtSGE+NHY3QgVZNURfZwc8KllcS1svPGVYCV1UUl0lAVAKCUQtdUoONXc0VQBZJRsLSVYP";
 function attDeob(e){ try{ var x=atob(e),k="d4n13l",o=""; for(var i=0;i<x.length;i++) o+=String.fromCharCode(x.charCodeAt(i)^k.charCodeAt(i%k.length)); return o; }catch(_){ return ""; } }
 try{ var _au=attDeob(ATT_ENC); if(_au && localStorage.getItem("att_api")!==_au) localStorage.setItem("att_api",_au); }catch(e){}
-var ATT_COORDS=["טל הררי","ירדן סדן"];
+var ATT_COORDS=["טל הררי","ירדן סדן","עידו חן"];
 function attWords(s){ return String(s||"").replace(/\s+/g," ").trim().split(" ").filter(Boolean); }
 function attIsCoord(who){ var b=attWords(who); return ATT_COORDS.some(function(c){ return attWords(c).every(function(w){ return b.indexOf(w)>-1; }); }); }
 function attMatchName(instr, who){ var a=attWords(instr), b=attWords(who); if(b.length<2 || !a.length) return false; return a.indexOf(b[0])>-1 || b.every(function(w){return a.indexOf(w)>-1;}) || a.every(function(w){return b.indexOf(w)>-1;}); }

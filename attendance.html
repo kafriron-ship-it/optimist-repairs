@@ -197,7 +197,7 @@ try{ if(/[?&]embed=/.test(location.search)) document.documentElement.classList.a
 var HOURS_MODE=false; try{ HOURS_MODE=/[?&]hours=1/.test(location.search); }catch(e){}   // טאב "שעות" נפרד
 var BRANCH = "jaffa";
 try{ var mb=/[#&?]branch=([^&]+)/.exec(location.search); if(mb) BRANCH=decodeURIComponent(mb[1]); }catch(e){}
-var COORDS = ["טל הררי","ירדן סדן"];   // רכזים (שם מלא)
+var COORDS = ["טל הררי","ירדן סדן","עידו חן"];   // רכזים (שם מלא)
 function nameWords(s){ return norm(s).split(/\s+/).filter(Boolean); }
 // התאמה מחמירה: כל מילות השם המוקלד נמצאות אצל המדריך, או להפך. דורש שם מלא.
 function matchName(instructor, who){
