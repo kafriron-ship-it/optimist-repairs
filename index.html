@@ -228,6 +228,9 @@ textarea{min-height:64px;resize:vertical}
 .iby{color:var(--muted);font-size:.78rem}
 .del{background:none;border:0;color:var(--muted);font:600 .8rem var(--body);cursor:pointer;padding:4px}
 .del.arm{color:var(--stop)}
+.delboatrow{border-top:1px solid var(--line);padding:8px 12px;text-align:center}
+.delboat{background:none;border:1px solid var(--line);border-radius:10px;color:var(--muted);font:700 .85rem var(--body);cursor:pointer;padding:8px 12px;width:100%}
+.delboat.arm{color:#fff;background:var(--stop);border-color:var(--stop)}
 .cmts{margin-top:6px;display:flex;flex-direction:column;gap:4px}
 .cmt{font-size:.85rem;background:var(--chip);border-radius:8px;padding:5px 9px;color:var(--ink)}
 .cmt b{color:var(--muted);font-weight:600}
@@ -482,13 +485,13 @@ const bname = r => normBoat(r.boat) + (viewBranch==="all" && multiBr ? " · " + 
 let multiBr = false;
 function applyView(){
   multiBr = new Set(allReports.map(brOf)).size > 1;
-  reports = allReports.filter(r=>(viewBranch==="all" || brOf(r)===viewBranch) && !pendingDel.has(r.id));
+  reports = allReports.filter(r=>(viewBranch==="all" || brOf(r)===viewBranch) && !pendingDel.has(r.id) && !boatGone(r));
   const cnt = {}; allReports.forEach(r=>{ if(r.status==="open"){ const b=brOf(r); cnt[b]=(cnt[b]||0)+1; } });
   const html = [["all","כל הסניפים"], ...BRANCHES.map(b=>[b,b])].map(([k,l])=>`<button type="button" class="chip" data-vb="${esc(k)}" aria-pressed="${viewBranch===k}">${esc(l)}${k!=="all"&&cnt[k]?` <span class="badge">${cnt[k]}</span>`:""}</button>`).join("");
-  if(!multiBr && viewBranch!=="all"){ viewBranch = "all"; reports = allReports.filter(r=>!pendingDel.has(r.id)); }
+  if(!multiBr && viewBranch!=="all"){ viewBranch = "all"; reports = allReports.filter(r=>!pendingDel.has(r.id) && !boatGone(r)); }
   document.querySelectorAll(".bfilter").forEach(el=>{ el.innerHTML = html; el.hidden = !multiBr; });
 }
-function repReports(){ return repBranch ? allReports.filter(r=>brOf(r)===repBranch) : allReports; }
+function repReports(){ return allReports.filter(r=>(!repBranch || brOf(r)===repBranch) && !boatGone(r)); }
 function renderBranchPick(){
   const one = BRANCHES.length === 1;
   $("branchBox").hidden = one; if(one) repBranch = BRANCHES[0];
@@ -538,6 +541,10 @@ const store = { get(k){try{return localStorage.getItem(sk(k))}catch(e){return nu
 const API = ORG_OK ? ORGS[ORG].api : "";
 let db = null, reports = [], selected = new Set(), boatFilter = "open", requests = [];
 const pendingDel = new Map();
+// a boat added by mistake: deleted (all its reports + off the boat list) after a short undo window
+const pendingBoat = new Map();
+const boatKey = (br, t, b) => br + "|" + t + "|" + normBoat(b);
+const boatGone = r => pendingBoat.size > 0 && pendingBoat.has(boatKey(brOf(r), typeOf(r), r.boat));
 let pin = store.get("pin") || "";
 let have = new Set(JSON.parse(store.get("have") || "[]"));
 
@@ -612,7 +619,7 @@ function renderTypes(){
   $("types").innerHTML = TYPES.map(t=>`<button type="button" data-t="${esc(t)}" aria-pressed="${t===curType}">${esc(t)}</button>`).join("");
   const motor = byName(curType), b = $("boat");
   $("boatLabel").textContent = motor ? "שם הסירה" : "מספר סירה";
-  $("boatHint").textContent = motor ? "סירה שלא ברשימה? כותבים את השם שלה, והיא תתווסף אחרי הדיווח" : "סירה שלא ברשימה? מקלידים מספר, והיא תתווסף אחרי הדיווח";
+  $("boatHint").dataset.def = $("boatHint").textContent = motor ? "סירה שלא ברשימה? כותבים את השם שלה, והיא תתווסף אחרי הדיווח" : "סירה שלא ברשימה? מקלידים מספר, והיא תתווסף אחרי הדיווח";
   b.inputMode = motor ? "text" : "numeric"; b.maxLength = motor ? 20 : 4; b.placeholder = motor ? "שם" : "00"; b.classList.toggle("name", motor);
   $("recent").classList.toggle("wide", motor);
   $("editParts").textContent = "ערוך שמות חלקים (" + curType + ")";
@@ -791,7 +798,7 @@ function validate(){
 let boatList = [];
 function knownBoats(){
   const s = new Set();
-  (repBranch ? [repBranch] : BRANCHES).forEach(b=>(((fleetB[b]||{})[curType])||[]).forEach(n=>{ const x=normBoat(n); if(x) s.add(x); }));
+  (repBranch ? [repBranch] : BRANCHES).forEach(b=>(((fleetB[b]||{})[curType])||[]).forEach(n=>{ const x=normBoat(n); if(x && !pendingBoat.has(boatKey(b, curType, x))) s.add(x); }));
   repReports().forEach(r=>{ if(typeOf(r)!==curType) return; const b = normBoat(r.boat); if(b) s.add(b); });
   return [...s].sort((a,b)=>(/^\d+$/.test(a)&&/^\d+$/.test(b)) ? a-b : a.localeCompare(b,"he"));
 }
@@ -799,7 +806,11 @@ function renderRecent(){
   const cur = normBoat($("boat").value);
   const cnt = {}; repReports().forEach(r=>{ if(r.status==="open" && typeOf(r)===curType){ const b=normBoat(r.boat); cnt[b]=(cnt[b]||0)+1; } });
   if(booting && !knownBoats().length){ $("recent").innerHTML = '<span class="skelb"></span>'.repeat(8); return; }
-  $("recent").innerHTML = knownBoats().map(n=>`<button type="button" data-n="${esc(n)}" aria-pressed="${n===cur}">${esc(n)}${cnt[n]?`<i>${cnt[n]}</i>`:""}</button>`).join("");
+  // a boat number that isn't on the list yet — say so, so a typo doesn't quietly become a new boat
+  const hint = $("boatHint"), known = knownBoats(), isNew = !!cur && !booting && !known.includes(cur);
+  hint.textContent = isNew ? `⚠️ ${byName(curType) ? cur : "סירה "+cur} עוד לא ברשימה, והיא תתווסף כסירה חדשה. בדקו שזה נכון.` : (hint.dataset.def || hint.textContent);
+  hint.style.color = isNew ? "var(--stop)" : "";
+  $("recent").innerHTML = known.map(n=>`<button type="button" data-n="${esc(n)}" aria-pressed="${n===cur}">${esc(n)}${cnt[n]?`<i>${cnt[n]}</i>`:""}</button>`).join("");
 }
 $("recent").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; $("boat").value = normBoat($("boat").value)===b.dataset.n ? "" : b.dataset.n; renderRecent(); renderChips(); validate(); });
 
@@ -947,7 +958,17 @@ async function commitDel(id){
   if(!pendingDel.has(id)) return; pendingDel.delete(id);
   try{ await api("delete",{id}); }catch(e){ snack("המחיקה נכשלה, בדוק אינטרנט"); load(); }
 }
-function flushDeletes(){ for(const [id,t] of [...pendingDel]){ clearTimeout(t); commitDel(id); } }
+async function commitBoatDel(k){
+  if(!pendingBoat.has(k)) return;
+  const [branch, type, boat] = k.split("|");
+  try{
+    await api("removeBoat",{branch, type, boat});
+    const l = (fleetB[branch]||{})[type]; if(Array.isArray(l)) fleetB[branch][type] = l.filter(n=>normBoat(n)!==boat);
+    allReports = allReports.filter(r=>boatKey(brOf(r), typeOf(r), r.boat)!==k);
+    pendingBoat.delete(k); applyView(); render(); load();
+  }catch(e){ pendingBoat.delete(k); applyView(); render(); snack("מחיקת הסירה נכשלה, בדוק אינטרנט"); load(); }
+}
+function flushDeletes(){ for(const [id,t] of [...pendingDel]){ clearTimeout(t); commitDel(id); } for(const [k,t] of [...pendingBoat]){ clearTimeout(t); commitBoatDel(k); } }
 document.addEventListener("visibilitychange", ()=>{ if(document.hidden) flushDeletes(); });
 async function sendComment(id){
   const inp = [...$("boatsList").querySelectorAll("[data-cin]")].find(x=>x.dataset.cin===id);
@@ -1040,6 +1061,7 @@ function renderBoats(){
         <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       ${exp?`<div class="rows">${c.rs.map(r=>itemRow(r, groupBy==="boat" ? r.part : (byName(typeOf(r)) ? bname(r) : "סירה "+bname(r)))).join("")}</div>`:""}
+      ${exp && groupBy==="boat" ? `<div class="delboatrow"><button type="button" class="delboat" data-delboat="${esc(c.key)}" data-title="${esc(title)}">🗑 הסירה הזו לא קיימת? מחק אותה</button></div>` : ""}
     </div>`;
   }).join("");
   observeThumbs();
@@ -1073,6 +1095,17 @@ $("boatsList").addEventListener("click", async e=>{
   if(ph){ showPhoto(ph.dataset.photo); return; }
   const cs = e.target.closest("[data-csend]");
   if(cs && db){ sendComment(cs.dataset.csend); return; }
+  const dbt = e.target.closest("[data-delboat]");
+  if(dbt && db){
+    if(!dbt.classList.contains("arm")){ dbt.classList.add("arm"); dbt.textContent="בטוח? כל הדיווחים על הסירה יימחקו. לחץ שוב"; setTimeout(()=>{ if(dbt.isConnected){ dbt.classList.remove("arm"); dbt.textContent="🗑 הסירה הזו לא קיימת? מחק אותה"; } },4000); return; }
+    const key = dbt.dataset.delboat, title = dbt.dataset.title;
+    const keys = [...new Set(reports.filter(r=>"b|"+typeOf(r)+"|"+bname(r)===key).map(r=>boatKey(brOf(r), typeOf(r), r.boat)))];
+    if(!keys.length) return;
+    keys.forEach(k=>pendingBoat.set(k, setTimeout(()=>commitBoatDel(k), 6000)));
+    openCards.delete(key); applyView(); render();
+    snack(`${title} נמחקה`, ()=>{ keys.forEach(k=>{ clearTimeout(pendingBoat.get(k)); pendingBoat.delete(k); }); applyView(); render(); });
+    return;
+  }
   const b = e.target.closest("[data-del]"); if(!b||!db) return;
   if(!b.classList.contains("arm")){ b.classList.add("arm"); b.textContent="בטוח? לחץ שוב"; setTimeout(()=>{b.classList.remove("arm");b.textContent="מחק דיווח";},3000); return; }
   const id=b.dataset.del, r = reports.find(x=>x.id===id); if(!r) return;
