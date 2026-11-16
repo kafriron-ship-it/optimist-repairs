@@ -9,8 +9,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Secular+One&family=IBM+Plex+Mono:wght@600&display=swap">
 <style>
 :root{ --bg:#0b1422; --surface:#132134; --ink:#e7eef8; --muted:#94a6bd; --line:#24374f;
-  --navy:#6ea6e8; --flag:#f19a45; --ok:#4cc39a; --stop:#ff6b55; --chip:#1b2c44; --head:#163a66; }
-@media (prefers-color-scheme: light){ :root{ --bg:#f4f7fb; --surface:#fff; --ink:#132640; --muted:#56677d; --line:#d8e1ec; --navy:#2161ad; --flag:#ec8f33; --ok:#1d7f62; --stop:#c63a28; --chip:#e7eef8; --head:#2161ad; } }
+  --navy:#6ea6e8; --flag:#f19a45; --ok:#4cc39a; --stop:#ff6b55; --chip:#1b2c44; --head:#163a66; --plan:#a78bfa; }
+@media (prefers-color-scheme: light){ :root{ --bg:#f4f7fb; --surface:#fff; --ink:#132640; --muted:#56677d; --line:#d8e1ec; --navy:#2161ad; --flag:#ec8f33; --ok:#1d7f62; --stop:#c63a28; --chip:#e7eef8; --head:#2161ad; --plan:#7c4dde; } }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--ink);font-family:'Assistant',sans-serif;line-height:1.45}
 .wrap{max-width:560px;margin:0 auto;min-height:100vh}
@@ -50,9 +50,9 @@ button{font-family:inherit;cursor:pointer}
 .hcd.done{border-color:var(--ok)}
 .hcd.done .fill{background:var(--ok);opacity:.5}
 .hcd.done .n{color:var(--ink)}
-.hcd.plan{border-style:dashed;border-color:var(--navy)}
-.hcd.plan .fill{background:repeating-linear-gradient(135deg,var(--navy) 0 4px,transparent 4px 9px);opacity:.3}
-.hcd.plan .h{color:var(--navy)}
+.hcd.plan{border-color:var(--plan)}
+.hcd.plan .fill{background:var(--plan);opacity:.5}
+.hcd.plan .n{color:var(--ink)}
 .hcd.today{box-shadow:inset 0 0 0 2px var(--flag)}
 .hcd.today .n{color:var(--flag)}
 .hcd.sel{outline:2px solid var(--ink);outline-offset:1px}
@@ -61,7 +61,10 @@ button{font-family:inherit;cursor:pointer}
 .hclg span{display:inline-flex;align-items:center;gap:5px}
 .hclg i{display:inline-block;width:12px;height:12px;border-radius:3px}
 .hclg i.done{background:var(--ok);opacity:.6}
-.hclg i.plan{border:1px dashed var(--navy);background:repeating-linear-gradient(135deg,var(--navy) 0 2px,transparent 2px 5px)}
+.hclg i.plan{background:var(--plan);opacity:.7}
+.hsumc .c.cd{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--chip))}
+.hsumc .c.cp{border-color:var(--plan);background:color-mix(in srgb,var(--plan) 16%,var(--chip))}
+.hsumc .c.cd .v{color:var(--ok)} .hsumc .c.cp .v{color:var(--plan)}
 .hcdet{margin-top:10px;background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:.9rem}
 .undobtn{flex:none;background:transparent;color:inherit;border:1.5px solid currentColor;border-radius:9px;font:800 .78rem 'Assistant',sans-serif;padding:5px 10px;cursor:pointer}
 .rem{display:flex;align-items:center;gap:9px;background:#2a2113;border:1px solid #5a4620;color:#f3c98a;border-radius:12px;padding:10px 12px;font-size:.86rem;font-weight:700;margin-bottom:14px}
@@ -193,7 +196,8 @@ body.hoursonly #hov{background:var(--bg)}
 .hsumc .c .k{font-size:.78rem;color:var(--muted);font-weight:700}
 .hsec{font:800 .8rem 'Assistant';color:var(--muted);margin:12px 2px 6px}
 .hcard{display:flex;align-items:center;gap:12px;padding:9px 10px;border:1px solid var(--line);border-radius:12px;margin-bottom:6px;cursor:pointer;background:var(--surface)}
-.hcard.plan{opacity:.6;border-style:dashed}
+.hcard.plan{border-color:var(--plan);background:color-mix(in srgb,var(--plan) 10%,var(--surface))}
+.hcard.plan .hrs{color:var(--plan)}
 .hcard .dt{min-width:42px;text-align:center;line-height:1.1}
 .hcard .dt b{display:block;font-size:1.15rem}
 .hcard .dt span{font-size:.72rem;color:var(--muted);font-weight:700}
@@ -474,8 +478,8 @@ function renderHomeHours(){
   var h='<div class="hhome"><div class="hh"><span>🕐 השעות שלי · '+esc(HMON[new Date().getMonth()])+'</span><button class="linkbtn" id="hh_more">פירוט ›</button></div>';
   if(hstate.flash){ h += '<div style="color:#22c55e;font-weight:800;font-size:.85rem;margin-bottom:8px">'+esc(hstate.flash)+'</div>'; hstate.flash=""; }
   if(hstate.addMsg && Date.now()<hstate.addMsgT) h += '<div class="addok">'+esc(hstate.addMsg)+'</div>';
-  h += '<div class="hsumc tap" id="hh_tiles" role="button" style="margin:0 0 4px"><div class="c"><div class="k">עבדתי</div><div class="v">'+r2(done.reduce(function(t,r){return t+hn(r);},0))+'<small>שע׳</small></div><div class="k">'+done.length+' ימים</div></div>'+
-       '<div class="c" style="opacity:.75"><div class="k">מתוכנן עד סוף החודש</div><div class="v">'+r2(plan.reduce(function(t,r){return t+hn(r);},0))+'<small>שע׳</small></div><div class="k">'+plan.length+' ימים</div></div></div>';
+  h += '<div class="hsumc tap" id="hh_tiles" role="button" style="margin:0 0 4px"><div class="c cd"><div class="k">עבדתי</div><div class="v">'+r2(done.reduce(function(t,r){return t+hn(r);},0))+'<small>שע׳</small></div><div class="k">'+done.length+' ימים</div></div>'+
+       '<div class="c cp"><div class="k">מתוכנן עד סוף החודש</div><div class="v">'+r2(plan.reduce(function(t,r){return t+hn(r);},0))+'<small>שע׳</small></div><div class="k">'+plan.length+' ימים</div></div></div>';
   h += '<button class="hcalhint" id="hh_calbtn">'+(hstate.cal?'סגור את היומן ▴':'📅 לחצו לראות ביומן ▾')+'</button>';
   if(hstate.cal) h += '<div id="hh_cal"></div>';
   if(sug.length) h += '<div id="hsugbox2" style="margin-bottom:8px"><div class="hflbl" style="margin-bottom:6px">📅 בחרו פעם אחת, והשעות יתמלאו לבד כל חודש:</div>'+sugHTML(sug)+'</div>';
@@ -525,7 +529,7 @@ function renderHoursCal(){
        (list.length ? '<span class="fill" style="height:'+Math.max(12, Math.min(100, Math.round(hrs/8*100)))+'%"></span><span class="h">'+(hrs||"✓")+'</span>' : '')+'</button>';
   });
   G+='</div>';
-  H += '<div class="hcaltot">עבדתי <b>'+r2(hDone)+' שע׳</b> ב־'+nDone+' ימים'+(nPlan?' · מתוכנן עוד <b>'+r2(hPlan)+' שע׳</b>':'')+'</div>'+G;
+  H += '<div class="hcaltot">עבדתי <b style="color:var(--ok)">'+r2(hDone)+' שע׳</b> ב־'+nDone+' ימים'+(nPlan?' · מתוכנן עוד <b style="color:var(--plan)">'+r2(hPlan)+' שע׳</b>':'')+'</div>'+G;
   H += '<div class="hclg"><span><i class="done"></i>עבדתי</span><span><i class="plan"></i>מתוכנן</span><span>המספר = שעות</span></div>';
   var sel=hstate.calSel;
   if(sel && monthOf(sel)===mk){
@@ -1075,8 +1079,8 @@ function renderHours(){
   var done=mine.filter(function(r){ return toDate_(r.date)<=today0; }), plan=mine.filter(function(r){ return toDate_(r.date)>today0; });
   var doneH=done.reduce(function(t,r){ return t+hnum(r); },0), planH=plan.reduce(function(t,r){ return t+hnum(r); },0);
   if(hoursAdmin()) h += '<div class="gttl"><span class="t">'+esc(cleanInst(hstate.inst))+'</span></div>';
-  h += '<div class="hsumc"><div class="c"><div class="k">עבדת החודש</div><div class="v">'+r2(doneH)+'<small>שע׳</small></div><div class="k">'+done.length+' ימים</div></div>'+
-       (plan.length?'<div class="c" style="opacity:.75"><div class="k">מתוכנן עד סוף החודש</div><div class="v">'+r2(planH)+'<small>שע׳</small></div><div class="k">'+plan.length+' ימים</div></div>':'')+'</div>';
+  h += '<div class="hsumc"><div class="c cd"><div class="k">עבדת החודש</div><div class="v">'+r2(doneH)+'<small>שע׳</small></div><div class="k">'+done.length+' ימים</div></div>'+
+       (plan.length?'<div class="c cp"><div class="k">מתוכנן עד סוף החודש</div><div class="v">'+r2(planH)+'<small>שע׳</small></div><div class="k">'+plan.length+' ימים</div></div>':'')+'</div>';
   var WD=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"];
   var card=function(r){ var i=mine.indexOf(r), d=toDate_(r.date), isPlan=d>today0;
     return '<div class="hcard'+(isPlan?' plan':'')+'" data-he="'+i+'"><div class="dt"><b>'+d.getDate()+'/'+(d.getMonth()+1)+'</b><span>יום '+WD[d.getDay()]+'</span></div>'+
