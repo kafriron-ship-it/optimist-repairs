@@ -32,6 +32,37 @@ button{font-family:inherit;cursor:pointer}
 .addsave{border:0;border-radius:10px;padding:12px;font:800 1rem 'Assistant',sans-serif;background:var(--flag);color:#2b1400;cursor:pointer}
 .addsave:disabled{background:var(--chip);color:var(--muted);cursor:default}
 .addok{color:#22c55e;font-weight:800;font-size:.88rem;margin-bottom:8px}
+.hsumc.tap .c{cursor:pointer}
+.hcalhint{display:block;width:100%;background:none;border:0;color:var(--navy);font:800 .84rem 'Assistant',sans-serif;padding:4px 0 10px;cursor:pointer}
+.hcal{border:1px solid var(--line);border-radius:12px;padding:10px 8px;margin-bottom:10px}
+.hcalnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.hcalnav b{font-size:1.02rem}
+.hcalnav .nav{background:var(--chip);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-size:1.1rem;padding:3px 14px}
+.hcaltot{text-align:center;font:700 .84rem 'Assistant',sans-serif;color:var(--muted);margin-bottom:8px}
+.hcaltot b{color:var(--ink)}
+.hcalmsg{text-align:center;padding:26px 0;color:var(--muted);font-weight:700;font-size:.86rem}
+.hcalgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.hcw{text-align:center;font:800 .74rem 'Assistant',sans-serif;color:var(--muted);padding-bottom:2px}
+.hcd{position:relative;height:54px;min-width:0;border:1px solid var(--line);border-radius:9px;background:var(--chip);color:var(--ink);overflow:hidden;padding:0;cursor:pointer}
+.hcd .n{position:absolute;top:3px;inset-inline-start:6px;font:700 .74rem 'Assistant',sans-serif;color:var(--muted);z-index:2}
+.hcd .fill{position:absolute;left:0;right:0;bottom:0;z-index:0}
+.hcd .h{position:absolute;left:0;right:0;bottom:6px;text-align:center;font:800 1.05rem 'Assistant',sans-serif;line-height:1;z-index:2}
+.hcd.done{border-color:var(--ok)}
+.hcd.done .fill{background:var(--ok);opacity:.5}
+.hcd.done .n{color:var(--ink)}
+.hcd.plan{border-style:dashed;border-color:var(--navy)}
+.hcd.plan .fill{background:repeating-linear-gradient(135deg,var(--navy) 0 4px,transparent 4px 9px);opacity:.3}
+.hcd.plan .h{color:var(--navy)}
+.hcd.today{box-shadow:inset 0 0 0 2px var(--flag)}
+.hcd.today .n{color:var(--flag)}
+.hcd.sel{outline:2px solid var(--ink);outline-offset:1px}
+.hcd.sat{opacity:.5}
+.hclg{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;font:700 .74rem 'Assistant',sans-serif;color:var(--muted);margin-top:8px}
+.hclg span{display:inline-flex;align-items:center;gap:5px}
+.hclg i{display:inline-block;width:12px;height:12px;border-radius:3px}
+.hclg i.done{background:var(--ok);opacity:.6}
+.hclg i.plan{border:1px dashed var(--navy);background:repeating-linear-gradient(135deg,var(--navy) 0 2px,transparent 2px 5px)}
+.hcdet{margin-top:10px;background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:.9rem}
 .undobtn{flex:none;background:transparent;color:inherit;border:1.5px solid currentColor;border-radius:9px;font:800 .78rem 'Assistant',sans-serif;padding:5px 10px;cursor:pointer}
 .rem{display:flex;align-items:center;gap:9px;background:#2a2113;border:1px solid #5a4620;color:#f3c98a;border-radius:12px;padding:10px 12px;font-size:.86rem;font-weight:700;margin-bottom:14px}
 .reasonbox{background:#2a1a1a;border:1px solid var(--stop);border-radius:12px;padding:10px;margin:-4px 2px 10px}
@@ -443,16 +474,86 @@ function renderHomeHours(){
   var h='<div class="hhome"><div class="hh"><span>🕐 השעות שלי · '+esc(HMON[new Date().getMonth()])+'</span><button class="linkbtn" id="hh_more">פירוט ›</button></div>';
   if(hstate.flash){ h += '<div style="color:#22c55e;font-weight:800;font-size:.85rem;margin-bottom:8px">'+esc(hstate.flash)+'</div>'; hstate.flash=""; }
   if(hstate.addMsg && Date.now()<hstate.addMsgT) h += '<div class="addok">'+esc(hstate.addMsg)+'</div>';
-  h += '<div class="hsumc" style="margin:0 0 8px"><div class="c"><div class="k">עבדתי</div><div class="v">'+r2(done.reduce(function(t,r){return t+hn(r);},0))+'<small>שע׳</small></div><div class="k">'+done.length+' ימים</div></div>'+
+  h += '<div class="hsumc tap" id="hh_tiles" role="button" style="margin:0 0 4px"><div class="c"><div class="k">עבדתי</div><div class="v">'+r2(done.reduce(function(t,r){return t+hn(r);},0))+'<small>שע׳</small></div><div class="k">'+done.length+' ימים</div></div>'+
        '<div class="c" style="opacity:.75"><div class="k">מתוכנן עד סוף החודש</div><div class="v">'+r2(plan.reduce(function(t,r){return t+hn(r);},0))+'<small>שע׳</small></div><div class="k">'+plan.length+' ימים</div></div></div>';
+  h += '<button class="hcalhint" id="hh_calbtn">'+(hstate.cal?'סגור את היומן ▴':'📅 לחצו לראות ביומן ▾')+'</button>';
+  if(hstate.cal) h += '<div id="hh_cal"></div>';
   if(sug.length) h += '<div id="hsugbox2" style="margin-bottom:8px"><div class="hflbl" style="margin-bottom:6px">📅 בחרו פעם אחת, והשעות יתמלאו לבד כל חודש:</div>'+sugHTML(sug)+'</div>';
   h += hstate.add ? '<div id="hh_form"></div>' : '<button class="ghostbtn" id="hh_add" style="width:100%;justify-content:center;border-color:var(--flag);color:var(--flag)">➕ הוסף עבודה</button>';
   h += '</div>';
   box.innerHTML=h;
   $("hh_more").onclick=function(){ openHours(); };
+  $("hh_tiles").onclick=$("hh_calbtn").onclick=function(){ hstate.cal=!hstate.cal; renderHomeHours(); if(hstate.cal) $("hh_cal").scrollIntoView({behavior:"smooth",block:"nearest"}); };
+  if($("hh_cal")) renderHoursCal();
   if($("hh_add")) $("hh_add").onclick=function(){ hstate.add={date:todayDmy(), act:"", start:"", end:"", slot:""}; renderHomeHours(); $("hh_form").scrollIntoView({behavior:"smooth",block:"start"}); };
   if($("hh_form")) renderAddForm();
   if($("hsugbox2")) bindSug($("hsugbox2"), sug);
+}
+// ----- 📅 יומן השעות (רון): לחיצה על השעות פותחת יומן חודשי בתוך הכרטיס -----
+function calRows_(mk){ if(mk===hstate.month) return hstate.rows||[]; return (hstate.calRows||{})[mk]; }
+function calLoad_(mk){
+  hstate.calRows=hstate.calRows||{}; hstate.calRows[mk]="loading";
+  api({action:"hoursRead", month:mk}).then(function(j){
+    hstate.calRows[mk] = (j&&j.ok&&j.rows) ? j.rows : "err";
+  }).catch(function(){ hstate.calRows[mk]="err"; }).then(function(){ if((hstate.calMonth||hstate.month)===mk) renderHoursCal(); });
+}
+function calGo_(d){
+  var p=(hstate.calMonth||hstate.month).split("-");
+  hstate.calMonth=monthKey(new Date(+p[0], +p[1]-1+d, 1)); hstate.calSel="";
+  renderHoursCal();
+}
+function renderHoursCal(){
+  var el=$("hh_cal"); if(!el) return;
+  var mk=hstate.calMonth||hstate.month, me=norm(state.who), rows=calRows_(mk);
+  var H='<div class="hcal"><div class="hcalnav"><button class="nav" id="hc_prev">‹</button><b>'+esc(monthLabel(mk))+'</b><button class="nav" id="hc_next">›</button></div>';
+  if(rows===undefined || rows==="loading" || rows==="err"){
+    if(rows===undefined) calLoad_(mk);
+    H += rows==="err" ? '<div class="hcalmsg">לא נטען (אין חיבור). <button class="linkbtn" id="hc_retry">נסו שוב</button></div>' : '<div class="hcalmsg"><span class="spin"></span></div>';
+    el.innerHTML=H+'</div>'; calBind_(el, mk); return;
+  }
+  var hn=function(r){ var n=parseFloat(r.total); return isNaN(n)?0:n; }, r2=function(n){ return Math.round(n*100)/100; };
+  var by={}; rows.forEach(function(r){ if(norm(r.inst)===me && r.date) (by[r.date]=by[r.date]||[]).push(r); });
+  var today0=new Date(); today0.setHours(0,0,0,0); var tdy=todayDmy();
+  var days=monthDays(mk), first=toDate_(days[0]).getDay(), hDone=0, nDone=0, hPlan=0, nPlan=0;
+  var G='<div class="hcalgrid">'+["א","ב","ג","ד","ה","ו","ש"].map(function(x){ return '<div class="hcw">'+x+'</div>'; }).join('');
+  for(var i=0;i<first;i++) G+='<div></div>';
+  days.forEach(function(ds){
+    var list=by[ds]||[], hrs=r2(list.reduce(function(t,r){ return t+hn(r); },0)), dt=toDate_(ds), fut=dt>today0;
+    if(list.length){ if(fut){ hPlan+=hrs; nPlan++; } else { hDone+=hrs; nDone++; } }
+    var cls='hcd'+(list.length?(fut?' plan':' done'):'')+(ds===tdy?' today':'')+(hstate.calSel===ds?' sel':'')+(dt.getDay()===6?' sat':'');
+    G+='<button class="'+cls+'" data-cd="'+ds+'"><span class="n">'+dt.getDate()+'</span>'+
+       (list.length ? '<span class="fill" style="height:'+Math.max(12, Math.min(100, Math.round(hrs/8*100)))+'%"></span><span class="h">'+(hrs||"✓")+'</span>' : '')+'</button>';
+  });
+  G+='</div>';
+  H += '<div class="hcaltot">עבדתי <b>'+r2(hDone)+' שע׳</b> ב־'+nDone+' ימים'+(nPlan?' · מתוכנן עוד <b>'+r2(hPlan)+' שע׳</b>':'')+'</div>'+G;
+  H += '<div class="hclg"><span><i class="done"></i>עבדתי</span><span><i class="plan"></i>מתוכנן</span><span>המספר = שעות</span></div>';
+  var sel=hstate.calSel;
+  if(sel && monthOf(sel)===mk){
+    var sl=by[sel]||[];
+    H += '<div class="hcdet"><b>יום '+esc(HDAY[toDate_(sel).getDay()])+' '+esc(sel)+'</b>'+
+      (sl.length ? sl.map(function(r){ var s=toHHMM(r.start), e=toHHMM(r.end); return '<div>'+esc(norm(r.act)||"עבודה")+(s&&e?' · <span dir="ltr" style="white-space:nowrap">'+esc(s)+'–'+esc(e)+'</span>':'')+' · <b>'+esc(r2(hn(r)))+' שע׳</b></div>'; }).join('')
+                 : '<div style="color:var(--muted)">לא רשומות שעות ביום הזה</div>')+
+      '<button class="ghostbtn" id="hc_add" style="justify-content:center">'+(sl.length?'✏️ שנה את היום הזה':'➕ הוסף עבודה ביום הזה')+'</button></div>';
+  }
+  el.innerHTML=H+'</div>'; calBind_(el, mk, by);
+}
+function calBind_(el, mk, by){
+  $("hc_prev").onclick=function(){ calGo_(-1); };
+  $("hc_next").onclick=function(){ calGo_(1); };
+  if($("hc_retry")) $("hc_retry").onclick=function(){ delete hstate.calRows[mk]; renderHoursCal(); };
+  el.querySelectorAll("[data-cd]").forEach(function(b){ b.onclick=function(){ hstate.calSel = hstate.calSel===b.dataset.cd ? "" : b.dataset.cd; renderHoursCal(); }; });
+  if($("hc_add")) $("hc_add").onclick=function(){ calAddFor_(hstate.calSel, (by[hstate.calSel]||[])[0]); };
+}
+// פותח את טופס "הוסף עבודה" על היום שנבחר ביומן (ואם כבר רשום — ממלא את מה שרשום, לשינוי)
+function calAddFor_(ds, r){
+  var a={date:ds, act:"", start:"", end:"", slot:"", pickDate:(ds!==todayDmy() && ds!==dmyShift(-1))};
+  if(r){
+    a.act=norm(r.act); a.start=toHHMM(r.start); a.end=toHHMM(r.end);
+    a.slot = (a.start===SLOT_AM.start&&a.end===SLOT_AM.end)?"am":(a.start===SLOT_PM.start&&a.end===SLOT_PM.end)?"pm":(a.start&&a.end?"other":"");
+    var sc=schedFor(ds), known=(sc&&sc.act?[norm(sc.act)]:[]).concat(HACTS.map(function(x){ return norm(hActLabel(x)); }));
+    if(a.act && known.indexOf(a.act)<0) a.otherAct=true;
+  }
+  hstate.add=a; renderHomeHours(); $("hh_form").scrollIntoView({behavior:"smooth",block:"start"});
 }
 // ----- "➕ הוסף עבודה" (רון): טופס פשוט בשלושה שלבים, בתוך הכרטיס — בלי לקפוץ לחלון אחר -----
 function dmyShift(n){ var d=new Date(); d.setDate(d.getDate()+n); return d.getDate()+"/"+(d.getMonth()+1)+"/"+String(d.getFullYear()).slice(2); }
@@ -532,6 +633,8 @@ function saveAdd(){
         hstate.rows=(hstate.rows||[]).filter(function(r){ return !(norm(r.inst)===me && r.date===a.date); });
         hstate.rows.push({inst:me, date:a.date, act:act, start:a.start, end:a.end, total:tot});
       }
+      if(hstate.calRows) delete hstate.calRows[monthOf(a.date)];   // היומן ייטען מחדש לחודש הזה
+      if(hstate.cal){ hstate.calMonth=monthOf(a.date); hstate.calSel=a.date; }
       hstate.add=null; hstate.addMsg="✓ נשמר: "+a.date+" · "+act+" · "+tot+" שע׳"; hstate.addMsgT=Date.now()+6000;
       renderHomeHours(); state.hh=0; loadHomeHours();
     } else { btn.disabled=false; btn.textContent="שמור"; $("af_err").textContent="לא נשמר: "+((j&&j.error)||"נסו שוב"); }
