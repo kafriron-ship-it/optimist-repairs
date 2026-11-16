@@ -79,7 +79,8 @@ section{display:flex;flex-direction:column;gap:18px;padding-top:20px}
 .recent{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:8px}
 .recent button{position:relative;font:600 1.2rem var(--mono);background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:12px 0;cursor:pointer;font-variant-numeric:tabular-nums}
 .recent button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--bg)}
-.recent button i{position:absolute;top:-6px;left:-6px;font:600 .7rem var(--mono);font-style:normal;background:var(--stop);color:#fff;border-radius:999px;min-width:18px;padding:1px 4px;line-height:16px}
+.recent button i{position:absolute;top:7px;left:7px;width:9px;height:9px;border-radius:50%;background:var(--flag);font-size:0}
+.recent button i.stop{background:var(--stop);box-shadow:0 0 0 2px color-mix(in srgb,var(--stop) 30%,transparent)}
 .branches{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1.5px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
 .branches button{background:none;border:0;color:var(--ink);font:700 .95rem var(--body);padding:12px 4px;cursor:pointer;min-width:0}
 .branches button+button{border-inline-start:1.5px solid var(--line)}
@@ -199,6 +200,13 @@ textarea{min-height:64px;resize:vertical}
 #fbModal .fbrow{display:flex;gap:8px;align-items:stretch}
 .primary:disabled{opacity:.45;cursor:not-allowed}
 .toast{min-height:1.4em;font-weight:600;color:var(--ok);text-align:center}
+.sentcard{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;background:var(--surface);border:2px solid var(--ok);border-radius:16px;padding:18px 16px}
+.sentcard .sc-ic{width:52px;height:52px;border-radius:50%;background:var(--ok);color:var(--bg);font:800 1.7rem var(--body);display:grid;place-items:center}
+.sentcard b{font-size:1.2rem}
+.sentcard span{color:var(--muted);font-weight:600}
+.sentcard .primary{width:100%;margin-top:6px;padding:12px}
+.sentcard.err{border-color:var(--stop)}
+.sentcard.err .sc-ic{background:var(--stop)}
 .toast.err{color:var(--stop)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:420px){.row2{grid-template-columns:1fr}}
@@ -331,6 +339,7 @@ textarea{min-height:64px;resize:vertical}
 <!-- REPORT -->
 <section id="view-report">
   <div class="install" id="install" hidden><span id="installText">להוסיף את האפליקציה למסך הבית?</span><span style="display:flex;gap:4px;align-items:center"><button type="button" class="ghost" id="installBtn">הוסף</button><button type="button" class="x" id="installX" aria-label="סגור">✕</button></span></div>
+  <div class="sentcard" id="sentCard" hidden role="status"><div class="sc-ic" id="sentIc">✓</div><b id="sentHead">הדיווח נשלח</b><span id="sentTxt"></span><button type="button" class="primary" id="sentMore">➕ דיווח נוסף</button></div>
   <div>
     <span class="label step">1. איזו סירה?</span>
     <div class="types" id="types" role="group" aria-label="סוג סירה"></div>
@@ -857,13 +866,13 @@ function knownBoats(){
 }
 function renderRecent(){
   const cur = normBoat($("boat").value);
-  const cnt = {}; repReports().forEach(r=>{ if(r.status==="open" && typeOf(r)===curType){ const b=normBoat(r.boat); cnt[b]=(cnt[b]||0)+1; } });
+  const cnt = {}, stopB = {}; repReports().forEach(r=>{ if(r.status==="open" && typeOf(r)===curType){ const b=normBoat(r.boat); cnt[b]=(cnt[b]||0)+1; if(r.stop) stopB[b]=1; } });
   if(booting && !knownBoats().length){ $("recent").innerHTML = '<span class="skelb"></span>'.repeat(8); return; }
   // a boat number that isn't on the list yet — say so, so a typo doesn't quietly become a new boat
   const hint = $("boatHint"), known = knownBoats(), isNew = !!cur && !booting && !known.includes(cur);
   hint.textContent = isNew ? `⚠️ ${byName(curType) ? cur : "סירה "+cur} עוד לא ברשימה, והיא תתווסף כסירה חדשה. בדקו שזה נכון.` : (hint.dataset.def || hint.textContent);
   hint.style.color = isNew ? "var(--stop)" : "";
-  $("recent").innerHTML = known.map(n=>`<button type="button" data-n="${esc(n)}" aria-pressed="${n===cur}">${esc(n)}${cnt[n]?`<i>${cnt[n]}</i>`:""}</button>`).join("");
+  $("recent").innerHTML = known.map(n=>`<button type="button" data-n="${esc(n)}" aria-pressed="${n===cur}">${esc(n)}${cnt[n]?`<i class="${stopB[n]?"stop":""}" title="${stopB[n]?"לא יוצאת למים · ":""}${cnt[n]===1?"תקלה פתוחה":cnt[n]+" תקלות פתוחות"}"></i>`:""}</button>`).join("");
   // שדה "סירה שלא ברשימה" מופיע רק כשצריך (לחיצה על הקישור, או כשכבר הוקלד מספר שלא ברשימה)
   const custom = !!cur && !booting && !known.includes(cur);
   $("boatRow").hidden = !(customBoatOpen || custom); $("boatOther").hidden = !$("boatRow").hidden;
@@ -918,9 +927,10 @@ $("send").addEventListener("click", async ()=>{
   pending.push(...opt); allReports = allReports.concat(opt); applyView(); render();
   buzz(30);
   toast(`נשלח: ${br} · ${curType} ${boat} · ${parts.length} ${parts.length===1?"תקלה":"תקלות"}` + (skipped.length?` (כבר היה: ${skipped.join(", ")})`:""));
+  showSent(true, `${br} · ${byName(curType)?boat:curType+" "+boat} · ${parts.length===1?parts[0]:parts.length+" תקלות"}` + (skipped.length?` (כבר היה: ${skipped.join(", ")})`:""));
   selected.clear(); document.querySelectorAll("#partGroups .chip").forEach(c=>c.setAttribute("aria-pressed","false"));
   $("other").value=""; issueOf={}; issueText={}; photoByPart={}; photoTarget=null; customs=[]; renderCustoms(); $("note").value=""; $("stop").checked=false; $("boat").value=""; repBranch=""; renderBranchPick(); clearPhoto(); $("boat").focus();
-  validate();
+  renderRecent(); renderChips(); validate();
   api("add", payload).then(res=>{
     if(res.photoError) toast("הדיווח נשמר, אבל התמונה לא נשמרה.", true);
     load();
@@ -930,7 +940,19 @@ $("send").addEventListener("click", async ()=>{
     allReports = allReports.filter(r=>!ids.has(r.id));
     applyView(); render();
     toast("השליחה נכשלה. הדיווח לא נשמר, נסה שוב.", true);
+    showSent(false, "הדיווח לא נשמר. בדקו אינטרנט ונסו שוב.");
   });
+});
+// אחרי שליחה: כרטיס "✓ נשלח" ברור בראש הטופס + "דיווח נוסף"
+function showSent(ok, txt){
+  const c = $("sentCard"); c.classList.toggle("err", !ok);
+  $("sentIc").textContent = ok ? "✓" : "!"; $("sentHead").textContent = ok ? "הדיווח נשלח" : "השליחה נכשלה";
+  $("sentTxt").textContent = txt; $("sentMore").textContent = ok ? "➕ דיווח נוסף" : "סגור";
+  c.hidden = false; window.scrollTo({top:0, behavior: calm() ? "auto" : "smooth"});
+}
+$("sentMore").addEventListener("click", ()=>{ $("sentCard").hidden = true; });
+$("view-report").addEventListener("click", e=>{   // מתחילים דיווח חדש → הכרטיס נסגר
+  if(!$("sentCard").hidden && !e.target.closest("#sentCard,#send") && e.target.closest("button,input,label")) $("sentCard").hidden = true;
 });
 
 /* ---------- parts view ---------- */
