@@ -130,10 +130,10 @@ mark{background:none;color:var(--navy);font-weight:800}
 .stitle{font:700 .85rem var(--body);letter-spacing:.04em;color:var(--muted);margin:0}
 .install{display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--surface);border:1.5px dashed var(--navy);border-radius:12px;padding:10px 12px;font-size:.92rem}
 .install .x{background:none;border:0;color:var(--muted);font:700 1rem var(--body);cursor:pointer;padding:4px 8px}
-.prog{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-.prog-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;color:var(--muted);font-weight:600}
-.prog-top b{font:600 1.05rem var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
-.prog-bar{height:10px;background:var(--chip);border-radius:6px;overflow:hidden}
+.prog{background:none;border:0;padding:0 2px;margin-top:-6px}
+.prog-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;color:var(--muted);font-weight:600;font-size:.88rem}
+.prog-top b{font:600 .92rem var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.prog-bar{height:6px;background:var(--chip);border-radius:6px;overflow:hidden}
 .prog-bar i{display:block;height:100%;width:0;margin-left:auto;background:var(--ok);border-radius:6px}
 @media (prefers-reduced-motion:no-preference){.prog-bar i{transition:width .3s}}
 .chip .badge{font:600 .75rem var(--mono);background:var(--chip);color:var(--muted);border-radius:999px;padding:0 6px;margin-inline-start:4px}
@@ -228,7 +228,23 @@ textarea{min-height:64px;resize:vertical}
 .iby{color:var(--muted);font-size:.78rem}
 .del{background:none;border:0;color:var(--muted);font:600 .8rem var(--body);cursor:pointer;padding:4px}
 .del.arm{color:var(--stop)}
-.delboatrow{border-top:1px solid var(--line);padding:8px 12px;text-align:center}
+.delboatrow{border-top:1px solid var(--line);padding:6px 10px;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.bmore{background:none;border:0;color:var(--muted);font:700 .82rem var(--body);cursor:pointer;padding:4px 6px}
+.btool{display:flex;gap:8px;align-items:stretch}
+.fbtn{flex:none;display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;color:var(--ink);font:700 .95rem var(--body);padding:0 14px;cursor:pointer}
+.fbtn[aria-expanded="true"]{border-color:var(--navy);color:var(--navy)}
+.fbtn[aria-expanded="true"] svg{transform:rotate(180deg)}
+.fcnt{font:700 .75rem var(--mono);background:var(--flag);color:var(--flag-ink);border-radius:999px;padding:1px 7px}
+.fpanel{display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.factive{display:flex;align-items:center;gap:10px;color:var(--muted);font-weight:700;font-size:.9rem;margin-top:-10px}
+.factive span{flex:1;min-width:0}
+.factive button{background:none;border:0;color:var(--navy);font:700 .88rem var(--body);cursor:pointer;padding:4px 2px;white-space:nowrap}
+.bhtxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.bh1{display:flex;align-items:center;gap:8px;min-width:0}
+.bh2{color:var(--ink);opacity:.8;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bh2.done{color:var(--ok);opacity:1}
+.age{margin-inline-start:auto;color:var(--muted);font:700 .78rem var(--body);white-space:nowrap}
+.age.old{color:var(--flag)}
 .delboat{background:none;border:1px solid var(--line);border-radius:10px;color:var(--muted);font:700 .85rem var(--body);cursor:pointer;padding:8px 12px;width:100%}
 .delboat.arm{color:#fff;background:var(--stop);border-color:var(--stop)}
 .cmts{margin-top:6px;display:flex;flex-direction:column;gap:4px}
@@ -400,19 +416,26 @@ textarea{min-height:64px;resize:vertical}
 <section id="view-att" hidden><iframe id="attFrame" title="נוכחות חניכים" style="width:100%;height:calc(100dvh - 118px);border:0;display:block"></iframe></section>
 <section id="view-hours" hidden><iframe id="hoursFrame" title="שעות עבודה" style="width:100%;height:calc(100dvh - 118px);border:0;display:block"></iframe></section>
 <section id="view-boats" hidden>
-  <div class="chips bfilter"></div>
   <input id="fixer" type="hidden">
+  <!-- סרגל אחד: חיפוש + "סינון" (כל המסננים בפנים, סגורים כברירת מחדל) -->
+  <div class="btool">
+  <div class="search" style="margin:0;flex:1;min-width:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="bsearch" type="search" placeholder="חיפוש סירה או חלק" autocomplete="off" aria-label="חיפוש סירה או חלק"></div>
+    <button type="button" class="fbtn" id="fbtn" aria-expanded="false" aria-controls="fpanel">סינון<span class="fcnt" id="fcount" hidden></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+  </div>
+  <div class="factive" id="factive" hidden><span id="factiveTxt"></span><button type="button" id="fclear">✕ נקה</button></div>
+  <div class="fpanel" id="fpanel" hidden>
+    <div class="chips bfilter"></div>
+    <div class="seg2" role="group" aria-label="סידור">
+      <button type="button" id="g-boat" aria-pressed="true">לפי סירה</button>
+      <button type="button" id="g-part" aria-pressed="false">לפי חלק</button>
+    </div>
+    <div class="chips" id="tfilter" role="group" aria-label="סוג סירה" hidden></div>
+    <div class="filters">
+      <button class="chip" id="f-open" aria-pressed="true">פתוחות</button>
+      <button class="chip" id="f-all" aria-pressed="false">הכול כולל מתוקנות</button>
+    </div>
+  </div>
   <div class="prog" id="prog" hidden><div class="prog-top"><span>תוקנו היום</span><b id="progTxt"></b></div><div class="prog-bar"><i id="progBar"></i></div></div>
-  <div class="seg2" role="group" aria-label="סידור">
-    <button type="button" id="g-boat" aria-pressed="true">לפי סירה</button>
-    <button type="button" id="g-part" aria-pressed="false">לפי חלק</button>
-  </div>
-  <div class="chips" id="tfilter" role="group" aria-label="סוג סירה" hidden></div>
-  <div class="filters">
-    <button class="chip" id="f-open" aria-pressed="true">פתוחות</button>
-    <button class="chip" id="f-all" aria-pressed="false">הכול כולל מתוקנות</button>
-  </div>
-  <div class="search" style="margin:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="bsearch" type="search" placeholder="חיפוש סירה או חלק" autocomplete="off" aria-label="חיפוש סירה או חלק"></div>
   <button type="button" class="ghost" id="copyParts" hidden>העתק רשימת חלקים</button>
   <textarea id="copyFallback" hidden readonly></textarea>
   <div id="boatsList" style="display:flex;flex-direction:column;gap:10px"></div>
@@ -986,7 +1009,7 @@ async function sendComment(id){
 $("boatsList").addEventListener("keydown", e=>{ if(e.key==="Enter" && e.target.dataset.cin){ e.preventDefault(); sendComment(e.target.dataset.cin); } });
 
 /* ---------- boats view ---------- */
-let groupBy = "boat", typeFilter = "all"; const openCards = new Set(), openMore = new Set();
+let groupBy = "boat", typeFilter = "all"; const openCards = new Set(), openMore = new Set(), openBoatMore = new Set();
 function issueLabel(r){ return r.issue ? r.issue + (r.issueText ? ": " + r.issueText : "") : ""; }
 function itemRow(r, title){
   const done = r.status !== "open", lab = issueLabel(r);
@@ -1031,7 +1054,7 @@ function renderBoats(){
   $("copyParts").hidden = groupBy!=="part" || !reports.some(r=>r.status==="open" && r.kind!=="task");
   const openBoats = new Set(reports.filter(r=>r.status==="open").map(r=>typeOf(r)+"|"+bname(r)));
   $("boatsBadge").textContent = openBoats.size;
-  renderProgress();
+  renderProgress(); renderFilterUI();
   if(booting && !list.length){ $("boatsList").innerHTML = [70,55,62].map(w=>`<div class="skel"><i style="width:${w}px;height:20px"></i><i style="width:60px"></i><i style="flex:1;max-width:120px;margin-inline-start:auto"></i></div>`).join(""); return; }
   if(!list.length){ $("boatsList").innerHTML = `<div class="empty"><strong>${q?"לא נמצאו תקלות שמתאימות לחיפוש":boatFilter==="open"?"אין תקלות פתוחות":"עוד לא דווח כלום"}</strong>דיווחים חדשים יופיעו כאן.</div>`; return; }
   const byOrder = (a,b)=>(a.status==="open"?0:1)-(b.status==="open"?0:1) || (groupBy==="part" ? BRANCHES.indexOf(brOf(a))-BRANCHES.indexOf(brOf(b)) || String(normBoat(a.boat)).localeCompare(String(normBoat(b.boat)),"he",{numeric:true}) : (a.createdAt||0)-(b.createdAt||0));
@@ -1045,9 +1068,10 @@ function renderBoats(){
   const cards = [...groups.entries()].map(([key, rs])=>{
     const [, t, name] = key.split("|");
     const open = rs.filter(r=>r.status==="open"), stop = open.some(r=>r.stop);
-    return {key, t, name, rs: rs.sort(byOrder), open: open.length, stop, br: brOf(rs[0]), num: normBoat(rs[0].boat)};
+    const oldest = open.length ? Math.min(...open.map(r=>r.createdAt||Date.now())) : Infinity;
+    return {key, t, name, rs: rs.sort(byOrder), open: open.length, openRs: open, oldest, stop, br: brOf(rs[0]), num: normBoat(rs[0].boat)};
   }).sort((a,b)=> (byBr ? BRANCHES.indexOf(a.br)-BRANCHES.indexOf(b.br) : 0) || (groupBy==="boat"
-      ? (b.stop-a.stop) || (TYPES.indexOf(a.t)-TYPES.indexOf(b.t)) || a.name.localeCompare(b.name,"he",{numeric:true})
+      ? (b.stop-a.stop) || (a.oldest-b.oldest) || a.name.localeCompare(b.name,"he",{numeric:true})   // לא יוצאת → הכי ותיקות למעלה
       : (b.open-a.open) || a.name.localeCompare(b.name,"he")));
   let lastBr = "";
   $("boatsList").innerHTML = cards.map(c=>{
@@ -1055,22 +1079,45 @@ function renderBoats(){
     const exp = openCards.has(c.key) || !!q;
     const nm = byBr ? c.num : c.name;
     const title = groupBy==="boat" ? (byName(c.t) ? nm : "סירה "+nm) : c.name;
-    const unit = groupBy==="boat" ? ["תקלה אחת","תקלות"] : ["סירה אחת","סירות"];
-    const meta = c.open ? (c.open===1 ? unit[0] : c.open+" "+unit[1]) : "הכול תוקן";
+    // רואים מה שבור בלי לפתוח: בסידור לפי סירה — שמות החלקים; לפי חלק — אילו סירות
+    const uniq = a => [...new Set(a)];
+    const items = groupBy==="boat" ? uniq(c.openRs.map(r=>norm(r.part))) : uniq(c.openRs.map(r=>bname(r)));
+    const lead = groupBy==="boat" || byName(c.t) ? "" : (items.length===1 ? "סירה " : "סירות ");
+    const meta = c.open ? lead + items.slice(0,3).join(groupBy==="boat" ? " · " : ", ") + (items.length>3 ? " +"+(items.length-3) : "") : "הכול תוקן ✓";
+    const days = c.open ? Math.floor((new Date().setHours(0,0,0,0) - new Date(c.oldest).setHours(0,0,0,0))/864e5) : -1;
+    const age = days<0 ? "" : `<span class="age${days>=7?" old":""}">${days===0?"מהיום":days===1?"מאתמול":"מחכה "+days+" ימים"}</span>`;
     const pill = groupBy==="part" ? "" : c.stop ? `<span class="pill">לא יוצאת</span>` : (!c.open ? `<span class="pill ok">מוכנה</span>` : "");
     return head + `<div class="bc ${c.stop?"stop":""}">
       <button type="button" class="bh" data-card="${esc(c.key)}" aria-expanded="${exp}">
-        <span class="nm2">${esc(title)}</span>${(multiType||c.t!==TYPES[0])?`<span class="ttag">${esc(c.t)}</span>`:""}
-        <span class="bmeta">${meta}</span>${pill}
+        <span class="bhtxt"><span class="bh1"><span class="nm2">${esc(title)}</span>${(multiType||c.t!==TYPES[0])?`<span class="ttag">${esc(c.t)}</span>`:""}${pill}${age}</span>
+        <span class="bh2${c.open?"":" done"}">${esc(meta)}</span></span>
         <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       ${exp?`<div class="rows">${c.rs.map(r=>itemRow(r, groupBy==="boat" ? r.part : (byName(typeOf(r)) ? bname(r) : "סירה "+bname(r)))).join("")}</div>`:""}
-      ${exp && groupBy==="boat" ? `<div class="delboatrow"><button type="button" class="delboat" data-delboat="${esc(c.key)}" data-title="${esc(title)}">🗑 הסירה הזו לא קיימת? מחק אותה</button></div>` : ""}
+      ${exp && groupBy==="boat" ? `<div class="delboatrow"><button type="button" class="bmore" data-bmore="${esc(c.key)}" aria-expanded="${openBoatMore.has(c.key)}">⋯ עוד</button>${openBoatMore.has(c.key)?`<button type="button" class="delboat" data-delboat="${esc(c.key)}" data-title="${esc(title)}">🗑 הסירה הזו לא קיימת? מחק אותה</button>`:""}</div>` : ""}
     </div>`;
   }).join("");
   observeThumbs();
 }
 $("bsearch").addEventListener("input", renderBoats);
+// "סינון": כמה מסננים פעילים + שורת "מוצג: …" כשהחלונית סגורה
+function renderFilterUI(){
+  const act = [];
+  if(viewBranch!=="all") act.push(viewBranch);
+  if(typeFilter!=="all") act.push(isMotor(typeFilter)?"מנוע":typeFilter);
+  if(groupBy==="part") act.push("לפי חלק");
+  if(boatFilter!=="open") act.push("כולל מתוקנות");
+  $("fcount").hidden = !act.length; $("fcount").textContent = act.length;
+  $("factive").hidden = !act.length || !$("fpanel").hidden;
+  $("factiveTxt").textContent = "מוצג: " + act.join(" · ");
+}
+$("fbtn").addEventListener("click", ()=>{ const p=$("fpanel"); p.hidden=!p.hidden; $("fbtn").setAttribute("aria-expanded", !p.hidden); renderFilterUI(); });
+$("fclear").addEventListener("click", ()=>{
+  viewBranch="all"; typeFilter="all"; boatFilter="open"; groupBy="boat";
+  $("g-boat").setAttribute("aria-pressed","true"); $("g-part").setAttribute("aria-pressed","false");
+  $("f-open").setAttribute("aria-pressed","true"); $("f-all").setAttribute("aria-pressed","false");
+  openCards.clear(); applyView(); render();
+});
 function setGroup(g){ groupBy=g; $("g-boat").setAttribute("aria-pressed", g==="boat"); $("g-part").setAttribute("aria-pressed", g==="part"); renderBoats(); }
 $("g-boat").addEventListener("click", ()=>setGroup("boat"));
 $("tfilter").addEventListener("click", e=>{ const b=e.target.closest("[data-tf]"); if(!b) return; typeFilter=b.dataset.tf; renderBoats(); });
@@ -1080,6 +1127,8 @@ $("f-all").addEventListener("click",()=>{boatFilter="all";$("f-all").setAttribut
 $("boatsList").addEventListener("click", async e=>{
   const card = e.target.closest("[data-card]");
   if(card){ const k = card.dataset.card; openCards.has(k) ? openCards.delete(k) : openCards.add(k); renderBoats(); return; }
+  const bm = e.target.closest("[data-bmore]");
+  if(bm){ const k = bm.dataset.bmore; openBoatMore.has(k) ? openBoatMore.delete(k) : openBoatMore.add(k); renderBoats(); return; }
   const more = e.target.closest("[data-more]");
   if(more){ const id = more.dataset.more; openMore.has(id) ? openMore.delete(id) : openMore.add(id); renderBoats(); return; }
   const fx = e.target.closest("[data-fix]");
