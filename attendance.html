@@ -22,6 +22,16 @@ header .s{font-size:.72rem;opacity:.85}
 button{font-family:inherit;cursor:pointer}
 .savest{font:800 .74rem 'Assistant',sans-serif;white-space:nowrap;margin-inline-start:auto;margin-inline-end:6px}
 .savest.busy{color:var(--muted)} .savest.ok{color:var(--ok)} .savest.bad{color:var(--stop)}
+.addf{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;background:rgba(255,255,255,.02)}
+.addh{display:flex;justify-content:space-between;align-items:center}
+.addstep{font:800 .86rem 'Assistant',sans-serif;color:var(--ink);margin-top:4px}
+.addtimes{display:flex;gap:8px;align-items:center}.addtimes span{color:var(--muted);font-weight:700;font-size:.85rem}
+.addsum{background:#13301f;border:1px solid #2e6b45;color:#8fe3b0;border-radius:10px;padding:9px 11px;font-weight:800;font-size:.88rem;margin-top:4px}
+.addwarn{color:#f3c98a;font-size:.8rem;font-weight:700}
+.adderr{color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em}
+.addsave{border:0;border-radius:10px;padding:12px;font:800 1rem 'Assistant',sans-serif;background:var(--flag);color:#2b1400;cursor:pointer}
+.addsave:disabled{background:var(--chip);color:var(--muted);cursor:default}
+.addok{color:#22c55e;font-weight:800;font-size:.88rem;margin-bottom:8px}
 .undobtn{flex:none;background:transparent;color:inherit;border:1.5px solid currentColor;border-radius:9px;font:800 .78rem 'Assistant',sans-serif;padding:5px 10px;cursor:pointer}
 .rem{display:flex;align-items:center;gap:9px;background:#2a2113;border:1px solid #5a4620;color:#f3c98a;border-radius:12px;padding:10px 12px;font-size:.86rem;font-weight:700;margin-bottom:14px}
 .reasonbox{background:#2a1a1a;border:1px solid var(--stop);border-radius:12px;padding:10px;margin:-4px 2px 10px}
@@ -361,7 +371,7 @@ function nextDateOf(g){
 function homeRow(g, k, full){
   var gi=giOf(g), t=defaultTimes(g), nd=nextDateOf(g), isToday=nd && daysAgo_(nd.date)===0;
   var miss=unfilledRecent(g).length, cs=groupSubStatus(g), st=full?reqStatusFor(g):"";
-  var sub=[BRN[g.branch]||g.branch]; if(t) sub.push(t.start+"–"+t.end); if(nd && !isToday) sub.push("הבא: "+nd.date.replace(/\/\d+$/,""));
+  var sub=[BRN[g.branch]||g.branch]; if(t) sub.push("\u2066"+t.start+"–"+t.end+"\u2069");   // ⁦…⁩ = שעות משמאל לימין גם בתוך עברית if(nd && !isToday) sub.push("הבא: "+nd.date.replace(/\/\d+$/,""));
   return '<div class="arow"><div class="nm"><b>'+esc(cleanInst(g.instructor))+
       (miss?'<span class="tchip miss">⏰ לא מולא</span>':'')+
       (cs?'<span class="scchip sc-'+cs+'">'+esc(SUBLBL[cs])+'</span>':'')+'</b><span>'+esc(sub.join(" · "))+'</span></div>'+
@@ -432,14 +442,100 @@ function renderHomeHours(){
   var sug = norm(hstate.inst)===me ? schedSuggestions() : [];
   var h='<div class="hhome"><div class="hh"><span>🕐 השעות שלי · '+esc(HMON[new Date().getMonth()])+'</span><button class="linkbtn" id="hh_more">פירוט ›</button></div>';
   if(hstate.flash){ h += '<div style="color:#22c55e;font-weight:800;font-size:.85rem;margin-bottom:8px">'+esc(hstate.flash)+'</div>'; hstate.flash=""; }
+  if(hstate.addMsg && Date.now()<hstate.addMsgT) h += '<div class="addok">'+esc(hstate.addMsg)+'</div>';
   h += '<div class="hsumc" style="margin:0 0 8px"><div class="c"><div class="k">עבדתי</div><div class="v">'+r2(done.reduce(function(t,r){return t+hn(r);},0))+'<small>שע׳</small></div><div class="k">'+done.length+' ימים</div></div>'+
        '<div class="c" style="opacity:.75"><div class="k">מתוכנן עד סוף החודש</div><div class="v">'+r2(plan.reduce(function(t,r){return t+hn(r);},0))+'<small>שע׳</small></div><div class="k">'+plan.length+' ימים</div></div></div>';
   if(sug.length) h += '<div id="hsugbox2" style="margin-bottom:8px"><div class="hflbl" style="margin-bottom:6px">📅 בחרו פעם אחת, והשעות יתמלאו לבד כל חודש:</div>'+sugHTML(sug)+'</div>';
-  h += '<button class="ghostbtn" id="hh_add" style="width:100%;justify-content:center;border-color:var(--flag);color:var(--flag)">➕ הוסף עבודה</button></div>';
+  h += hstate.add ? '<div id="hh_form"></div>' : '<button class="ghostbtn" id="hh_add" style="width:100%;justify-content:center;border-color:var(--flag);color:var(--flag)">➕ הוסף עבודה</button>';
+  h += '</div>';
   box.innerHTML=h;
   $("hh_more").onclick=function(){ openHours(); };
-  $("hh_add").onclick=function(){ hstate.openAdd=true; openHours(); };
+  if($("hh_add")) $("hh_add").onclick=function(){ hstate.add={date:todayDmy(), act:"", start:"", end:"", slot:""}; renderHomeHours(); $("hh_form").scrollIntoView({behavior:"smooth",block:"start"}); };
+  if($("hh_form")) renderAddForm();
   if($("hsugbox2")) bindSug($("hsugbox2"), sug);
+}
+// ----- "➕ הוסף עבודה" (רון): טופס פשוט בשלושה שלבים, בתוך הכרטיס — בלי לקפוץ לחלון אחר -----
+function dmyShift(n){ var d=new Date(); d.setDate(d.getDate()+n); return d.getDate()+"/"+(d.getMonth()+1)+"/"+String(d.getFullYear()).slice(2); }
+var HDAY=["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
+function renderAddForm(){
+  var el=$("hh_form"), a=hstate.add; if(!el||!a) return;
+  var today=todayDmy(), yest=dmyShift(-1);
+  if(a.pickDate===undefined) a.pickDate=false;
+  var sc = a.date ? schedFor(a.date) : null;
+  var acts = (sc&&sc.act ? [{v:sc.act, l:"📅 "+sc.act}] : []).concat(HACTS.map(function(x){ return {v:hActLabel(x), l:x}; }));
+  var chip=function(on, attr, label){ return '<button type="button" class="hchip'+(on?' on':'')+'" '+attr+'>'+label+'</button>'; };
+  var H='<div class="addf"><div class="addh"><b>➕ הוספת עבודה</b><button class="linkbtn" id="af_x">ביטול</button></div>';
+  H+='<div class="addstep">1. מתי?</div><div class="hchips">'+
+     chip(!a.pickDate && a.date===today, 'data-ad="'+today+'"', 'היום')+
+     chip(!a.pickDate && a.date===yest, 'data-ad="'+yest+'"', 'אתמול')+
+     chip(a.pickDate, 'data-ad="pick"', '📅 תאריך אחר')+'</div>';
+  if(a.pickDate) H+='<input id="af_date" class="asin" type="date" value="'+isoOf(a.date)+'">';
+  H+='<div class="addstep">2. מה עשית?</div><div class="hchips">'+
+     acts.map(function(x){ return chip(!a.otherAct && norm(a.act)===norm(x.v), 'data-aa="'+esc(x.v)+'"', esc(x.l)); }).join('')+
+     chip(a.otherAct, 'data-aa="__other"', '✏️ משהו אחר')+'</div>';
+  if(a.otherAct) H+='<input id="af_act" class="asin" placeholder="כתבו מה עשית" value="'+esc(a.act||"")+'">';
+  H+='<div class="addstep">3. באילו שעות?</div><div class="hchips">'+
+     chip(a.slot==="am", 'data-as="am"', '☀️ בוקר <span dir="ltr">10–14</span>')+
+     chip(a.slot==="pm", 'data-as="pm"', '🌤 צהריים <span dir="ltr">14–18</span>')+
+     chip(a.slot==="other", 'data-as="other"', '⏱ שעות אחרות')+'</div>';
+  if(a.slot==="other") H+='<div class="addtimes"><span>מ־</span><input id="af_s" class="asin" type="time" step="300" value="'+esc(a.start||"")+'"><span>עד</span><input id="af_e" class="asin" type="time" step="300" value="'+esc(a.end||"")+'"></div>';
+  H+='<div id="af_bottom"></div></div>';
+  el.innerHTML=H;
+  $("af_x").onclick=function(){ hstate.add=null; renderHomeHours(); };
+  el.querySelectorAll("[data-ad]").forEach(function(b){ b.onclick=function(){
+    if(b.dataset.ad==="pick"){ a.pickDate=true; } else { a.pickDate=false; a.date=b.dataset.ad; }
+    renderAddForm(); if(a.pickDate && $("af_date")) $("af_date").focus();
+  }; });
+  if($("af_date")) $("af_date").onchange=function(){ a.date=dmyOf(this.value); renderAddForm(); };
+  el.querySelectorAll("[data-aa]").forEach(function(b){ b.onclick=function(){
+    if(b.dataset.aa==="__other"){ a.otherAct=true; a.act=""; renderAddForm(); $("af_act").focus(); return; }
+    a.otherAct=false; a.act=b.dataset.aa;
+    if(sc && norm(b.dataset.aa)===norm(sc.act) && !a.slot){   // הפעילות הקבועה של היום → גם השעות שלה
+      var s0=toHHMM(sc.start), e0=toHHMM(sc.end);
+      a.start=s0; a.end=e0; a.slot = (s0===SLOT_AM.start&&e0===SLOT_AM.end)?"am":(s0===SLOT_PM.start&&e0===SLOT_PM.end)?"pm":"other";
+    }
+    renderAddForm();
+  }; });
+  if($("af_act")) $("af_act").oninput=function(){ a.act=this.value; renderAddBottom(); };
+  el.querySelectorAll("[data-as]").forEach(function(b){ b.onclick=function(){
+    a.slot=b.dataset.as;
+    if(a.slot==="am"){ a.start=SLOT_AM.start; a.end=SLOT_AM.end; }
+    else if(a.slot==="pm"){ a.start=SLOT_PM.start; a.end=SLOT_PM.end; }
+    renderAddForm(); if(a.slot==="other" && !a.start && $("af_s")) $("af_s").focus();
+  }; });
+  if($("af_s")) $("af_s").oninput=function(){ a.start=this.value; renderAddBottom(); };
+  if($("af_e")) $("af_e").oninput=function(){ a.end=this.value; renderAddBottom(); };
+  renderAddBottom();
+}
+// שורת סיכום + כפתור שמירה (מתעדכנים בלי לבנות מחדש את השדות — כדי לא לאבד פוקוס בהקלדה)
+function renderAddBottom(){
+  var el=$("af_bottom"), a=hstate.add; if(!el||!a) return;
+  var tot=calcTotal(a.start, a.end);
+  var miss = !a.date ? "בחרו מתי" : !norm(a.act) ? "בחרו מה עשית" : !tot ? "בחרו שעות" : "";
+  var me=norm(state.who), ex = a.date ? (hstate.rows||[]).filter(function(r){ return norm(r.inst)===me && r.date===a.date; })[0] : null;
+  var H='';
+  if(!miss) H+='<div class="addsum">יום '+esc(HDAY[toDate_(a.date).getDay()])+' '+esc(a.date)+' · '+esc(norm(a.act))+' · <span dir="ltr" style="white-space:nowrap">'+esc(a.start)+'–'+esc(a.end)+'</span> ('+tot+' שע׳)</div>';
+  if(ex) H+='<div class="addwarn">⚠️ כבר רשום לך ב־'+esc(a.date)+': '+esc(ex.act||"")+(ex.total?' · '+esc(ex.total)+' שע׳':'')+'. שמירה תחליף אותו.</div>';
+  H+='<div id="af_err" class="adderr"></div>';
+  H+='<button id="af_save" class="addsave"'+(miss?' disabled':'')+'>'+(miss?esc(miss):'שמור')+'</button>';
+  el.innerHTML=H;
+  $("af_save").onclick=saveAdd;
+}
+function saveAdd(){
+  var a=hstate.add; if(!a) return;
+  var tot=calcTotal(a.start, a.end), act=norm(a.act), btn=$("af_save");
+  btn.disabled=true; btn.textContent="שומר…";
+  post({action:"hoursSet", month:monthOf(a.date), inst:norm(state.who), date:a.date, act:act, start:a.start, end:a.end, total:tot}).then(function(j){
+    if(j&&j.ok){
+      var me=norm(state.who);
+      if(monthOf(a.date)===hstate.month){   // מעדכן את הכרטיס מיד (והרענון מהשרת מגיע ברקע)
+        hstate.rows=(hstate.rows||[]).filter(function(r){ return !(norm(r.inst)===me && r.date===a.date); });
+        hstate.rows.push({inst:me, date:a.date, act:act, start:a.start, end:a.end, total:tot});
+      }
+      hstate.add=null; hstate.addMsg="✓ נשמר: "+a.date+" · "+act+" · "+tot+" שע׳"; hstate.addMsgT=Date.now()+6000;
+      renderHomeHours(); state.hh=0; loadHomeHours();
+    } else { btn.disabled=false; btn.textContent="שמור"; $("af_err").textContent="לא נשמר: "+((j&&j.error)||"נסו שוב"); }
+  }).catch(function(){ btn.disabled=false; btn.textContent="שמור"; $("af_err").textContent="אין חיבור — נסו שוב"; });
 }
 // מרענן את השעות במקום שפתוח עכשיו: הפירוט (אם פתוח) או הכרטיס במסך המשולב
 function hoursReload(){ if(!$("hov").hidden) loadHours(); else { state.hh=0; loadHomeHours(); } }
@@ -905,7 +1001,7 @@ function renderHours(){
     '<div class="hchips" id="hf_acts"></div>'+
     '<input id="hf_act" class="asin" list="actlist" placeholder="או כתבו משהו אחר…">'+
     '<div class="hflbl">שעות</div>'+
-    '<div class="hchips"><button type="button" class="hchip" data-slot="am">☀️ בוקר 10–14</button><button type="button" class="hchip" data-slot="pm">🌤 צהריים 14–18</button></div>'+
+    '<div class="hchips"><button type="button" class="hchip" data-slot="am">☀️ בוקר <span dir="ltr">10–14</span></button><button type="button" class="hchip" data-slot="pm">🌤 צהריים <span dir="ltr">14–18</span></button></div>'+
     '<div style="display:flex;gap:8px"><input id="hf_start" class="asin" type="time" step="300"><input id="hf_end" class="asin" type="time" step="300"></div>'+
     '<div style="display:flex;gap:8px;align-items:center"><input id="hf_total" class="asin" placeholder="סה״כ שעות" inputmode="decimal" style="flex:1"><span style="color:var(--muted);font-size:.78rem;white-space:nowrap">סה״כ — מחושב לבד</span></div>'+
     '<div id="hf_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em"></div>'+
@@ -941,7 +1037,7 @@ function openReqForm(){
     box.innerHTML=H; $("rq_cancel").onclick=function(){ box.hidden=true; }; box.scrollIntoView({behavior:"smooth",block:"center"}); return;
   }
   H+='<label style="font-size:.8rem;color:var(--muted)">לאיזה יום/פעילות צריך החלפה?</label>'+
-     '<select id="rq_date" class="asin" style="margin-bottom:10px">'+days.map(function(r){ return '<option value="'+esc(r.date)+'">'+esc(r.date)+' · '+esc(r.act||"")+' '+esc(r.start||"")+(r.end?'–'+esc(r.end):'')+'</option>'; }).join('')+'</select>';
+     '<select id="rq_date" class="asin" style="margin-bottom:10px">'+days.map(function(r){ return '<option value="'+esc(r.date)+'">'+esc(r.date)+' · '+esc(r.act||"")+' \u2066'+esc(r.start||"")+(r.end?'–'+esc(r.end):'')+'\u2069</option>'; }).join('')+'</select>';
   H+='<label style="font-size:.8rem;color:var(--muted)">למי להציע את ההחלפה? (אפשר כמה)</label>'+
      '<div style="display:flex;flex-direction:column;gap:2px;margin:6px 0 10px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:6px">'+
        allInstOpts().filter(function(n){ return norm(n)!==me; }).map(function(n){ return '<label style="display:flex;gap:8px;align-items:center;padding:5px 2px"><input type="checkbox" class="rq_p" value="'+esc(n)+'">'+esc(cleanInst(n))+'</label>'; }).join('')+'</div>';
@@ -1097,8 +1193,8 @@ function schedSuggestions(){
 function sugHTML(sug){
   return sug.map(function(g,k){
     return '<div class="hsug"><div class="q">⛵ הקבוצה שלך ביום '+esc(g.day)+' · '+esc(BRN[g.branch]||g.branch)+' — מתי?</div><div class="hchips">'+
-      '<button type="button" class="hchip" data-sgk="'+k+'" data-sgs="am">☀️ בוקר 10–14</button>'+
-      '<button type="button" class="hchip" data-sgk="'+k+'" data-sgs="pm">🌤 צהריים 14–18</button></div></div>';
+      '<button type="button" class="hchip" data-sgk="'+k+'" data-sgs="am">☀️ בוקר <span dir="ltr">10–14</span></button>'+
+      '<button type="button" class="hchip" data-sgk="'+k+'" data-sgs="pm">🌤 צהריים <span dir="ltr">14–18</span></button></div></div>';
   }).join('');
 }
 function bindSug(root, sug){
@@ -1160,7 +1256,7 @@ function openSchedQ(){
       if(others.length) H+='<select id="q_other" class="asin"><option value="">קבוצה אחרת ביום '+esc(dayName)+'…</option>'+others.map(function(g,k){ return '<option value="'+k+'"'+(q.g===g?' selected':'')+'>'+esc(cleanInst(g.instructor))+' · '+esc(BRN[g.branch]||g.branch)+'</option>'; }).join('')+'</select>';
       H+='<input id="q_act" class="asin" placeholder="או כתבו פעילות אחרת…" value="'+esc(q.g?"":(fixed.indexOf(q.act)<0?q.act:""))+'">';
       if(q.act){
-        H+='<div class="hflbl">3. באילו שעות?</div><div class="hchips"><button type="button" class="hchip" data-qs="am">☀️ בוקר 10–14</button><button type="button" class="hchip" data-qs="pm">🌤 צהריים 14–18</button></div>'+
+        H+='<div class="hflbl">3. באילו שעות?</div><div class="hchips"><button type="button" class="hchip" data-qs="am">☀️ בוקר <span dir="ltr">10–14</span></button><button type="button" class="hchip" data-qs="pm">🌤 צהריים <span dir="ltr">14–18</span></button></div>'+
            '<div style="display:flex;gap:8px"><input id="q_s" class="asin" type="time" step="300"><input id="q_e" class="asin" type="time" step="300"></div>'+
            '<div id="q_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em"></div>'+
            '<button id="q_save" class="asin" style="background:var(--flag);color:#2b1400;border:0;font-weight:800">שמור פעילות קבועה</button>';
@@ -1484,7 +1580,7 @@ function openAssign(g){
   if(opts.map(norm).indexOf(norm(def))<0) opts.unshift("");
   var H='<div class="card" style="padding:12px;margin-bottom:12px"><div class="sumh" style="margin:0 0 8px">🔗 שיוך שעות קבועות — '+esc(g.day)+' · '+esc(BRN[g.branch]||g.branch)+'</div>';
   H+='<label style="font-size:.8rem;color:var(--muted)">מדריך</label><select id="asg_inst" class="asin" style="margin-bottom:10px">'+opts.map(function(n){ return n ? '<option'+(norm(n)===norm(def)?' selected':'')+'>'+esc(n)+'</option>' : '<option value="" selected>— בחרו מדריך —</option>'; }).join('')+'</select>';
-  H+='<label style="font-size:.8rem;color:var(--muted)">שעות הפעילות</label><div style="display:flex;gap:8px;margin:4px 0 6px"><button type="button" id="asg_am" class="asin">☀️ בוקר 10–14</button><button type="button" id="asg_pm" class="asin">🌤 צהריים 14–18</button></div><div style="display:flex;gap:8px;margin:0 0 8px"><input id="asg_s" type="time" step="300" class="asin"><input id="asg_e" type="time" step="300" class="asin"></div>';
+  H+='<label style="font-size:.8rem;color:var(--muted)">שעות הפעילות</label><div style="display:flex;gap:8px;margin:4px 0 6px"><button type="button" id="asg_am" class="asin">☀️ בוקר <span dir="ltr">10–14</span></button><button type="button" id="asg_pm" class="asin">🌤 צהריים <span dir="ltr">14–18</span></button></div><div style="display:flex;gap:8px;margin:0 0 8px"><input id="asg_s" type="time" step="300" class="asin"><input id="asg_e" type="time" step="300" class="asin"></div>';
   H+='<div style="color:var(--muted);font-size:.78rem">כל פעילות 4 שעות — מספיק לבחור שעת התחלה. כל יום '+esc(g.day)+' ימולא אוטומטית בשעות העבודה של המדריך, כל חודש.</div>';
   H+='<div id="asg_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em;margin-top:4px"></div>';
   H+='<div style="display:flex;gap:8px;margin-top:6px"><button id="asg_save" class="asin" style="background:var(--flag);color:#2b1400;border:0;font-weight:800">שמור ומלא החודש</button><button id="asg_cancel" class="asin" style="flex:0 0 76px">ביטול</button></div></div>';
