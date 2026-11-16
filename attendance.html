@@ -297,7 +297,21 @@ function api(params){
   var u = API + "?" + Object.keys(params).map(function(k){ return k+"="+encodeURIComponent(params[k]); }).join("&");
   return fetch(u).then(function(r){ return r.json(); });
 }
-function post(body){ return fetch(API, {method:"POST", body:JSON.stringify(body)}).then(function(r){ return r.json(); }); }
+// השרת מטפל בבקשה אחת בכל פעם (נעילה). אם היה עסוק — שום דבר לא נכתב, אז בטוח לשלוח שוב לבד.
+// ניתוק רשת: שולחים שוב רק פעולות שאפשר לחזור עליהן בלי כפילות (קביעת ערך, לא הוספת שורה).
+var POST_IDEM = {mark:1, markMany:1, hoursSet:1, schedSet:1, schedSetBulk:1, schedFill:1};
+function sleep_(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+function srvBusy_(j){ return !!(j && !j.ok && /lock|נעיל|too many|simultaneous|בו-זמני/i.test(String(j.error||""))); }
+function post(body, n){
+  n = n||0;
+  return fetch(API, {method:"POST", body:JSON.stringify(body)}).then(function(r){ return r.json(); }).then(function(j){
+    if(srvBusy_(j) && n<3) return sleep_(1200*(n+1)).then(function(){ return post(body, n+1); });
+    return j;
+  }, function(err){
+    if(POST_IDEM[body.action] && n<2) return sleep_(1500*(n+1)).then(function(){ return post(body, n+1); });
+    throw err;
+  });
+}
 
 function load(){
   // מציג מיד את הנתונים האחרונים מהמטמון (טעינה מיידית), ומרענן ברקע מול הגיליון
@@ -791,14 +805,14 @@ function addNote(s, cur){
   var t = norm($("nin").value); if(!t) return;
   s.notes = s.notes||[]; s.notes.push({note:t, by:state.who, at:Date.now()});
   $("nlist").innerHTML = notesHtml(s); $("nin").value="";
-  post({action:"addNote", branch:cur.branch, day:cur.day, student:s.name, note:t, by:state.who}).catch(function(){ alert("ההערה לא נשמרה"); });
+  post({action:"addNote", branch:cur.branch, day:cur.day, student:s.name, note:t, by:state.who}).then(function(j){ if(!j||!j.ok) alert("ההערה לא נשמרה ("+((j&&j.error)||"שגיאה")+"). נסו שוב."); }).catch(function(){ alert("ההערה לא נשמרה (אין חיבור)"); });
 }
 // שמירת סיבת היעדרות כהערה על החניך
 function saveReason(s, cur, date, reason){
   var note = "נעדר "+date+": "+reason;
   s.notes = s.notes||[]; s.notes.push({note:note, by:state.who, at:Date.now()});
   renderStudents();
-  post({action:"addNote", branch:cur.branch, day:cur.day, student:s.name, note:note, by:state.who}).catch(function(){ alert("הסיבה לא נשמרה"); });
+  post({action:"addNote", branch:cur.branch, day:cur.day, student:s.name, note:note, by:state.who}).then(function(j){ if(!j||!j.ok) alert("סיבת ההיעדרות לא נשמרה ("+((j&&j.error)||"שגיאה")+"). נסו שוב."); }).catch(function(){ alert("סיבת ההיעדרות לא נשמרה (אין חיבור)"); });
 }
 function closeCard(){ $("ov").hidden = true; }
 
@@ -1009,7 +1023,7 @@ function approveReq(id, chosen, btn){
 }
 function rejectReq(id){
   if(!confirm("לדחות את הבקשה?")) return;
-  post({action:"subReqReject", id:id}).then(function(j){ if(j&&j.ok) loadHours(); });
+  post({action:"subReqReject", id:id}).then(function(j){ if(j&&j.ok) loadHours(); else alert("לא בוצע: "+((j&&j.error)||"נסו שוב")); }).catch(function(){ alert("אין חיבור"); });
 }
 // d/m/yy ↔ yyyy-mm-dd (לשדה תאריך)
 function isoOf(dmy){ var p=String(dmy||"").split("/"); if(p.length<3) return ""; return "20"+p[2]+"-"+pad2(+p[1])+"-"+pad2(+p[0]); }
@@ -1067,7 +1081,7 @@ function saveDay(){
 }
 function delDay(date){
   if(!confirm("למחוק את השעות של "+date+"?")) return;
-  post({action:"hoursSet", month:hstate.month, inst:hstate.inst, date:date}).then(function(j){ if(j&&j.ok) loadHours(); });
+  post({action:"hoursSet", month:hstate.month, inst:hstate.inst, date:date}).then(function(j){ if(j&&j.ok) loadHours(); else alert("המחיקה לא בוצעה: "+((j&&j.error)||"נסו שוב")); }).catch(function(){ alert("המחיקה לא בוצעה (אין חיבור)"); });
 }
 function shiftMonth(d){ var p=hstate.month.split("-"); hstate.month=monthKey(new Date(+p[0], +p[1]-1+d, 1)); loadHours(); }
 // ----- פעילויות קבועות: רשימה + שאלון "הוסף פעילות קבועה" (יום → פעילות → שעות) -----
@@ -1439,7 +1453,7 @@ function subUndo(r, btn){
     else { btn.disabled=false; btn.textContent="✕ ביטול"; alert("לא בוצע: "+((j&&j.error)||"")); }
   }).catch(function(){ btn.disabled=false; btn.textContent="✕ ביטול"; alert("אין חיבור"); });
 }
-function attReject(id){ if(!confirm("לדחות את הבקשה?")) return; post({action:"subReqReject", id:id}).then(function(j){ if(j&&j.ok) afterSub("הבקשה נדחתה."); }); }
+function attReject(id){ if(!confirm("לדחות את הבקשה?")) return; post({action:"subReqReject", id:id}).then(function(j){ if(j&&j.ok) afterSub("הבקשה נדחתה."); else alert("לא בוצע: "+((j&&j.error)||"נסו שוב")); }).catch(function(){ alert("אין חיבור"); }); }
 // ----- שיוך שעות קבועות לקבוצה (רכז) → יום-קבוע + מילוי אוטומטי חודשי -----
 function dowOf(name){ for(var k in DAYS){ if(DAYS[k]===name) return +k; } return -1; }
 // כל פעילות = 4 שעות: בוקר 10:00–14:00, צהריים 14:00–18:00. חנ"ב תמיד בוקר; הקבוצות של רון — צהריים.
