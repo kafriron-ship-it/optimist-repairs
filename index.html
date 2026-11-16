@@ -553,6 +553,7 @@ function showTab(t){
   if(t==="parts") t = "boats";
   if(!["report","boats","stats","att","hours"].includes(t)) t = "report";
   if(t==="stats" && !statsTabAllowed()) t = "report";   // נתונים — רכזים בלבד
+  if(t==="att" && hoursLaunched()) t = "hours";            // אחרי ההשקה "לוח פעילות" סגור — עוברים למסך השעות
   if(t==="hours" && !hoursTabAllowed()) t = "report";   // שעות — לפי רשימת היתר
   document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
   ["report","boats","stats","att","hours"].forEach(v=>$("view-"+v).hidden = v!==t);
@@ -591,13 +592,16 @@ function attTabAllowed(){
     return (localStorage.getItem("att_ok") || "") === who;             // גיבוי: אומת בתוך מסך הנוכחות
   }catch(e){ return false; }
 }
-function updateAttTab(){ try{ $("tab-att").hidden = !attTabAllowed(); if($("tab-att").hidden && location.hash==="#att") showTab("report"); }catch(e){} }
+function updateAttTab(){ try{ $("tab-att").hidden = hoursLaunched() || !attTabAllowed(); if($("tab-att").hidden && location.hash==="#att") showTab(hoursLaunched()?"hours":"report"); updateHoursTab(); }catch(e){} }
 // טאב "נתונים" (סטטיסטיקות) — רק לרכזים
 function statsTabAllowed(){ try{ var who=($("who").value||localStorage.getItem("who")||"").replace(/\s+/g," ").trim(); return attIsCoord(who); }catch(e){ return false; } }
 function updateStatsTab(){ try{ $("tab-stats").hidden = !statsTabAllowed(); if($("tab-stats").hidden && location.hash==="#stats") showTab("report"); }catch(e){} }
 // טאב "שעות" — רק למי שברשימת ההיתר (כמו במסך השעות)
 var HOURS_WHO=["רון כפרי","טל הררי"];
-function hoursTabAllowed(){ try{ var who=($("who").value||localStorage.getItem("who")||"").replace(/\s+/g," ").trim(); return HOURS_WHO.some(function(c){ return attWords(c).every(function(w){ return attWords(who).indexOf(w)>-1; }); }); }catch(e){ return false; } }
+// השקה: מ-1/12/2026 (חצות, לפי השעון בטלפון) מסך השעות נפתח לכל המדריכים והרכזים, ו"לוח פעילות" נסגר — הכול עובר למסך השעות
+var HOURS_LAUNCH=new Date(2026,11,1).getTime();
+function hoursLaunched(){ return Date.now() >= HOURS_LAUNCH; }
+function hoursTabAllowed(){ try{ if(hoursLaunched() && attTabAllowed()) return true; var who=($("who").value||localStorage.getItem("who")||"").replace(/\s+/g," ").trim(); return HOURS_WHO.some(function(c){ return attWords(c).every(function(w){ return attWords(who).indexOf(w)>-1; }); }); }catch(e){ return false; } }
 function updateHoursTab(){ try{ $("tab-hours").hidden = !hoursTabAllowed(); if($("tab-hours").hidden && location.hash==="#hours") showTab("report"); }catch(e){} }
 updateAttTab(); updateStatsTab(); updateHoursTab(); ensureRoster();
 window.addEventListener("hashchange",()=>showTab(location.hash.slice(1)));
