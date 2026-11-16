@@ -279,7 +279,10 @@ var HOURS_MODE=false; try{ HOURS_MODE=/[?&]hours=1/.test(location.search); }catc
 var BRANCH = "jaffa";
 try{ var mb=/[#&?]branch=([^&]+)/.exec(location.search); if(mb) BRANCH=decodeURIComponent(mb[1]); }catch(e){}
 var COORDS = ["טל הררי","ירדן סדן","עידו חן"];   // רכזים (שם מלא)
-function nameWords(s){ return norm(s).split(/\s+/).filter(Boolean); }
+// כינויים: אותו אדם בשמות שונים בגיליונות (ג׳וני = יונתן)
+var NAME_ALIAS={"יונתן":"ג׳וני","ג'וני":"ג׳וני","גוני":"ג׳וני"};
+function canonWord(w){ return NAME_ALIAS[w]||w; }
+function nameWords(s){ return norm(s).split(/\s+/).filter(Boolean).map(canonWord); }
 // התאמה מחמירה: כל מילות השם המוקלד נמצאות אצל המדריך, או להפך. דורש שם מלא.
 function matchName(instructor, who){
   var iw = nameWords(instructor), ww = nameWords(who);
@@ -1590,7 +1593,7 @@ function reqErr(j){
 // המדריך שהקבוצה שייכת לו (שם מלא מרשימת הצוות), או "" אם לא ברור
 function ownerOf(g){
   var hit=HSTAFF.filter(function(n){ return String(g.instructor||"").indexOf(n)>-1; })[0];
-  if(!hit){ var toks=String(g.instructor||"").split(/[\s+\-,·]+/);
+  if(!hit){ var toks=String(g.instructor||"").split(/[\s+\-,·]+/).map(canonWord);
     var fm=HSTAFF.filter(function(n){ return toks.indexOf(n.split(" ")[0])>-1; }); if(fm.length===1) hit=fm[0]; }
   return hit||"";
 }
@@ -1789,7 +1792,7 @@ function openAssign(g){
   var opts=HSTAFF.slice().sort(function(a,b){ return a.localeCompare(b,"he"); });
   var def=cleanInst(g.instructor);
   var hit=HSTAFF.filter(function(n){ return String(g.instructor||"").indexOf(n)>-1; })[0];
-  if(!hit){ var toks=String(g.instructor||"").split(/[\s+\-,·]+/);
+  if(!hit){ var toks=String(g.instructor||"").split(/[\s+\-,·]+/).map(canonWord);
     var fm=HSTAFF.filter(function(n){ return toks.indexOf(n.split(" ")[0])>-1; }); if(fm.length===1) hit=fm[0]; }
   if(hit) def=hit;
   if(opts.map(norm).indexOf(norm(def))<0) opts.unshift("");

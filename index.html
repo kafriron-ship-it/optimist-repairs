@@ -61,6 +61,7 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
 nav{display:flex;gap:4px;margin-top:12px}
 nav button{flex:1;min-width:0;background:none;border:0;color:var(--head-ink);opacity:.88;font:600 .95rem var(--body);padding:10px 2px 12px;white-space:nowrap;border-bottom:3px solid transparent;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:6px}
 nav button[aria-selected="true"]{opacity:1;border-bottom-color:var(--flag)}
+@media (max-width:400px){nav{gap:2px} nav button,nav a.navlink{flex:1 1 auto;font-size:.9rem} nav .badge{padding:1px 5px}}   /* 5 טאבים (רכז) נכנסים גם בטלפון צר */
 nav a.navlink{flex:1;min-width:0;text-align:center;color:var(--head-ink);opacity:.88;font:600 .95rem var(--body);padding:10px 2px 12px;white-space:nowrap;border-bottom:3px solid transparent;text-decoration:none;display:flex;justify-content:center;align-items:center;gap:6px}
 nav .badge{background:var(--flag);color:var(--flag-ink);font:600 .75rem var(--mono);border-radius:999px;padding:1px 7px}
 nav button:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
@@ -323,7 +324,7 @@ textarea{min-height:64px;resize:vertical}
     <button role="tab" id="tab-boats" data-tab="boats" aria-selected="false">תיקונים <span class="badge" id="boatsBadge">0</span></button>
     <button role="tab" id="tab-stats" data-tab="stats" aria-selected="false">נתונים</button>
     <button role="tab" id="tab-att" data-tab="att" aria-selected="false" hidden>לוח פעילות</button>
-    <button role="tab" id="tab-hours" data-tab="hours" aria-selected="false" hidden>שעות</button>
+    <button role="tab" id="tab-hours" data-tab="hours" aria-selected="false" hidden>מרכז מדריכים</button>
   </nav>
   <button id="fbBtn" type="button" aria-label="משוב על האפליקציה" title="משוב / רעיון לשיפור">💬</button>
   <div id="fbModal" hidden>
@@ -610,7 +611,9 @@ var ATT_ENC="DEAaQUBWSxsdUkEFFEBAVlwDA1gLH1ADCRsDUFAeC0dBQhwtL1IXUlEbLnZDUws/N1g
 function attDeob(e){ try{ var x=atob(e),k="d4n13l",o=""; for(var i=0;i<x.length;i++) o+=String.fromCharCode(x.charCodeAt(i)^k.charCodeAt(i%k.length)); return o; }catch(_){ return ""; } }
 try{ var _au=attDeob(ATT_ENC); if(_au && localStorage.getItem("att_api")!==_au) localStorage.setItem("att_api",_au); }catch(e){}
 var ATT_COORDS=["טל הררי","ירדן סדן","עידו חן"];
-function attWords(s){ return String(s||"").replace(/\s+/g," ").trim().split(" ").filter(Boolean); }
+// כינויים: אותו אדם בשמות שונים בגיליונות (ג׳וני = יונתן)
+var NAME_ALIAS={"יונתן":"ג׳וני","ג'וני":"ג׳וני","גוני":"ג׳וני"};
+function attWords(s){ return String(s||"").replace(/\s+/g," ").trim().split(" ").filter(Boolean).map(function(w){ return NAME_ALIAS[w]||w; }); }
 function attIsCoord(who){ var b=attWords(who); return ATT_COORDS.some(function(c){ return attWords(c).every(function(w){ return b.indexOf(w)>-1; }); }); }
 function attMatchName(instr, who){ var a=attWords(instr), b=attWords(who); if(b.length<2 || !a.length) return false; return a.indexOf(b[0])>-1 || b.every(function(w){return a.indexOf(w)>-1;}) || a.every(function(w){return b.indexOf(w)>-1;}); }
 function attRosterMatch(who){ try{ var c=JSON.parse(localStorage.getItem("att_roster")||"null"); return !!(c&&c.names&&c.names.some(function(n){ return attMatchName(n,who); })); }catch(e){ return false; } }
