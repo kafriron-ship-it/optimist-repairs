@@ -69,12 +69,15 @@ section{display:flex;flex-direction:column;gap:18px;padding-top:20px}
 .label{font-weight:700;font-size:.8rem;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;display:block}
 .boatrow{display:flex;gap:12px;align-items:stretch}
 .boatrow[hidden]{display:none}
+.boatin{position:relative}
+#boat::placeholder{font:600 1.05rem var(--body);color:var(--muted)}
+.boatx{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:0;background:var(--chip);color:var(--muted);font-size:1rem;cursor:pointer}
 .label.step{font-size:1rem;letter-spacing:0;color:var(--ink);font-weight:800}
 .linkish{background:none;border:0;color:var(--navy);font:700 .9rem var(--body);cursor:pointer;padding:10px 2px 0;align-self:flex-start}
 .morebtn{width:100%;margin-top:2px}
 .reqwrap{display:flex;flex-direction:column;margin-top:6px}
 .reqwrap #reqOpen{background:none;border:0;color:var(--muted);font:600 .85rem var(--body);text-decoration:underline;padding:6px}
-#boat{font:600 2.4rem var(--mono);width:7.5ch;min-width:0;text-align:center;background:var(--surface);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:6px}
+#boat{font:600 2rem var(--mono);width:100%;min-width:0;text-align:center;background:var(--surface);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:6px}
 #boat:focus{border-color:var(--navy)}
 #boat.name{font:700 1.3rem var(--body);width:12ch}
 .recent{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:8px}
@@ -347,12 +350,13 @@ textarea{min-height:64px;resize:vertical}
   </div>
   <div>
     <label class="label" for="boat" id="boatLabel">מספר סירה</label>
-    <div class="recent" id="recent"></div>
-    <button type="button" class="linkish" id="boatOther">+ סירה שלא ברשימה</button>
-    <div class="boatrow" id="boatRow" style="margin-top:10px" hidden>
-      <input id="boat" type="text" inputmode="numeric" maxlength="4" placeholder="00" autocomplete="off">
-      <span class="inote" style="align-self:center" id="boatHint">סירה שלא ברשימה? מקלידים מספר, והיא תתווסף אחרי הדיווח</span>
+    <!-- (רון) מקלידים את המספר — והרשימה מתקצרת תוך כדי הקלדה. אפשר גם פשוט לבחור מהרשימה -->
+    <div class="boatin">
+      <input id="boat" type="text" inputmode="numeric" maxlength="4" placeholder="הקלידו מספר" autocomplete="off" enterkeyhint="done">
+      <button type="button" class="boatx" id="boatX" aria-label="נקה" hidden>✕</button>
     </div>
+    <div class="inote" id="boatHint" style="margin:6px 2px 10px">מקלידים את המספר, או בוחרים מהרשימה</div>
+    <div class="recent" id="recent"></div>
     <div class="needmsg" id="needBoat" hidden>צריך לבחור סירה</div>
   </div>
 
@@ -670,8 +674,8 @@ function renderTypes(){
   $("types").innerHTML = TYPES.map(t=>`<button type="button" data-t="${esc(t)}" aria-pressed="${t===curType}">${esc(t)}</button>`).join("");
   const motor = byName(curType), b = $("boat");
   $("boatLabel").textContent = motor ? "שם הסירה" : "מספר סירה";
-  $("boatHint").dataset.def = $("boatHint").textContent = motor ? "סירה שלא ברשימה? כותבים את השם שלה, והיא תתווסף אחרי הדיווח" : "סירה שלא ברשימה? מקלידים מספר, והיא תתווסף אחרי הדיווח";
-  b.inputMode = motor ? "text" : "numeric"; b.maxLength = motor ? 20 : 4; b.placeholder = motor ? "שם" : "00"; b.classList.toggle("name", motor);
+  $("boatHint").dataset.def = $("boatHint").textContent = motor ? "כותבים את השם, או בוחרים מהרשימה" : "מקלידים את המספר, או בוחרים מהרשימה";
+  b.inputMode = motor ? "text" : "numeric"; b.maxLength = motor ? 20 : 4; b.placeholder = motor ? "הקלידו שם" : "הקלידו מספר"; b.classList.toggle("name", motor);
   $("recent").classList.toggle("wide", motor);
   $("editParts").textContent = "ערוך שמות חלקים (" + curType + ")";
 }
@@ -875,13 +879,14 @@ function renderRecent(){
   const hint = $("boatHint"), known = knownBoats(), isNew = !!cur && !booting && !known.includes(cur);
   hint.textContent = isNew ? `⚠️ ${byName(curType) ? cur : "סירה "+cur} עוד לא ברשימה, והיא תתווסף כסירה חדשה. בדקו שזה נכון.` : (hint.dataset.def || hint.textContent);
   hint.style.color = isNew ? "var(--stop)" : "";
-  $("recent").innerHTML = known.map(n=>`<button type="button" data-n="${esc(n)}" aria-pressed="${n===cur}">${esc(n)}${cnt[n]?`<i class="${stopB[n]?"stop":""}" title="${stopB[n]?"לא יוצאת למים · ":""}${cnt[n]===1?"תקלה פתוחה":cnt[n]+" תקלות פתוחות"}"></i>`:""}</button>`).join("");
-  // שדה "סירה שלא ברשימה" מופיע רק כשצריך (לחיצה על הקישור, או כשכבר הוקלד מספר שלא ברשימה)
-  const custom = !!cur && !booting && !known.includes(cur);
-  $("boatRow").hidden = !(customBoatOpen || custom); $("boatOther").hidden = !$("boatRow").hidden;
+  // הרשימה מתקצרת לפי מה שהוקלד (מספרים: מתחיל ב…, שמות: מכיל)
+  const q = $("boat").value.trim(), qn = byName(curType) ? q : (normBoat(q) || q);
+  const shown = !q ? known : known.filter(n => byName(curType) ? fold(String(n)).includes(fold(q)) : String(n).startsWith(qn));
+  $("boatX").hidden = !q;
+  $("recent").innerHTML = shown.map(n=>`<button type="button" data-n="${esc(n)}" aria-pressed="${n===cur}">${esc(n)}${cnt[n]?`<i class="${stopB[n]?"stop":""}" title="${stopB[n]?"לא יוצאת למים · ":""}${cnt[n]===1?"תקלה פתוחה":cnt[n]+" תקלות פתוחות"}"></i>`:""}</button>`).join("");
 }
-var customBoatOpen = false;
-$("boatOther").addEventListener("click", ()=>{ customBoatOpen = true; $("boat").value = ""; renderRecent(); renderChips(); validate(); $("boat").focus(); });
+$("boatX").addEventListener("click", ()=>{ $("boat").value = ""; renderRecent(); renderChips(); validate(); $("boat").focus(); });
+$("boat").addEventListener("keydown", e=>{ if(e.key==="Enter") e.target.blur(); });
 $("recent").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; $("boat").value = normBoat($("boat").value)===b.dataset.n ? "" : b.dataset.n; renderRecent(); renderChips(); validate(); });
 
 /* ---------- photo ---------- */
@@ -932,7 +937,7 @@ $("send").addEventListener("click", async ()=>{
   toast(`נשלח: ${br} · ${curType} ${boat} · ${parts.length} ${parts.length===1?"תקלה":"תקלות"}` + (skipped.length?` (כבר היה: ${skipped.join(", ")})`:""));
   showSent(true, `${br} · ${byName(curType)?boat:curType+" "+boat} · ${parts.length===1?parts[0]:parts.length+" תקלות"}` + (skipped.length?` (כבר היה: ${skipped.join(", ")})`:""));
   selected.clear(); document.querySelectorAll("#partGroups .chip").forEach(c=>c.setAttribute("aria-pressed","false"));
-  $("other").value=""; issueOf={}; issueText={}; photoByPart={}; photoTarget=null; customs=[]; renderCustoms(); $("note").value=""; $("stop").checked=false; $("boat").value=""; repBranch=""; renderBranchPick(); clearPhoto(); $("boat").focus();
+  $("other").value=""; issueOf={}; issueText={}; photoByPart={}; photoTarget=null; customs=[]; renderCustoms(); $("note").value=""; $("stop").checked=false; $("boat").value=""; repBranch=""; renderBranchPick(); clearPhoto(); $("boat").blur();
   renderRecent(); renderChips(); validate();
   api("add", payload).then(res=>{
     if(res.photoError) toast("הדיווח נשמר, אבל התמונה לא נשמרה.", true);
