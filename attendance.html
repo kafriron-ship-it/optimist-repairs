@@ -1096,7 +1096,9 @@ function openHours(){
 }
 function closeHours(){ $("hov").hidden=true; if(HOURS_MODE){ state.hh=0; loadHomeHours(); } }
 function loadHours(){
-  $("hovbox").innerHTML = '<div class="msg"><span class="spin"></span><div style="margin-top:10px">טוען…</div></div>';
+  // גם בזמן טעינה / בלי קליטה — תמיד יש "סגור" (שלא ייתקעו במסך)
+  $("hovbox").innerHTML = '<div class="top"><div><div class="nm">🕐 שעות עבודה</div></div><button class="x" id="hx">סגור</button></div><div class="msg"><span class="spin"></span><div style="margin-top:10px">טוען…</div></div>';
+  $("hx").onclick=closeHours;
   Promise.all([ api({action:"hoursRead", month:hstate.month}), api({action:"schedRead"}), api({action:"subReqList", pending:1}) ]).then(function(res){
     var j=res[0], s=res[1], q=res[2];
     hstate.rows = (j&&j.ok&&j.rows) ? j.rows : [];
@@ -1105,7 +1107,7 @@ function loadHours(){
     renderHours();
     if(hstate.openAdd){ hstate.openAdd=false; openDayForm("", null); }   // "➕ הוסף עבודה" מהמסך המשולב
     autoFillMonth();
-  }).catch(function(){ $("hovbox").innerHTML='<div class="msg">אין חיבור</div>'; });
+  }).catch(function(){ $("hovbox").innerHTML='<div class="top"><div><div class="nm">🕐 שעות עבודה</div></div><button class="x" id="hx">סגור</button></div><div class="msg">אין חיבור כרגע. <button class="linkbtn" id="hretry">נסו שוב</button></div>'; $("hx").onclick=closeHours; $("hretry").onclick=loadHours; });
 }
 // השורה הקבועה של המדריך הנבחר ליום-בשבוע של תאריך נתון (אם יש)
 function schedFor(date){
@@ -1376,7 +1378,7 @@ function openSched(){
   box.scrollIntoView({behavior:"smooth",block:"center"});
   hstate.schedOpen=true; hstate.schedMsg="";
   api({action:"schedRead"}).then(function(j){ hstate.sched=(j&&j.rows)||[]; renderSched(); })
-    .catch(function(){ box.innerHTML='<div class="msg">אין חיבור</div>'; });
+    .catch(function(){ box.innerHTML='<div class="msg">אין חיבור כרגע. <button class="linkbtn" id="sc_retry">נסו שוב</button> · <button class="linkbtn" id="sc_x">סגור</button></div>'; $("sc_retry").onclick=openSched; $("sc_x").onclick=function(){ box.hidden=true; hstate.schedOpen=false; }; });
 }
 function renderSched(msg){
   var box=$("schedbox"); if(!box) return;
@@ -1575,6 +1577,16 @@ function groupSubStatus(g){
 var SUBLBL={req:"🟠 ביקש החלפה",open:"🟡 ממתין למחליף",done:"🟢 יש מחליף",cancel:"🔴 בקשת דחייה"};
 function myOpenOffers(){ var me=norm(state.who); return (state.reqs||[]).filter(function(r){ return r.status==="פתוח" && r.accepted.map(norm).indexOf(me)>-1 && norm(r.requester)!==me; }); }
 function coordPending(){ return (state.reqs||[]).filter(function(r){ return r.status==="ממתין"||r.status==="ביטול ממתין"; }); }
+// אחרי פעולה על בקשה — מעדכנים מיד גם כאן (לפני שהשרת מתרענן), כדי שאי אפשר יהיה ללחוץ שוב על משהו שכבר טופל
+function setReq(id, patch){ var r=(state.reqs||[]).filter(function(x){ return x.id===id; })[0]; if(r) for(var k in patch) r[k]=patch[k]; }
+function addReq(r){ state.reqs=(state.reqs||[]).concat([r]); }
+function reqErr(j){
+  var e=String((j&&j.error)||"");
+  if(/not pending|not open|not a pending cancel/.test(e)) return "הבקשה הזו כבר טופלה. רעננו את המסך.";
+  if(/not approved|not proposed/.test(e)) return "את/ה לא ברשימת המחליפים של הבקשה הזו.";
+  if(/not found/.test(e)) return "הבקשה לא נמצאה (אולי בוטלה).";
+  return e || "נסו שוב";
+}
 // המדריך שהקבוצה שייכת לו (שם מלא מרשימת הצוות), או "" אם לא ברור
 function ownerOf(g){
   var hit=HSTAFF.filter(function(n){ return String(g.instructor||"").indexOf(n)>-1; })[0];
@@ -1660,7 +1672,8 @@ function attReqSubmit(g){
     return post({action:"subReqCreate", requester:owner, month:month, date:date, act:subAct(g), start:hr.start||"", end:hr.end||"", total:hr.total||"", proposed:proposed});
   }).then(function(res){
     // רכז: מאשרים מיד — הבקשה נפתחת למחליפים בלי שלב אישור נוסף
-    if(res&&res.ok&&coord&&res.id) return post({action:"subReqApprove", id:res.id, approved:proposed}).then(function(a){ return {ok:true, approved:a&&a.ok}; });
+    if(res&&res.ok&&res.id) addReq({id:res.id, requester:owner, act:subAct(g), date:date, status:"ממתין", proposed:proposed, accepted:[]});
+    if(res&&res.ok&&coord&&res.id) return post({action:"subReqApprove", id:res.id, approved:proposed}).then(function(a){ if(a&&a.ok) setReq(res.id, {status:"פתוח", accepted:proposed}); return {ok:true, approved:a&&a.ok}; });
     return res;
   }).then(function(res){
     if(res&&res.ok){ afterSub(coord ? (res.approved ? "ההחלפה נפתחה למחליפים ✓" : "הבקשה נשלחה, אבל האישור לא נשמר — אשרו אותה מרשימת הבקשות") : "בקשת ההחלפה נשלחה ✓ הרכז יקבל אותה לאישור."); }
@@ -1679,7 +1692,8 @@ function attCancelSubmit(g){
     var hr=pickJob_((j&&j.rows)||[], date, subAct(g), owner) || defaultTimes(g) || {};
     return post({action:"subReqCancel", requester:owner, month:month, date:date, act:subAct(g), start:hr.start||"", end:hr.end||"", total:hr.total||""});
   }).then(function(res){
-    if(res&&res.ok&&coord&&res.id) return post({action:"subReqCancelApprove", id:res.id}).then(function(a){ return {ok:true, approved:a&&a.ok}; });
+    if(res&&res.ok&&res.id) addReq({id:res.id, requester:owner, act:subAct(g), date:date, status:"ביטול ממתין", proposed:[], accepted:[]});
+    if(res&&res.ok&&coord&&res.id) return post({action:"subReqCancelApprove", id:res.id}).then(function(a){ if(a&&a.ok) setReq(res.id, {status:"בוטל"}); return {ok:true, approved:a&&a.ok}; });
     return res;
   }).then(function(res){
     if(res&&res.ok){ afterSub(coord ? (res.approved ? "הפעילות נדחתה ✓ השעות של התאריך ירדו" : "הבקשה נשלחה, אבל האישור לא נשמר — אשרו אותה מרשימת הבקשות") : "בקשת הדחייה נשלחה לרכז ✓"); }
@@ -1703,7 +1717,7 @@ function attOffers(){
 function attTake(id, btn){
   if(!confirm("להחליף בפעילות הזו? השעות יירשמו לך.")) return;
   btn.disabled=true; btn.textContent="נרשם…";
-  post({action:"subReqTake", id:id, inst:norm(state.who)}).then(function(j){ if(j&&j.ok){ afterSub("נרשמת להחלפה ✓"); } else { btn.disabled=false; btn.textContent="אני לוקח את זה"; alert("לא בוצע: "+((j&&j.error)||"")); } }).catch(function(){ btn.disabled=false; btn.textContent="אני לוקח את זה"; alert("אין חיבור"); });
+  post({action:"subReqTake", id:id, inst:norm(state.who)}).then(function(j){ if(j&&j.ok){ setReq(id, {status:"הושלם", chosen:norm(state.who)}); afterSub("נרשמת להחלפה ✓"); } else { btn.disabled=false; btn.textContent="אני לוקח את זה"; alert("לא בוצע: "+reqErr(j)); } }).catch(function(){ btn.disabled=false; btn.textContent="אני לוקח את זה"; alert("אין חיבור"); });
 }
 // רכז — בקשות ממתינות. "אשר" פותח אותן למחליפים שהוצעו.
 function attApprovals(){
@@ -1730,13 +1744,13 @@ function attApprovals(){
   document.querySelectorAll(".apx_cok").forEach(function(b){ b.onclick=function(){
     if(!confirm("לאשר את הדחייה? השעות של המדריך לתאריך הזה יירדו.")) return;
     b.disabled=true; b.textContent="מאשר…";
-    post({action:"subReqCancelApprove", id:b.dataset.id}).then(function(j){ if(j&&j.ok) afterSub("הדחייה אושרה ✓"); else { b.disabled=false; b.textContent="אשר דחייה"; alert("לא בוצע: "+((j&&j.error)||"")); } }).catch(function(){ b.disabled=false; b.textContent="אשר דחייה"; alert("אין חיבור"); });
+    post({action:"subReqCancelApprove", id:b.dataset.id}).then(function(j){ if(j&&j.ok){ setReq(b.dataset.id, {status:"בוטל"}); afterSub("הדחייה אושרה ✓"); } else { b.disabled=false; b.textContent="אשר דחייה"; alert("לא בוצע: "+reqErr(j)); } }).catch(function(){ b.disabled=false; b.textContent="אשר דחייה"; alert("אין חיבור"); });
   }; });
 }
 function attApprove(id, approved, btn){
   if(!approved.length){ alert("בחרו לפחות מדריך אחד לאשר"); return; }
   btn.disabled=true; btn.textContent="מאשר…";
-  post({action:"subReqApprove", id:id, approved:approved}).then(function(j){ if(j&&j.ok){ afterSub("אושר ✓ ההצעה נפתחה למחליפים."); } else { btn.disabled=false; btn.textContent="אשר ופתח"; alert("לא בוצע: "+((j&&j.error)||"")); } }).catch(function(){ btn.disabled=false; btn.textContent="אשר ופתח"; alert("אין חיבור"); });
+  post({action:"subReqApprove", id:id, approved:approved}).then(function(j){ if(j&&j.ok){ setReq(id, {status:"פתוח", accepted:approved}); afterSub("אושר ✓ ההצעה נפתחה למחליפים."); } else { btn.disabled=false; btn.textContent="אשר ופתח"; alert("לא בוצע: "+reqErr(j)); } }).catch(function(){ btn.disabled=false; btn.textContent="אשר ופתח"; alert("אין חיבור"); });
 }
 // רכז מבטל החלפה/דחייה בכל שלב — השרת מחזיר את השעות למדריך המקורי
 function subUndo(r, btn){
@@ -1750,7 +1764,7 @@ function subUndo(r, btn){
     else { btn.disabled=false; btn.textContent="✕ ביטול"; alert("לא בוצע: "+((j&&j.error)||"")); }
   }).catch(function(){ btn.disabled=false; btn.textContent="✕ ביטול"; alert("אין חיבור"); });
 }
-function attReject(id){ if(!confirm("לדחות את הבקשה?")) return; post({action:"subReqReject", id:id}).then(function(j){ if(j&&j.ok) afterSub("הבקשה נדחתה."); else alert("לא בוצע: "+((j&&j.error)||"נסו שוב")); }).catch(function(){ alert("אין חיבור"); }); }
+function attReject(id){ if(!confirm("לדחות את הבקשה?")) return; post({action:"subReqReject", id:id}).then(function(j){ if(j&&j.ok){ setReq(id, {status:"נדחה"}); afterSub("הבקשה נדחתה."); } else alert("לא בוצע: "+reqErr(j)); }).catch(function(){ alert("אין חיבור"); }); }
 // ----- שיוך שעות קבועות לקבוצה (רכז) → יום-קבוע + מילוי אוטומטי חודשי -----
 function dowOf(name){ for(var k in DAYS){ if(DAYS[k]===name) return +k; } return -1; }
 // כל פעילות = 4 שעות: בוקר 10:00–14:00, צהריים 14:00–18:00. חנ"ב תמיד בוקר; הקבוצות של רון — צהריים.
