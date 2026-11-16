@@ -476,10 +476,15 @@ function loadHomeHours(){
   if(!hoursOK() || !$("homehours") || !$("hov").hidden) return;
   state.hh = Date.now();
   hstate.month = monthKey(new Date()); hstate.inst = norm(state.who);
+  // מציגים מיד את השעות שנשמרו בטלפון (רק שלי), והשרת מרענן ברקע
+  if(!(hstate.rows||[]).length){ try{ var hc=JSON.parse(localStorage.getItem("att_hcache")||"null");
+    if(hc && hc.m===hstate.month && hc.who===hstate.inst){ hstate.rows=hc.rows||[]; hstate.sched=hc.sched||[]; renderHomeHours(); } }catch(e){} }
   Promise.all([ api({action:"hoursRead", month:hstate.month}), api({action:"schedRead"}) ]).then(function(res){
     if(!$("hov").hidden) return;   // בינתיים נפתח הפירוט — לא לדרוס אותו
     hstate.rows = (res[0]&&res[0].ok&&res[0].rows) ? res[0].rows : [];
     hstate.sched = (res[1]&&res[1].rows) ? res[1].rows : [];
+    try{ var me=hstate.inst, own=function(r){ return norm(r.inst)===me; };
+      localStorage.setItem("att_hcache", JSON.stringify({m:hstate.month, who:me, rows:hstate.rows.filter(own), sched:hstate.sched.filter(own)})); }catch(e){}
     renderHomeHours();
     autoFillMonth();
   }).catch(function(){ state.hh=0; });

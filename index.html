@@ -1303,11 +1303,15 @@ $("branches").addEventListener("click", e=>{ const b=e.target.closest("[data-b]"
 document.addEventListener("click", e=>{ const b=e.target.closest(".bfilter [data-vb]"); if(!b) return;
   viewBranch = b.dataset.vb; typeFilter = "all"; openCards.clear(); applyView(); render(); });
 renderBranchPick(); applyView();
-let loading = false;
+let loading = false, lastSig = "";
 async function load(){
   if(loading) return; loading = true;
   try{
     const j = await api("all");
+    // רענון כל 20 שניות: אם שום דבר לא השתנה — לא מציירים את המסך מחדש
+    const sig = JSON.stringify([j.reports, j.requests, j.config]);
+    if(db && sig === lastSig){ $("conn").textContent = ""; return; }
+    lastSig = sig;
     try{ localStorage.setItem(skey("cache"), JSON.stringify({reports:j.reports, requests:j.requests, config:j.config})); }catch(e){}
     applyData(j);
     booting = false; db = true; $("conn").textContent = ""; render(); hideSplash();
