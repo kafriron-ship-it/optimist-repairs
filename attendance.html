@@ -20,6 +20,8 @@ header h1{font:400 1.18rem 'Secular One'}
 header .s{font-size:.72rem;opacity:.85}
 .bd{padding:14px}
 button{font-family:inherit;cursor:pointer}
+.savest{font:800 .74rem 'Assistant',sans-serif;white-space:nowrap;margin-inline-start:auto;margin-inline-end:6px}
+.savest.busy{color:var(--muted)} .savest.ok{color:var(--ok)} .savest.bad{color:var(--stop)}
 .undobtn{flex:none;background:transparent;color:inherit;border:1.5px solid currentColor;border-radius:9px;font:800 .78rem 'Assistant',sans-serif;padding:5px 10px;cursor:pointer}
 .rem{display:flex;align-items:center;gap:9px;background:#2a2113;border:1px solid #5a4620;color:#f3c98a;border-radius:12px;padding:10px 12px;font-size:.86rem;font-weight:700;margin-bottom:14px}
 .reasonbox{background:#2a1a1a;border:1px solid var(--stop);border-radius:12px;padding:10px;margin:-4px 2px 10px}
@@ -213,6 +215,7 @@ body.hoursonly #hov{background:var(--bg)}
 // כתובת המחבר אינה בקוד — היא מגיעה פעם אחת דרך הקישור הפרטי (#api=...) ונשמרת במכשיר.
 var API = "";
 try{ API = localStorage.getItem("att_api") || ""; }catch(e){}
+var MQ = { pend:{}, busy:false, timer:null, fails:0, many:true, shown:false, okT:null };   // תור שמירת נוכחות (ראו queueMark)
 (function(){
   var m = /[#&?]api=([^&]+)/.exec(location.hash + "&" + location.search);
   if(m){ API = decodeURIComponent(m[1]); try{ localStorage.setItem("att_api", API); }catch(e){} try{ history.replaceState(null,"",location.pathname); }catch(e){} }
@@ -301,13 +304,14 @@ function load(){
   var cached=null;
   try{ var c=JSON.parse(localStorage.getItem("att_cache")||"null"); if(c&&c.groups&&c.groups.length) cached=c.groups; }catch(e){}
   state.touched = false;
-  if(cached){ state.all=cached; render(); }
+  if(cached){ state.all=cached; mqReapply(); render(); }
   else $("main").innerHTML = '<div class="msg"><span class="spin"></span><div style="margin-top:10px">טוען נוכחות…</div></div>';
   api({action:"rosterAll"}).then(function(j){
     if(!j.ok){ if(!cached) $("main").innerHTML = '<div class="msg">שגיאה: '+esc(j.error||"")+'</div>'; return; }
     try{ localStorage.setItem("att_cache", JSON.stringify({t:Date.now(), groups:j.groups||[]})); }catch(e){}
     if(cached && state.touched) return;   // המשתמש כבר סימן — לא לדרוס את המסך הפעיל
     state.all = j.groups || [];
+    mqReapply();
     render();
   }).catch(function(){ if(!cached) $("main").innerHTML = '<div class="msg">אין חיבור. נסו שוב.</div>'; });
   if(hoursOK()) loadReqs();   // צבעי החלפות בלוח — רק למי שמסך השעות פתוח לו
@@ -504,7 +508,7 @@ function render(){
   h += '<div class="card">';
   h += '<div class="datebar"><button class="nav" data-dd="-1">‹</button><div class="dctr"><b id="dlabel"></b><span id="dstat" class="dstat"></span></div><button class="nav" data-dd="1">›</button></div>';
   h += '<div class="todayrow"><button id="todaybtn" class="todaybtn">📍 לפעילות הקרובה</button></div>';
-  h += '<div class="gttl"><span class="t">'+esc(cleanInst(cur.instructor))+' · '+esc(cur.day)+'</span><span class="pill" id="cnt"></span></div>';
+  h += '<div class="gttl"><span class="t">'+esc(cleanInst(cur.instructor))+' · '+esc(cur.day)+'</span><span id="savest" class="savest"></span><span class="pill" id="cnt"></span></div>';
   h += '<div id="submark"></div>';
   if(state.isCoord) h += '<div style="margin:0 2px 10px"><button id="assignbtn" class="ghostbtn">🔗 שייך שעות קבועות למדריך</button></div><div id="asgpanel"></div>';
   h += '<div style="margin:0 2px 10px"><button id="allp" class="ghostbtn">✓ סמן את כולם נוכחים</button></div>';
@@ -600,6 +604,7 @@ function renderStudents(){
     if($("subundo")) $("subundo").onclick=function(){ subUndo(x, this); };
   }
   $("cnt").innerHTML = '<b>'+present+'</b> / '+cur.students.length+' נוכחים';
+  mqStatus();
   document.querySelectorAll("#stlist [data-mark]").forEach(function(b){ b.onclick=function(){ mark(cur, date, b); }; });
   document.querySelectorAll("#stlist [data-card]").forEach(function(b){ b.onclick=function(){ openCard(cur.students[+b.dataset.card], cur); }; });
 }
@@ -612,17 +617,76 @@ function mark(cur, date, btn){
   state.touched = true;                               // שהרענון ברקע לא ידרוס סימון טרי
   state.askReason = (nv==="x") ? {row:row, date:date} : null;   // סימון נעדר → תיבת סיבה
   renderStudents();
-  post({action:"mark", branch:cur.branch, day:cur.day, row:row, date:date, value:nv}).then(function(j){
-    if(!j||!j.ok){ s.attendance[date] = ""; renderStudents(); alert("לא נשמר, נסו שוב"); }
-  }).catch(function(){ s.attendance[date]=""; renderStudents(); alert("אין חיבור"); });
+  queueMark(cur, date, row, nv);
 }
+
+// ----- שמירת נוכחות בתור: הסימון מופיע מיד, נשלח ברקע בבקשה אחת מרוכזת, ונשלח שוב לבד אם נכשל -----
+// (קודם כל לחיצה הייתה בקשה נפרדת → השרת עבד אחת-אחת → בלחיצות מהירות חלק נכשלו אחרי 20 שנ')
+function queueMark(cur, date, row, value){
+  MQ.pend[cur.branch+"|"+cur.day+"|"+date+"|"+row] = {branch:cur.branch, day:cur.day, date:date, row:row, value:value};
+  mqSchedule(350);
+}
+function mqSchedule(ms){ clearTimeout(MQ.timer); MQ.timer=setTimeout(mqFlush, ms); mqStatus(); }
+function mqBatch(){   // כל הסימונים הממתינים של גיליון+תאריך אחד
+  var keys=Object.keys(MQ.pend); if(!keys.length) return null;
+  var f=MQ.pend[keys[0]];
+  var items=keys.filter(function(k){ var p=MQ.pend[k]; return p.branch===f.branch && p.day===f.day && p.date===f.date; }).map(function(k){ return {k:k, p:MQ.pend[k]}; });
+  if(!MQ.many) items=items.slice(0,1);   // שרת ישן בלי markMany → אחד-אחד, ברצף
+  return {f:f, items:items};
+}
+function mqBody(bt){
+  return MQ.many ? {action:"markMany", branch:bt.f.branch, day:bt.f.day, date:bt.f.date, marks:bt.items.map(function(it){ return {row:it.p.row, value:it.p.value}; })}
+                 : {action:"mark", branch:bt.f.branch, day:bt.f.day, row:bt.items[0].p.row, date:bt.f.date, value:bt.items[0].p.value};
+}
+function mqFlush(){
+  if(MQ.busy) return;
+  var bt=mqBatch(); if(!bt){ mqStatus(); return; }
+  MQ.busy=true; mqStatus();
+  post(mqBody(bt)).then(function(j){
+    MQ.busy=false;
+    if(j && !j.ok && MQ.many && /unknown action/.test(j.error||"")){ MQ.many=false; mqFlush(); return; }
+    if(j && j.ok){
+      MQ.fails=0;
+      bt.items.forEach(function(it){ if(MQ.pend[it.k]===it.p) delete MQ.pend[it.k]; });   // אם סומן שוב בינתיים — נשאר בתור
+      if(j.bad && j.bad.length) alert("חלק מהסימונים לא נשמרו (שורה לא תקינה). רעננו את הדף.");
+      if(Object.keys(MQ.pend).length) mqFlush(); else mqStatus();
+    } else mqRetry(j && j.error);
+  }).catch(function(){ MQ.busy=false; mqRetry("אין חיבור"); });
+}
+function mqRetry(err){
+  MQ.fails++;
+  if(MQ.fails===6) alert("הנוכחות עוד לא נשמרה ("+(err||"שגיאה")+"). ממשיכים לנסות לבד — אל תסגרו את האפליקציה.");
+  mqSchedule(MQ.fails<6 ? 1500*MQ.fails : 15000);
+}
+function mqStatus(){
+  var el=$("savest"); if(!el) return;
+  var n=Object.keys(MQ.pend).length;
+  if(n){ MQ.shown=true; clearTimeout(MQ.okT); el.className="savest "+(MQ.fails?"bad":"busy"); el.textContent = MQ.fails ? "⚠️ מנסה לשמור שוב…" : "⏳ שומר…"; }
+  else if(MQ.shown){ MQ.shown=false; el.className="savest ok"; el.textContent="✓ נשמר";
+    clearTimeout(MQ.okT); MQ.okT=setTimeout(function(){ var e=$("savest"); if(e && !Object.keys(MQ.pend).length){ e.className="savest"; e.textContent=""; } }, 2500); }
+}
+// רענון מהשרת לא ימחק סימון שעוד לא נשמר
+function mqReapply(){
+  Object.keys(MQ.pend).forEach(function(k){ var p=MQ.pend[k];
+    (state.all||[]).forEach(function(g){ if(g.branch===p.branch && g.day===p.day) g.students.forEach(function(s){ if(s.row===p.row) s.attendance[p.date]=p.value; }); });
+  });
+}
+// יוצאים מהאפליקציה באמצע שמירה → שולחים מיד (beacon ממשיך גם כשהמסך נסגר); אם לא עבר — יישלח שוב כשחוזרים
+document.addEventListener("visibilitychange", function(){
+  if(document.visibilityState!=="hidden" || !MQ.many || !Object.keys(MQ.pend).length) return;
+  var seen={}; Object.keys(MQ.pend).forEach(function(k){ var p=MQ.pend[k], g=p.branch+"|"+p.day+"|"+p.date; if(seen[g]) return; seen[g]=1;
+    var bt={f:p, items:Object.keys(MQ.pend).filter(function(k2){ var q=MQ.pend[k2]; return q.branch===p.branch&&q.day===p.day&&q.date===p.date; }).map(function(k2){ return {k:k2,p:MQ.pend[k2]}; })};
+    try{ navigator.sendBeacon(API, JSON.stringify(mqBody(bt))); }catch(e){}
+  });
+});
+window.addEventListener("beforeunload", function(e){ if(Object.keys(MQ.pend).length){ e.preventDefault(); e.returnValue=""; } });
 
 function markAllPresent(){
   var cur=state.groups[state.gi], date=state.dates[state.di], rows=[];
   cur.students.forEach(function(s){ if(s.attendance[date]!=="v"){ s.attendance[date]="v"; rows.push(s.row); } });
   state.touched = true;
   renderStudents();
-  rows.forEach(function(row){ post({action:"mark",branch:cur.branch,day:cur.day,row:row,date:date,value:"v"}).catch(function(){}); });
+  rows.forEach(function(row){ queueMark(cur, date, row, "v"); });   // נשלח בבקשה אחת
 }
 function addStudent(){
   var cur=state.groups[state.gi];
