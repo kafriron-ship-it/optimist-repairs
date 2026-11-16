@@ -414,13 +414,16 @@ function nextDateOf(g){
 }
 function homeRow(g, k, full){
   var gi=giOf(g), t=defaultTimes(g), nd=nextDateOf(g), isToday=nd && daysAgo_(nd.date)===0;
-  var miss=unfilledRecent(g).length, cs=groupSubStatus(g), st=full?reqStatusFor(g):"";
-  var sub=[BRN[g.branch]||g.branch]; if(t) sub.push("\u2066"+t.start+"–"+t.end+"\u2069");   // ⁦…⁩ = שעות משמאל לימין גם בתוך עברית if(nd && !isToday) sub.push("הבא: "+nd.date.replace(/\/\d+$/,""));
+  var miss=unfilledRecent(g).length, cs=groupSubStatus(g);
+  var sub=[BRN[g.branch]||g.branch]; if(t) sub.push("\u2066"+t.start+"–"+t.end+"\u2069");   // ⁦…⁩ = שעות משמאל לימין גם בתוך עברית
+  if(nd && !isToday) sub.push("הבא: "+nd.date.replace(/\/\d+$/,""));
   return '<div class="arow"><div class="nm"><b>'+esc(cleanInst(g.instructor))+
       (miss?'<span class="tchip miss">⏰ לא מולא</span>':'')+
       (cs?'<span class="scchip sc-'+cs+'">'+esc(SUBLBL[cs])+'</span>':'')+'</b><span>'+esc(sub.join(" · "))+'</span></div>'+
     '<div class="abtns"><button class="ab att" data-hatt="'+gi+'">📋 נוכחות</button>'+
-      (full?'<button class="ab sub" data-hsub="'+k+'"'+(st?' disabled title="כבר נשלחה בקשה"':'')+'>🔄 החלפה</button><button class="ab post" data-hpost="'+k+'"'+(st?' disabled':'')+'>📅 דחייה</button>':'')+
+      // (טל) הכפתורים לא ננעלים אחרי בקשה — התאריך שכבר יש לו בקשה פשוט לא ניתן לבחירה בטופס. רכז רואה אותם גם בקבוצות של אחרים.
+      (full?'<button class="ab sub" data-hsub="'+k+'">🔄 החלפה</button><button class="ab post" data-hpost="'+k+'">📅 דחייה</button>'
+           :state.isCoord&&gi>-1?'<button class="ab sub" data-csub="'+gi+'">🔄 החלפה</button><button class="ab post" data-cpost="'+gi+'">📅 דחייה</button>':'')+
     '</div></div>';
 }
 function byDay(list){
@@ -468,6 +471,9 @@ function renderHome(groups){
   function underRow(b){ var sp=$("subpanel"), row=b.closest(".arow"); row.parentNode.insertBefore(sp, row.nextSibling); return sp; }
   document.querySelectorAll("[data-hsub]").forEach(function(b){ b.onclick=function(){ underRow(b); attReqOpen(state.homeG[+b.dataset.hsub]); }; });
   document.querySelectorAll("[data-hpost]").forEach(function(b){ b.onclick=function(){ underRow(b); attPostOpen(state.homeG[+b.dataset.hpost]); }; });
+  // רכז: החלפה / דחייה בשם המדריך של הקבוצה
+  document.querySelectorAll("[data-csub]").forEach(function(b){ b.onclick=function(){ underRow(b); attReqOpen(state.groups[+b.dataset.csub], true); }; });
+  document.querySelectorAll("[data-cpost]").forEach(function(b){ b.onclick=function(){ underRow(b); attPostOpen(state.groups[+b.dataset.cpost], true); }; });
   renderSubUI();
   if(state.hh && Date.now()-state.hh < 60000) renderHomeHours(); else loadHomeHours();
 }
@@ -517,7 +523,7 @@ function renderHomeHours(){
 // ----- 📅 יומן השעות (רון): לחיצה על השעות פותחת יומן חודשי בתוך הכרטיס -----
 function nDays_(rows){ var d={}; rows.forEach(function(r){ d[r.date]=1; }); return Object.keys(d).length; }   // כמה ימים (יכולות להיות כמה עבודות ביום)
 function sameJob_(r, act, start){ return norm(r.act)===norm(act) && toHHMM(r.start)===toHHMM(start); }
-function pickJob_(rows, date, act){ var d=rows.filter(function(r){ return norm(r.inst)===norm(state.who) && r.date===date; }); return d.filter(function(r){ return norm(r.act)===norm(act); })[0] || (d.length===1?d[0]:null); }
+function pickJob_(rows, date, act, who){ who=norm(who||state.who); var d=rows.filter(function(r){ return norm(r.inst)===who && r.date===date; }); return d.filter(function(r){ return norm(r.act)===norm(act); })[0] || (d.length===1?d[0]:null); }
 function calRows_(mk){ if(mk===hstate.month) return hstate.rows||[]; return (hstate.calRows||{})[mk]; }
 function calLoad_(mk){
   hstate.calRows=hstate.calRows||{}; hstate.calRows[mk]="loading";
@@ -1569,6 +1575,35 @@ function groupSubStatus(g){
 var SUBLBL={req:"🟠 ביקש החלפה",open:"🟡 ממתין למחליף",done:"🟢 יש מחליף",cancel:"🔴 בקשת דחייה"};
 function myOpenOffers(){ var me=norm(state.who); return (state.reqs||[]).filter(function(r){ return r.status==="פתוח" && r.accepted.map(norm).indexOf(me)>-1 && norm(r.requester)!==me; }); }
 function coordPending(){ return (state.reqs||[]).filter(function(r){ return r.status==="ממתין"||r.status==="ביטול ממתין"; }); }
+// המדריך שהקבוצה שייכת לו (שם מלא מרשימת הצוות), או "" אם לא ברור
+function ownerOf(g){
+  var hit=HSTAFF.filter(function(n){ return String(g.instructor||"").indexOf(n)>-1; })[0];
+  if(!hit){ var toks=String(g.instructor||"").split(/[\s+\-,·]+/);
+    var fm=HSTAFF.filter(function(n){ return toks.indexOf(n.split(" ")[0])>-1; }); if(fm.length===1) hit=fm[0]; }
+  return hit||"";
+}
+// תאריכים של הקבוצה שכבר יש להם בקשת החלפה/דחייה פעילה (מכל אחד)
+function takenDates(g){
+  var act=subAct(g), t={};
+  (state.reqs||[]).forEach(function(r){ if(r.act===act && /^(ממתין|פתוח|הושלם|ביטול ממתין|בוטל)$/.test(r.status)) t[r.date]=r.status; });
+  return t;
+}
+// בורר תאריכים + (לרכז שפועל בשם אחר) בורר "של מי הקבוצה"
+function subFormTop(g, forOther, label){
+  var today=new Date(); today.setHours(0,0,0,0);
+  var dates=(g.dateCols||[]).map(function(d){return d.date;}).filter(function(d){ try{ return toDate_(d)>=today; }catch(e){ return false; } }).sort(function(a,b){ return toDate_(a)-toDate_(b); });
+  var taken=takenDates(g), free=dates.filter(function(d){ return !taken[d]; });
+  if(!dates.length) return {err:'אין תאריכי פעילות קרובים לקבוצה הזו.'};
+  if(!free.length) return {err:'לכל התאריכים הקרובים של הקבוצה כבר נשלחה בקשה.'};
+  var H='';
+  if(forOther){ var own=ownerOf(g);
+    H+='<label style="font-size:.8rem;color:var(--muted)">של מי הקבוצה?</label><select id="ar_owner" class="asin" style="margin-bottom:10px">'+(own?'':'<option value="">בחרו מדריך…</option>')+
+       subInstList().map(function(n){ return '<option value="'+esc(n)+'"'+(norm(n)===norm(own)?' selected':'')+'>'+esc(cleanInst(n))+'</option>'; }).join('')+'</select>'; }
+  H+='<label style="font-size:.8rem;color:var(--muted)">'+label+'</label><select id="ar_date" class="asin" style="margin-bottom:10px">'+
+     dates.map(function(d){ return '<option value="'+esc(d)+'"'+(taken[d]?' disabled':'')+(d===free[0]?' selected':'')+'>'+esc(d)+(taken[d]?' · כבר נשלחה בקשה':'')+'</option>'; }).join('')+'</select>';
+  return {html:H};
+}
+function subOwner(){ return $("ar_owner") ? norm($("ar_owner").value) : norm(state.who); }
 function reqStatusFor(g){ var me=norm(state.who); var r=(state.reqs||[]).filter(function(x){ return norm(x.requester)===me && x.act===subAct(g) && (x.status==="ממתין"||x.status==="פתוח"||x.status==="ביטול ממתין"); })[0]; return r?r.status:""; }
 function renderSubUI(){
   var box=$("subui"); if(!box) return;
@@ -1583,15 +1618,12 @@ function renderSubUI(){
   if($("sb_appr")) $("sb_appr").onclick=function(){ toTop(); attApprovals(); };
 }
 // (טל) "דחיית פעילות" — בקשה לרכז לדחות את הפעילות בתאריך מסוים. באישור, השעות של התאריך הזה יורדות.
-function attPostOpen(g){
+function attPostOpen(g, forOther){
   var p=$("subpanel"); if(!p) return;
-  var today=new Date(); today.setHours(0,0,0,0);
-  var dates=(g.dateCols||[]).map(function(d){return d.date;}).filter(function(d){ try{ return toDate_(d)>=today; }catch(e){ return false; } }).sort(function(a,b){ return toDate_(a)-toDate_(b); });
-  if(!dates.length){ p.innerHTML='<div class="card" style="padding:12px">אין תאריכי פעילות קרובים לקבוצה הזו.</div>'; return; }
-  var H='<div class="card" style="padding:12px"><div class="sumh" style="margin:0 0 8px">📅 דחיית פעילות — '+esc(subAct(g))+'</div>';
-  H+='<label style="font-size:.8rem;color:var(--muted)">איזה תאריך לדחות?</label>'+
-     '<select id="ar_date" class="asin" style="margin-bottom:8px">'+dates.map(function(d){ return '<option value="'+esc(d)+'">'+esc(d)+'</option>'; }).join('')+'</select>';
-  H+='<div style="color:var(--muted);font-size:.78rem;margin-bottom:10px">הבקשה עוברת לרכז לאישור.</div>';
+  var top=subFormTop(g, forOther, "איזה תאריך לדחות?");
+  if(top.err){ p.innerHTML='<div class="card" style="padding:12px">'+esc(top.err)+' <button class="linkbtn" id="ar_cancel">סגור</button></div>'; $("ar_cancel").onclick=function(){ p.innerHTML=""; }; return; }
+  var H='<div class="card" style="padding:12px"><div class="sumh" style="margin:0 0 8px">📅 דחיית פעילות — '+esc(subAct(g))+'</div>'+top.html;
+  H+='<div style="color:var(--muted);font-size:.78rem;margin-bottom:10px">'+(state.isCoord?'את/ה רכז/ת — הדחייה מאושרת מיד והשעות של התאריך יורדות.':'הבקשה עוברת לרכז לאישור.')+'</div>';
   H+='<div style="display:flex;gap:8px"><button id="ar_kill" class="asin" style="background:var(--stop);color:#fff;border:0;font-weight:800">שלח בקשת דחייה</button><button id="ar_cancel" class="asin" style="flex:0 0 76px">סגור</button></div></div>';
   p.innerHTML=H; p.scrollIntoView({behavior:"smooth",block:"center"});
   $("ar_cancel").onclick=function(){ p.innerHTML=""; };
@@ -1599,49 +1631,58 @@ function attPostOpen(g){
 }
 // החלפה שהושלמה ליום/פעילות (לסימון "X מחליף את Y")
 function subDoneFor(act, date){ return (state.reqs||[]).filter(function(r){ return r.status==="הושלם" && r.act===act && r.date===date; })[0]; }
-function attReqOpen(g){
+function attReqOpen(g, forOther){
   var p=$("subpanel"); if(!p) return;
-  var today=new Date(); today.setHours(0,0,0,0);
-  var dates=(g.dateCols||[]).map(function(d){return d.date;}).filter(function(d){ try{ return toDate_(d)>=today; }catch(e){ return false; } }).sort(function(a,b){ return toDate_(a)-toDate_(b); });
-  if(!dates.length){ p.innerHTML='<div class="card" style="padding:12px">אין תאריכי פעילות קרובים לקבוצה הזו.</div>'; return; }
-  var defDate = dates[0];
-  var H='<div class="card" style="padding:12px"><div class="sumh" style="margin:0 0 8px">🔄 אני צריך החלפה — '+esc(subAct(g))+'</div>';
-  H+='<label style="font-size:.8rem;color:var(--muted)">לאיזה תאריך?</label>'+
-     '<select id="ar_date" class="asin" style="margin-bottom:10px">'+dates.map(function(d){ return '<option value="'+esc(d)+'"'+(d===defDate?' selected':'')+'>'+esc(d)+'</option>'; }).join('')+'</select>';
+  var top=subFormTop(g, forOther, "לאיזה תאריך?");
+  if(top.err){ p.innerHTML='<div class="card" style="padding:12px">'+esc(top.err)+' <button class="linkbtn" id="ar_cancel">סגור</button></div>'; $("ar_cancel").onclick=function(){ p.innerHTML=""; }; return; }
+  var H='<div class="card" style="padding:12px"><div class="sumh" style="margin:0 0 8px">🔄 '+(forOther?'החלפה':'אני צריך החלפה')+' — '+esc(subAct(g))+'</div>'+top.html;
   H+='<label style="font-size:.8rem;color:var(--muted)">למי להציע? (אפשר כמה)</label>'+
      '<div style="display:flex;flex-direction:column;gap:2px;margin:6px 0 10px;max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:6px">'+
-       subInstList().filter(function(n){ return norm(n)!==norm(state.who); }).map(function(n){ return '<label style="display:flex;gap:8px;align-items:center;padding:5px 2px"><input type="checkbox" class="ar_p" value="'+esc(n)+'">'+esc(cleanInst(n))+'</label>'; }).join('')+'</div>';
+       subInstList().filter(function(n){ return norm(n)!==norm(forOther?ownerOf(g):state.who); }).map(function(n){ return '<label style="display:flex;gap:8px;align-items:center;padding:5px 2px"><input type="checkbox" class="ar_p" value="'+esc(n)+'">'+esc(cleanInst(n))+'</label>'; }).join('')+'</div>';
+  if(state.isCoord) H+='<div style="color:var(--muted);font-size:.78rem;margin-bottom:6px">את/ה רכז/ת — הבקשה נפתחת מיד למחליפים שסימנת.</div>';
   H+='<div id="ar_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em"></div>';
   H+='<div style="display:flex;gap:8px"><button id="ar_send" class="asin" style="background:var(--flag);color:#2b1400;border:0;font-weight:800">שלח בקשה</button><button id="ar_cancel" class="asin" style="flex:0 0 76px">סגור</button></div></div>';
   p.innerHTML=H; p.scrollIntoView({behavior:"smooth",block:"center"});
   $("ar_cancel").onclick=function(){ p.innerHTML=""; };
   $("ar_send").onclick=function(){ attReqSubmit(g); };
+  if($("ar_owner")) $("ar_owner").onchange=function(){ var me=norm(this.value); document.querySelectorAll(".ar_p").forEach(function(c){ c.closest("label").style.display = norm(c.value)===me ? "none" : ""; if(norm(c.value)===me) c.checked=false; }); };
 }
 function attReqSubmit(g){
   var date=$("ar_date").value;
   var proposed=[].slice.call(document.querySelectorAll(".ar_p:checked")).map(function(c){return c.value;});
+  var owner=subOwner();
+  if(!owner){ $("ar_err").textContent="בחרו של מי הקבוצה"; return; }
   if(!proposed.length){ $("ar_err").textContent="בחרו לפחות מדריך אחד"; return; }
   var btn=$("ar_send"); btn.disabled=true; btn.textContent="שולח…";
-  var month=monthOf(date);
+  var month=monthOf(date), coord=!!state.isCoord;
   api({action:"hoursRead", month:month}).then(function(j){
-    var hr=pickJob_((j&&j.rows)||[], date, subAct(g)) || defaultTimes(g) || {};
-    return post({action:"subReqCreate", requester:norm(state.who), month:month, date:date, act:subAct(g), start:hr.start||"", end:hr.end||"", total:hr.total||"", proposed:proposed});
+    var hr=pickJob_((j&&j.rows)||[], date, subAct(g), owner) || defaultTimes(g) || {};
+    return post({action:"subReqCreate", requester:owner, month:month, date:date, act:subAct(g), start:hr.start||"", end:hr.end||"", total:hr.total||"", proposed:proposed});
   }).then(function(res){
-    if(res&&res.ok){ afterSub("בקשת ההחלפה נשלחה ✓ הרכז יקבל אותה לאישור."); }
+    // רכז: מאשרים מיד — הבקשה נפתחת למחליפים בלי שלב אישור נוסף
+    if(res&&res.ok&&coord&&res.id) return post({action:"subReqApprove", id:res.id, approved:proposed}).then(function(a){ return {ok:true, approved:a&&a.ok}; });
+    return res;
+  }).then(function(res){
+    if(res&&res.ok){ afterSub(coord ? (res.approved ? "ההחלפה נפתחה למחליפים ✓" : "הבקשה נשלחה, אבל האישור לא נשמר — אשרו אותה מרשימת הבקשות") : "בקשת ההחלפה נשלחה ✓ הרכז יקבל אותה לאישור."); }
     else if($("ar_send")){ btn.disabled=false; btn.textContent="שלח בקשה"; $("ar_err").textContent="לא נשלח: "+((res&&res.error)||"נסו שוב"); }
   }).catch(function(){ if($("ar_send")){ $("ar_send").disabled=false; $("ar_send").textContent="שלח בקשה"; } if($("ar_err")) $("ar_err").textContent="אין חיבור"; });
 }
 // בקשת ביטול פעילות (אין מחליף) — הולכת לאישור רכז, באישור השעות יורדות
 function attCancelSubmit(g){
   var date=$("ar_date").value;
-  if(!confirm("לבקש לדחות את הפעילות בתאריך "+date+"?")) return;
+  var owner=subOwner(), coord=!!state.isCoord;
+  if(!owner){ alert("בחרו של מי הקבוצה"); return; }
+  if(!confirm(coord ? "לדחות את הפעילות של "+cleanInst(owner)+" בתאריך "+date+"? השעות של התאריך יירדו." : "לבקש לדחות את הפעילות בתאריך "+date+"?")) return;
   var btn=$("ar_kill"); btn.disabled=true; btn.textContent="שולח…";
   var month=monthOf(date);
   api({action:"hoursRead", month:month}).then(function(j){
-    var hr=pickJob_((j&&j.rows)||[], date, subAct(g)) || defaultTimes(g) || {};
-    return post({action:"subReqCancel", requester:norm(state.who), month:month, date:date, act:subAct(g), start:hr.start||"", end:hr.end||"", total:hr.total||""});
+    var hr=pickJob_((j&&j.rows)||[], date, subAct(g), owner) || defaultTimes(g) || {};
+    return post({action:"subReqCancel", requester:owner, month:month, date:date, act:subAct(g), start:hr.start||"", end:hr.end||"", total:hr.total||""});
   }).then(function(res){
-    if(res&&res.ok){ afterSub("בקשת הדחייה נשלחה לרכז ✓"); }
+    if(res&&res.ok&&coord&&res.id) return post({action:"subReqCancelApprove", id:res.id}).then(function(a){ return {ok:true, approved:a&&a.ok}; });
+    return res;
+  }).then(function(res){
+    if(res&&res.ok){ afterSub(coord ? (res.approved ? "הפעילות נדחתה ✓ השעות של התאריך ירדו" : "הבקשה נשלחה, אבל האישור לא נשמר — אשרו אותה מרשימת הבקשות") : "בקשת הדחייה נשלחה לרכז ✓"); }
     else if($("ar_kill")){ btn.disabled=false; btn.textContent="שלח בקשת דחייה"; alert("לא נשלח: "+((res&&res.error)||"")); }
   }).catch(function(){ if($("ar_kill")){ btn.disabled=false; btn.textContent="שלח בקשת דחייה"; } alert("אין חיבור"); });
 }
