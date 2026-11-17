@@ -33,6 +33,7 @@ button{font-family:inherit;cursor:pointer}
 .addsave:disabled{background:var(--chip);color:var(--muted);cursor:default}
 .addok{color:#22c55e;font-weight:800;font-size:.88rem;margin-bottom:8px}
 .todaycard{background:var(--surface);border:2px solid var(--flag);border-radius:14px;padding:12px;margin-bottom:12px;display:flex;flex-direction:column;gap:10px}
+.tdrow.tdoff .tdnm b{text-decoration:line-through;opacity:.7}
 .todaycard .tdh{font:800 .95rem 'Assistant',sans-serif;color:var(--flag)}
 .tdrow{display:flex;align-items:center;gap:10px}
 .tdnm{flex:1;min-width:0;display:flex;flex-direction:column}
@@ -525,15 +526,22 @@ function renderHome(groups){
   var h = '<div class="who">שלום <b>'+esc(state.who)+'</b></div>';
   if(state.homeMsg && Date.now() < (state.homeMsgT||0)) h += '<div style="color:#22c55e;font-weight:800;font-size:.9rem;margin:0 2px 10px">'+esc(state.homeMsg)+'</div>';
   // ביום שיש קבוצה — היא ראשונה, עם "נוכחות" גדול (מה שעושים הכי הרבה)
-  var todayG = mine.filter(function(g){ return g.day===todayName; });
+  var todayG = mine.filter(function(g){ return g.day===todayName && !subOnly(g); });
+  var subG = subTodayGroups().filter(function(g){ return todayG.indexOf(g)<0; });   // (רון) היום אני מחליף בקבוצה של מישהו אחר
   loadStaff();
   h += bdayAskHTML();
   if(state.isCoord) h += clubToday(groups, todayName);
      /* (לשונית נפתחת) */   // רכז: כל הקבוצות של היום (כולל שלו) - במקום הכרטיס האישי
-  else if(todayG.length) h += '<div class="todaycard"><div class="tdh">📍 היום · '+esc(todayName)+'</div>'+todayG.map(function(g){
-      var t=groupSlot(g);
-      return '<div class="tdrow"><div class="tdnm"><b>'+esc(cleanInst(g.instructor))+'</b><span>'+esc(BRN[g.branch]||g.branch)+(t?' · \u2066'+t.start+'–'+t.end+'\u2069':'')+'</span></div>'+
-        '<button class="tdatt" data-hatt="'+giOf(g)+'">📋 נוכחות</button></div>';
+  else if(todayG.length || subG.length) h += '<div class="todaycard"><div class="tdh">📍 היום · '+esc(todayName)+'</div>'+
+    todayG.concat(subG).map(function(g){
+      var t=groupSlot(g), rq=todayReq(g), mineG=!subOnly(g), chip='', canAtt=true;
+      if(!mineG) chip='<span class="cchip ok">🔄 אתה מחליף את '+esc(cleanInst(rq&&rq.requester||g.instructor))+'</span>';
+      else if(rq && rq.status==="בוטל"){ chip='<span class="cchip bad">📅 הפעילות נדחתה</span>'; canAtt=false; }
+      else if(rq && rq.status==="הושלם" && rq.chosen && !matchName(rq.chosen, state.who)){ chip='<span class="cchip ok">🔄 '+esc(cleanInst(rq.chosen))+' מחליף אותך</span>'; canAtt=false; }
+      else if(rq && /^(ממתין|פתוח)$/.test(rq.status)) chip='<span class="cchip warn">🔄 מחכה למחליף</span>';
+      else if(rq && rq.status==="ביטול ממתין") chip='<span class="cchip warn">📅 בקשת דחייה ממתינה</span>';
+      return '<div class="tdrow'+(canAtt?'':' tdoff')+'"><div class="tdnm"><b>'+esc(cleanInst(g.instructor))+'</b><span>'+esc(BRN[g.branch]||g.branch)+(t?' · \u2066'+t.start+'–'+t.end+'\u2069':'')+'</span>'+(chip?'<div class="cchips">'+chip+'</div>':'')+'</div>'+
+        (canAtt ? '<button class="tdatt" data-hatt="'+giOf(g)+'">📋 נוכחות</button>' : '')+'</div>';
     }).join('')+'</div>';
   h += bdayWeekHTML(groups);   // (רכז) 🎂 ימי הולדת השבוע
   h += '<div id="homehours"></div>';
@@ -787,7 +795,8 @@ function myGroups(){
   state.isCoord = isCoordName(state.who);
   var all = state.all || [];
   if(state.isCoord) return all.slice();
-  return all.filter(function(g){ return matchName(g.instructor, state.who) || matchName(cleanInst(g.instructor), state.who); });
+  var own=all.filter(function(g){ return matchName(g.instructor, state.who) || matchName(cleanInst(g.instructor), state.who); });
+  return own.concat(subTodayGroups().filter(function(g){ return own.indexOf(g)<0; }));   // + קבוצה שאני מחליף בה היום
 }
 
 function render(){
@@ -1033,8 +1042,9 @@ function scheduleHTML(all, mine, todayName){
   var h='<div class="asec">🗓 סידור עבודה</div>'+
     '<div class="wpmode" style="margin:6px 0 2px"><button data-wpm="1" class="'+(showMine?'on':'')+'">🙋 הקבוצות שלי</button><button data-wpm="0" class="'+(showMine?'':'on')+'">👥 הקבוצות של כולם</button></div>';
   if(showMine){
-    if(!mine.length) return h+'<div class="msg">לא מצאנו קבוצה על השם שלך.</div>';
-    byDay(mine).forEach(function(d){
+    var mineOwn=mine.filter(function(g){ return !subOnly(g) || state.isCoord; });
+    if(!mineOwn.length) return h+'<div class="msg">לא מצאנו קבוצה על השם שלך.</div>';
+    byDay(mineOwn).forEach(function(d){
       h += '<div class="aday">'+esc(d.day)+(d.day===todayName?'<span class="tchip today">היום</span>':'')+'</div><div class="abox">'+
         d.groups.map(function(g){ return homeRow(g, mine.indexOf(g), true); }).join('')+'</div>';
     });
@@ -1878,6 +1888,16 @@ function subInstList(){
   return HSTAFF.slice().sort(function(a,b){ return a.localeCompare(b,"he"); });
 }
 function myOwnGroups(){ return (state.all||[]).filter(function(g){ return matchName(g.instructor, state.who) || matchName(cleanInst(g.instructor), state.who); }); }
+// (רון) הבקשה (החלפה/דחייה) של הקבוצה להיום, אם יש
+function todayReq(g){ var act=subAct(g), ds=todayDmy(); return (state.reqs||[]).filter(function(r){ return r.act===act && r.date===ds && /^(ממתין|פתוח|הושלם|ביטול ממתין|בוטל)$/.test(r.status); })[0]; }
+// קבוצה של מדריך אחר שאני מחליף בה היום (נכנסת לרשימה שלי רק לנוכחות של היום)
+function subOnly(g){ return !(matchName(g.instructor, state.who) || matchName(cleanInst(g.instructor), state.who)); }
+function subTodayGroups(){
+  if(state.isCoord) return [];
+  var ds=todayDmy(), acts={};
+  (state.reqs||[]).forEach(function(r){ if(r.date===ds && r.status==="הושלם" && r.chosen && matchName(r.chosen, state.who)) acts[r.act]=1; });
+  return (state.all||[]).filter(function(g){ return acts[subAct(g)] && subOnly(g); });
+}
 function giOf(g){ for(var i=0;i<state.groups.length;i++){ var x=state.groups[i]; if(norm(x.instructor)===norm(g.instructor) && x.day===g.day && x.branch===g.branch) return i; } return -1; }
 function subAct(g){ return cleanInst(g.instructor)+" · "+g.day+" · "+(BRN[g.branch]||g.branch); }
 // סטטוס החלפה של פעילות (לתאריכים שעוד לא עברו) — לצביעת הלוח
