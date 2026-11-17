@@ -591,7 +591,7 @@ function calAddFor_(ds, r){
     a.orig={act:r.act, start:r.start};   // עורכים את העבודה הזו בדיוק (יכולות להיות כמה ביום)
     a.act=norm(r.act); a.start=toHHMM(r.start); a.end=toHHMM(r.end);
     a.slot = (a.start===SLOT_AM.start&&a.end===SLOT_AM.end)?"am":(a.start===SLOT_PM.start&&a.end===SLOT_PM.end)?"pm":(a.start&&a.end?"other":"");
-    var sc=schedFor(ds), known=(sc&&sc.act?[norm(sc.act)]:[]).concat(HACTS.map(function(x){ return norm(hActLabel(x)); }));
+    var known=schedListFor(ds).map(function(x){ return norm(x.act); }).concat(HACTS.map(function(x){ return norm(hActLabel(x)); }));
     if(a.act && known.indexOf(a.act)<0) a.otherAct=true;
   }
   hstate.add=a; renderHomeHours(); $("hh_form").scrollIntoView({behavior:"smooth",block:"start"});
@@ -603,8 +603,8 @@ function renderAddForm(){
   var el=$("hh_form"), a=hstate.add; if(!el||!a) return;
   var today=todayDmy(), yest=dmyShift(-1);
   if(a.pickDate===undefined) a.pickDate=false;
-  var sc = a.date ? schedFor(a.date) : null;
-  var acts = (sc&&sc.act ? [{v:sc.act, l:"📅 "+sc.act}] : []).concat(HACTS.map(function(x){ return {v:hActLabel(x), l:x}; }));
+  var scs = a.date ? schedListFor(a.date) : [];
+  var acts = scs.filter(function(x){ return x.act; }).map(function(x){ return {v:x.act, l:"📅 "+x.act}; }).concat(HACTS.map(function(x){ return {v:hActLabel(x), l:x}; }));
   var chip=function(on, attr, label){ return '<button type="button" class="hchip'+(on?' on':'')+'" '+attr+'>'+label+'</button>'; };
   var H='<div class="addf"><div class="addh"><b>'+(a.orig?'✏️ שינוי עבודה':'➕ הוספת עבודה')+'</b><button class="linkbtn" id="af_x">ביטול</button></div>';
   H+='<div class="addstep">1. מתי?</div><div class="hchips">'+
@@ -632,7 +632,8 @@ function renderAddForm(){
   el.querySelectorAll("[data-aa]").forEach(function(b){ b.onclick=function(){
     if(b.dataset.aa==="__other"){ a.otherAct=true; a.act=""; renderAddForm(); $("af_act").focus(); return; }
     a.otherAct=false; a.act=b.dataset.aa;
-    if(sc && norm(b.dataset.aa)===norm(sc.act) && !a.slot){   // הפעילות הקבועה של היום → גם השעות שלה
+    var sc=scs.filter(function(x){ return norm(x.act)===norm(b.dataset.aa); })[0];
+    if(sc && !a.slot){   // פעילות קבועה של היום → גם השעות שלה
       var s0=toHHMM(sc.start), e0=toHHMM(sc.end);
       a.start=s0; a.end=e0; a.slot = (s0===SLOT_AM.start&&e0===SLOT_AM.end)?"am":(s0===SLOT_PM.start&&e0===SLOT_PM.end)?"pm":"other";
     }
@@ -1354,12 +1355,26 @@ function shiftMonth(d){ var p=hstate.month.split("-"); hstate.month=monthKey(new
 // ----- פעילויות קבועות: רשימה + שאלון "הוסף פעילות קבועה" (יום → פעילות → שעות) -----
 var HDOW = [0,1,2,3,4,5];   // ראשון..שישי
 function schedAct(g){ return g.day+" · "+(BRN[g.branch]||g.branch); }
+// (טל) כמה פעילויות קבועות באותו יום: לקבוצה של מדריך אחר, או כשלמדריך יש כמה קבוצות באותו יום וסניף — מוסיפים את שם הקבוצה, כדי שלא יתנגשו
+function schedActFor(g, inst){
+  var own=groupsOfInst(inst||hstate.inst);
+  var same=own.filter(function(x){ return x.day===g.day && x.branch===g.branch; });
+  return (own.indexOf(g)>-1 && same.length<2) ? schedAct(g) : schedAct(g)+" · "+cleanInst(g.instructor);
+}
+// כל הפעילויות הקבועות של המדריך ביום של תאריך מסוים
+function schedListFor(date){
+  var p=String(date||"").split("/"); if(p.length<3) return [];
+  var dow=new Date(2000+ +p[2], p[1]-1, +p[0]).getDay();
+  return (hstate.sched||[]).filter(function(r){ return norm(r.inst)===norm(hstate.inst) && String(r.dow)===String(dow); });
+}
+function tmin(t){ var m=parseT(t); return m==null?null:m; }
+function overlaps(a, b){ var a1=tmin(a.start), a2=tmin(a.end), b1=tmin(b.start), b2=tmin(b.end); if(a1==null||a2==null||b1==null||b2==null) return false; return a1<b2 && b1<a2; }
 function groupsOfInst(inst){ return (state.all||[]).filter(function(g){ return matchName(g.instructor, inst) || matchName(cleanInst(g.instructor), inst); }); }
 function mySched(){ return (hstate.sched||[]).filter(function(r){ return norm(r.inst)===norm(hstate.inst); }).sort(function(a,b){ return (+a.dow)-(+b.dow); }); }
 // קבוצות של המדריך שעוד אין להן פעילות קבועה → שאלה אחת: בוקר או צהריים (פתוח לכולם — טל)
 function schedSuggestions(){
-  var taken={}; mySched().forEach(function(r){ taken[String(r.dow)]=1; });
-  return groupsOfInst(hstate.inst).filter(function(g){ var d=dowOf(g.day); if(d<0 || taken[String(d)]) return false; taken[String(d)]=1; return true; });
+  var taken={}; mySched().forEach(function(r){ taken[norm(r.act)]=1; });
+  return groupsOfInst(hstate.inst).filter(function(g){ var d=dowOf(g.day), a=norm(schedActFor(g)); if(d<0 || taken[a]) return false; taken[a]=1; return true; });
 }
 function sugHTML(sug){
   return sug.map(function(g,k){
@@ -1372,7 +1387,7 @@ function bindSug(root, sug){
   root.querySelectorAll("[data-sgk]").forEach(function(b){ b.onclick=function(){
     var g=sug[+b.dataset.sgk], t=b.dataset.sgs==="am"?SLOT_AM:SLOT_PM;
     root.querySelectorAll("[data-sgk]").forEach(function(x){ x.disabled=true; }); b.textContent="שומר…";
-    schedSave({dow:dowOf(g.day), act:schedAct(g), start:t.start, end:t.end}, "נוסף ✓ — השעות של הקבוצה ייכנסו לבד כל חודש", true);
+    schedSave({dow:dowOf(g.day), act:schedActFor(g), start:t.start, end:t.end}, "נוסף ✓ — השעות של הקבוצה ייכנסו לבד כל חודש", true);
   }; });
 }
 function openSched(){
@@ -1394,7 +1409,7 @@ function renderSched(msg){
   mine.forEach(function(r){
     H+='<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;margin-bottom:6px">'+
       '<div style="flex:1"><b>יום '+esc(DAYS[+r.dow]||r.dow)+'</b> · '+esc(r.act||"")+' <span dir="ltr" style="color:var(--muted);font-size:.85rem">'+esc(toHHMM(r.start))+(r.end?'–'+esc(toHHMM(r.end)):'')+'</span></div>'+
-      '<button class="hchip" data-scdel="'+esc(r.dow)+'" style="color:var(--stop);border-color:var(--stop)">הסר</button></div>';
+      '<button class="hchip" data-scdel="'+mine.indexOf(r)+'" style="color:var(--stop);border-color:var(--stop)">הסר</button></div>';
   });
   H+=sugHTML(sug);
   H+='<button class="ghostbtn" id="sc_add" style="margin-top:4px;border-color:var(--flag)">➕ הוסף פעילות קבועה</button>';
@@ -1404,20 +1419,22 @@ function renderSched(msg){
   $("sc_cancel").onclick=function(){ box.hidden=true; hstate.schedOpen=false; };
   $("sc_add").onclick=openSchedQ;
   document.querySelectorAll("[data-scdel]").forEach(function(b){ b.onclick=function(){
-    if(!confirm("להסיר את הפעילות הקבועה של יום "+(DAYS[+b.dataset.scdel]||"")+"?\n(שעות שכבר נרשמו נשארות)")) return;
-    b.disabled=true; schedSave({dow:b.dataset.scdel, act:"", start:"", end:""}, "הוסר ✓", false);
+    var r=mine[+b.dataset.scdel]; if(!r) return;
+    if(!confirm("להסיר את הפעילות הקבועה \""+r.act+"\" של יום "+(DAYS[+r.dow]||"")+"?\n(שעות שכבר נרשמו נשארות)")) return;
+    b.disabled=true; schedSave({dow:r.dow, act:"", start:"", end:"", orig:{act:r.act}}, "הוסר ✓", false);
   }; });
   bindSug(box, sug);
 }
 // השאלון: יום → מה → שעות
 function openSchedQ(){
   var p=$("sc_q"), q={dow:null, act:"", g:null};
-  var taken={}; mySched().forEach(function(r){ taken[String(r.dow)]=r; });
+  var taken={}; mySched().forEach(function(r){ (taken[String(r.dow)]=taken[String(r.dow)]||[]).push(r); });
   function draw(){
     var H='<div class="card" style="padding:12px;margin-top:10px;display:flex;flex-direction:column;gap:8px">';
     H+='<div class="hflbl">1. באיזה יום?</div><div class="hchips">'+HDOW.map(function(d){ return '<button type="button" class="hchip'+(q.dow===d?' on':'')+'" data-qd="'+d+'">'+DAYS[d]+'</button>'; }).join('')+'</div>';
     if(q.dow!==null){
-      if(taken[String(q.dow)]) H+='<div style="color:var(--flag);font-size:.78rem">⚠️ כבר יש פעילות קבועה ביום '+DAYS[q.dow]+' ('+esc(taken[String(q.dow)].act)+') — היא תוחלף.</div>';
+      var td=taken[String(q.dow)]||[];
+      if(td.length) H+='<div style="color:var(--muted);font-size:.78rem">כבר קבוע לך ביום '+DAYS[q.dow]+': '+td.map(function(r){ return esc(r.act)+' <span dir="ltr">'+esc(toHHMM(r.start))+'–'+esc(toHHMM(r.end))+'</span>'; }).join(', ')+'. החדשה תתווסף בנוסף.</div>';
       var dayName=DAYS[q.dow], myG=groupsOfInst(hstate.inst).filter(function(g){ return g.day===dayName; });
       var others=(state.all||[]).filter(function(g){ return g.day===dayName && myG.indexOf(g)<0; });
       var fixed=["ריכוז","יום עבודה על סירות","ציוד"];
@@ -1436,9 +1453,9 @@ function openSchedQ(){
     H+='</div>';
     p.innerHTML=H;
     p.querySelectorAll("[data-qd]").forEach(function(b){ b.onclick=function(){ q.dow=+b.dataset.qd; q.act=""; q.g=null; draw(); }; });
-    p.querySelectorAll("[data-qg]").forEach(function(b){ b.onclick=function(){ var g=groupsOfInst(hstate.inst).filter(function(x){ return x.day===DAYS[q.dow]; })[+b.dataset.qg]; q.g=g; q.act=schedAct(g); draw(); }; });
+    p.querySelectorAll("[data-qg]").forEach(function(b){ b.onclick=function(){ var g=groupsOfInst(hstate.inst).filter(function(x){ return x.day===DAYS[q.dow]; })[+b.dataset.qg]; q.g=g; q.act=schedActFor(g); draw(); }; });
     p.querySelectorAll("[data-qa]").forEach(function(b){ b.onclick=function(){ q.g=null; q.act=b.dataset.qa; draw(); }; });
-    if($("q_other")) $("q_other").onchange=function(){ if(this.value==="") return; var dn=DAYS[q.dow], my=groupsOfInst(hstate.inst).filter(function(g){ return g.day===dn; }); var g=(state.all||[]).filter(function(x){ return x.day===dn && my.indexOf(x)<0; })[+this.value]; q.g=g; q.act=schedAct(g); draw(); };
+    if($("q_other")) $("q_other").onchange=function(){ if(this.value==="") return; var dn=DAYS[q.dow], my=groupsOfInst(hstate.inst).filter(function(g){ return g.day===dn; }); var g=(state.all||[]).filter(function(x){ return x.day===dn && my.indexOf(x)<0; })[+this.value]; q.g=g; q.act=schedActFor(g); draw(); };
     if($("q_act")) $("q_act").onchange=function(){ var v=norm(this.value); if(v){ q.g=null; q.act=v; draw(); } };
     if($("q_save")){
       function mk(){ var s=$("q_s").value, e=$("q_e").value; p.querySelectorAll("[data-qs]").forEach(function(b){ var t=b.dataset.qs==="am"?SLOT_AM:SLOT_PM; b.classList.toggle("on", s===t.start&&e===t.end); }); }
@@ -1450,6 +1467,10 @@ function openSchedQ(){
       $("q_save").onclick=function(){
         var s=$("q_s").value, e=$("q_e").value;
         if(!s||!e){ $("q_err").textContent="בחרו שעות"; return; }
+        var td=(taken[String(q.dow)]||[]), same=td.filter(function(r){ return norm(r.act)===norm(q.act); })[0];
+        var clash=td.filter(function(r){ return norm(r.act)!==norm(q.act) && overlaps(r, {start:s, end:e}); })[0];
+        if(same && !confirm("\""+q.act+"\" כבר קבועה ביום הזה — לעדכן את השעות שלה?")) return;
+        if(clash && !confirm("השעות חופפות ל\""+clash.act+"\" ("+toHHMM(clash.start)+"–"+toHHMM(clash.end)+"). לשמור בכל זאת?")) return;
         this.disabled=true; this.textContent="שומר…";
         schedSave({dow:q.dow, act:q.act, start:s, end:e}, "נוסף ✓ ונכנס לשעות של החודש", true);
       };
@@ -1461,7 +1482,9 @@ function openSchedQ(){
 // שמירת פעילות קבועה אחת (+ מילוי החודש הנוכחי לפיה)
 function schedSave(row, okMsg, fill){
   var inst=hstate.inst, cur=monthKey(new Date());
-  post({action:"schedSet", inst:inst, dow:row.dow, act:row.act, start:row.start, end:row.end}).then(function(j){
+  var body={action:"schedSet", inst:inst, dow:row.dow, act:row.act, start:row.start, end:row.end, multi:1};   // multi: כמה פעילויות באותו יום (מזהים לפי הפעילות)
+  if(row.orig) body.orig=row.orig;
+  post(body).then(function(j){
     if(!j||!j.ok) throw new Error((j&&j.error)||"");
     return fill ? post({action:"schedFill", inst:inst, month:cur}) : null;
   }).then(function(){
@@ -1471,14 +1494,14 @@ function schedSave(row, okMsg, fill){
 // פעילויות קבועות מתוך הקבוצות (בלי כפתור): לכל קבוצה שידוע מי המדריך ומתי היא (GROUP_SLOTS / חנ"ב / רון)
 // ולמדריך אין עדיין פעילות קבועה באותו יום — מחזיר מה להוסיף. only = רק למדריך הזה.
 function groupFixedTodo(only){
-  var taken={}; (hstate.sched||[]).forEach(function(r){ taken[norm(r.inst)+"|"+r.dow]=1; });
+  var taken={}; (hstate.sched||[]).forEach(function(r){ taken[norm(r.inst)+"|"+r.dow+"|"+norm(r.act)]=1; });
   var todo=[];
   (state.all||[]).forEach(function(g){
     var t=defaultTimes(g), d=dowOf(g.day); if(!t||d<0) return;
     var inst=HSTAFF.filter(function(n){ return matchName(g.instructor,n) || matchName(cleanInst(g.instructor),n); })[0]; if(!inst) return;
     if(only && norm(inst)!==norm(only)) return;
-    var k=norm(inst)+"|"+d; if(taken[k]) return; taken[k]=1;
-    todo.push({inst:inst, dow:d, act:schedAct(g), start:t.start, end:t.end});
+    var act=schedActFor(g, inst), k=norm(inst)+"|"+d+"|"+norm(act); if(taken[k]) return; taken[k]=1;
+    todo.push({inst:inst, dow:d, act:act, start:t.start, end:t.end});
   });
   return todo;
 }
@@ -1494,7 +1517,7 @@ function autoFillMonth(){
   var me=hoursAdmin()?null:norm(state.who);
   var seq=function(list,fn){ return list.reduce(function(pr,x){ return pr.then(function(){ return fn(x).catch(function(){}); }); }, Promise.resolve()); };
   var newFixed=groupFixedTodo(me);
-  seq(newFixed, function(x){ return post({action:"schedSet", inst:x.inst, dow:x.dow, act:x.act, start:x.start, end:x.end}); })
+  seq(newFixed, function(x){ return post({action:"schedSet", inst:x.inst, dow:x.dow, act:x.act, start:x.start, end:x.end, multi:1}); })
   .then(function(){ return newFixed.length ? api({action:"schedRead"}).then(function(j){ hstate.sched=(j&&j.rows)||hstate.sched; }) : null; })
   .then(function(){
     var fixed={}; (hstate.sched||[]).forEach(function(r){ var n=norm(r.inst); (fixed[n]=fixed[n]||{})[norm(r.act)]=1; });
@@ -1817,10 +1840,10 @@ function saveAssign(g){
   if(!inst){ $("asg_err").textContent="בחרו מדריך"; return; }
   if(dow<0){ $("asg_err").textContent="לא זוהה יום הקבוצה"; return; }
   if(!s||!e){ $("asg_err").textContent="מלאו שעת התחלה וסיום"; return; }
-  var act=g.day+" · "+(BRN[g.branch]||g.branch);
+  var act=schedActFor(g, inst);
   var btn=$("asg_save"); btn.disabled=true; btn.textContent="שומר…";
   var month=monthKey(new Date());
-  post({action:"schedSet", inst:inst, dow:dow, act:act, start:s, end:e}).then(function(j){
+  post({action:"schedSet", inst:inst, dow:dow, act:act, start:s, end:e, multi:1}).then(function(j){
     if(!j||!j.ok) throw new Error((j&&j.error)||"");
     return post({action:"schedFill", inst:inst, month:month});
   }).then(function(j2){
