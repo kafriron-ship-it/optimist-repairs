@@ -37,6 +37,19 @@ button{font-family:inherit;cursor:pointer}
 .tdrow{display:flex;align-items:center;gap:10px}
 .tdnm{flex:1;min-width:0;display:flex;flex-direction:column}
 .tdnm b{font-size:1rem}.tdnm span{color:var(--muted);font-size:.85rem;font-weight:600}
+.bday{display:inline-block;margin-inline-start:6px;font:800 .72rem 'Assistant',sans-serif;color:#f472b6;border:1px solid #f472b6;border-radius:999px;padding:0 7px;vertical-align:middle}
+.bdline{color:#f472b6;font-size:.8rem;font-weight:800}
+.bdask{background:var(--surface);border:1px dashed #f472b6;border-radius:12px;padding:10px 12px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px}
+.bdask span{color:var(--muted);font-size:.85rem}
+.bdrow{display:flex;gap:6px;min-width:0}
+.bdrow select{flex:1 1 0;width:auto;min-width:0}
+.bdrow .bdsave{width:auto;flex:0 0 auto;padding:0 16px}
+.bdsave{background:#f472b6;color:#2b0a1c;border:0;font-weight:800;flex:0 0 auto}
+.bdi{display:flex;flex-direction:column}
+.bdi span{color:var(--muted);font-size:.8rem}
+.bdi em{font-style:normal;color:#f472b6;font-weight:800;font-size:.82rem}
+.dobf{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.dobf label{font-size:.82rem;color:var(--muted);font-weight:700}
 .clubwrap{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden}
 .clubbar{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;color:var(--ink);padding:10px 12px;cursor:pointer;text-align:start;font:inherit}
 .clubbar .cbl{font:800 .86rem 'Assistant',sans-serif;color:var(--flag);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -430,13 +443,14 @@ function nextDateOf(g){
 }
 function homeRow(g, k, full){
   var gi=giOf(g), t=defaultTimes(g), nd=nextDateOf(g), isToday=nd && daysAgo_(nd.date)===0;
-  var miss=unfilledRecent(g).length, cs=groupSubStatus(g);
+  var miss=unfilledRecent(g).length, cs=groupSubStatus(g), bds=groupBdays(g);
   var sub=[BRN[g.branch]||g.branch]; if(t) sub.push("\u2066"+t.start+"–"+t.end+"\u2069");   // ⁦…⁩ = שעות משמאל לימין גם בתוך עברית
   if(nd && !isToday) sub.push("הבא: "+nd.date.replace(/\/\d+$/,""));
   return '<div class="arow"><div class="nm"><b>'+esc(cleanInst(g.instructor))+
       (!full&&state.isCoord&&gi>-1?'<button class="pen" data-cinst="'+gi+'" title="מי המדריך של הקבוצה?">✏️ מדריך</button>':'')+
       (miss?'<span class="tchip miss">⏰ לא מולא</span>':'')+
-      (cs?'<span class="scchip sc-'+cs+'">'+esc(SUBLBL[cs])+'</span>':'')+'</b><span>'+esc(sub.join(" · "))+'</span></div>'+
+      (cs?'<span class="scchip sc-'+cs+'">'+esc(SUBLBL[cs])+'</span>':'')+'</b><span>'+esc(sub.join(" · "))+'</span>'+
+      (bds.length?'<span class="bdline">🎂 '+bds.map(function(x){ return esc(norm(x.name).split(" ")[0])+(x.b.age?' ('+x.b.age+')':'')+' '+esc(bdayWhen(x.b)); }).join(' · ')+'</span>':'')+'</div>'+
     '<div class="abtns"><button class="ab att" data-hatt="'+gi+'">📋 נוכחות</button>'+
       // (טל) הכפתורים לא ננעלים אחרי בקשה — התאריך שכבר יש לו בקשה פשוט לא ניתן לבחירה בטופס. רכז רואה אותם גם בקבוצות של אחרים.
       (full?'<button class="ab sub" data-hsub="'+k+'">🔄 החלפה</button><button class="ab post" data-hpost="'+k+'">📅 דחייה</button>'
@@ -487,12 +501,16 @@ function renderHome(groups){
   if(state.homeMsg && Date.now() < (state.homeMsgT||0)) h += '<div style="color:#22c55e;font-weight:800;font-size:.9rem;margin:0 2px 10px">'+esc(state.homeMsg)+'</div>';
   // ביום שיש קבוצה — היא ראשונה, עם "נוכחות" גדול (מה שעושים הכי הרבה)
   var todayG = mine.filter(function(g){ return g.day===todayName; });
-  if(state.isCoord) h += clubToday(groups, todayName);   /* (לשונית נפתחת) */   // רכז: כל הקבוצות של היום (כולל שלו) - במקום הכרטיס האישי
+  loadStaff();
+  h += bdayAskHTML();
+  if(state.isCoord) h += clubToday(groups, todayName);
+     /* (לשונית נפתחת) */   // רכז: כל הקבוצות של היום (כולל שלו) - במקום הכרטיס האישי
   else if(todayG.length) h += '<div class="todaycard"><div class="tdh">📍 היום · '+esc(todayName)+'</div>'+todayG.map(function(g){
       var t=defaultTimes(g);
       return '<div class="tdrow"><div class="tdnm"><b>'+esc(cleanInst(g.instructor))+'</b><span>'+esc(BRN[g.branch]||g.branch)+(t?' · \u2066'+t.start+'–'+t.end+'\u2069':'')+'</span></div>'+
         '<button class="tdatt" data-hatt="'+giOf(g)+'">📋 נוכחות</button></div>';
     }).join('')+'</div>';
+  h += bdayWeekHTML(groups);   // (רכז) 🎂 ימי הולדת השבוע
   h += '<div id="homehours"></div>';
   h += '<div id="subui" style="margin-top:10px"></div><div id="subpanel"></div>';
   if(mine.length){
@@ -520,6 +538,8 @@ function renderHome(groups){
   document.querySelectorAll("[data-hsub]").forEach(function(b){ b.onclick=function(){ underRow(b); attReqOpen(state.homeG[+b.dataset.hsub]); }; });
   document.querySelectorAll("[data-hpost]").forEach(function(b){ b.onclick=function(){ underRow(b); attPostOpen(state.homeG[+b.dataset.hpost]); }; });
   if($("clubbar")) $("clubbar").onclick=function(){ state.clubOpen=!state.clubOpen; render(); };
+  if($("bdbar")) $("bdbar").onclick=function(){ state.bdOpen=!state.bdOpen; render(); };
+  bindBdayAsk();
   document.querySelectorAll("[data-cinst]").forEach(function(b){ b.onclick=function(){ underRow(b); setInstOpen(state.groups[+b.dataset.cinst]); }; });
   // רכז: החלפה / דחייה בשם המדריך של הקבוצה
   document.querySelectorAll("[data-csub]").forEach(function(b){ b.onclick=function(){ underRow(b); attReqOpen(state.groups[+b.dataset.csub], true); }; });
@@ -889,6 +909,62 @@ function nearestDate(dates){
 }
 function changeDate(dd){ state.di=Math.max(0,Math.min(state.dates.length-1,state.di+dd)); updateDateUI(); renderStudents(); }
 
+// ----- 🎂 ימי הולדת (טל) — מוצג למי שרואה את מרכז המדריכים (רון/טל עכשיו, כולם מ-1/12) -----
+function parseDob(v){ var m=String(v||"").trim().match(/^(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?$/); if(!m) return null;
+  var d=+m[1], mo=+m[2], y=m[3]?+m[3]:null; if(y!=null && y<100) y+=(y>40?1900:2000);
+  if(d<1||d>31||mo<1||mo>12) return null; return {d:d, m:mo, y:y}; }
+function bdayInfo(dob){ var p=parseDob(dob); if(!p) return null; var t=new Date(); t.setHours(0,0,0,0);
+  var nx=new Date(t.getFullYear(), p.m-1, p.d); if(nx<t) nx=new Date(t.getFullYear()+1, p.m-1, p.d);
+  var age=p.y ? nx.getFullYear()-p.y : null; if(age!=null && (age<1||age>99)) age=null;
+  return {days:Math.round((nx-t)/864e5), date:nx, age:age}; }
+function bdayWhen(b){ return b.days===0 ? 'היום!' : b.days===1 ? 'מחר' : 'ביום '+HDAY[b.date.getDay()]+' '+b.date.getDate()+'/'+(b.date.getMonth()+1); }
+function bdayOn(){ return hoursOK(); }
+function groupBdays(g){ if(!bdayOn()) return [];
+  return (g.students||[]).map(function(st){ var b=bdayInfo(st.dob); return b&&b.days<=7 ? {name:st.name, b:b} : null; }).filter(Boolean).sort(function(a,c){ return a.b.days-c.b.days; }); }
+function myStaffDob(){ var me=norm(state.who); var r=(state.staff||[]).filter(function(x){ return norm(x.inst)===me; })[0]; return r&&r.dob ? r.dob : ""; }
+function loadStaff(){
+  if(!bdayOn() || state.staff!==undefined) return;
+  state.staff=null;
+  api({action:"staffRead"}).then(function(j){ state.staff=(j&&j.ok&&j.rows)||[]; if(HOURS_MODE && state.view!=="att") render(); }).catch(function(){ state.staff=[]; });
+}
+// (מדריך) פעם אחת: מתי יום ההולדת שלך — יום וחודש בלבד
+function bdayAskHTML(){
+  if(!bdayOn() || !Array.isArray(state.staff) || myStaffDob()) return '';
+  try{ var sk=+localStorage.getItem("att_bday_skip")||0; if(Date.now()-sk < 30*864e5) return ''; }catch(e){}
+  var MON=["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+  var days=''; for(var d=1;d<=31;d++) days+='<option value="'+d+'">'+d+'</option>';
+  return '<div class="bdask"><div><b>🎂 מתי יום ההולדת שלך?</b> <span>כדי שנדע לחגוג 🙂</span></div>'+
+    '<div class="bdrow"><select id="bd_d" class="asin"><option value="">יום</option>'+days+'</select>'+
+    '<select id="bd_m" class="asin"><option value="">חודש</option>'+MON.map(function(n,i){ return '<option value="'+(i+1)+'">'+n+'</option>'; }).join('')+'</select>'+
+    '<button id="bd_save" class="asin bdsave">שמור</button></div><button id="bd_skip" class="linkbtn" style="align-self:flex-start">לא עכשיו</button></div>';
+}
+function bindBdayAsk(){
+  if(!$("bd_save")) return;
+  $("bd_skip").onclick=function(){ try{ localStorage.setItem("att_bday_skip", String(Date.now())); }catch(e){} render(); };
+  $("bd_save").onclick=function(){
+    var d=$("bd_d").value, m=$("bd_m").value; if(!d||!m){ alert("בחרו יום וחודש"); return; }
+    var btn=this, dob=d+"/"+m; btn.disabled=true; btn.textContent="שומר…";
+    post({action:"staffSet", inst:norm(state.who), dob:dob}).then(function(j){
+      if(j&&j.ok){ state.staff=(state.staff||[]).filter(function(x){ return norm(x.inst)!==norm(state.who); }).concat([{inst:norm(state.who), dob:dob}]);
+        state.homeMsg="🎂 נשמר, תודה!"; state.homeMsgT=Date.now()+5000; render(); }
+      else { btn.disabled=false; btn.textContent="שמור"; alert("לא נשמר: "+((j&&j.error)||"נסו שוב")); }
+    }).catch(function(){ btn.disabled=false; btn.textContent="שמור"; alert("אין חיבור"); });
+  };
+}
+// (רכז) מי חוגג השבוע — מדריכים וחניכים
+function bdayWeekHTML(groups){
+  if(!bdayOn() || !state.isCoord) return '';
+  var list=[], seen={};
+  (state.staff||[]).forEach(function(r){ var b=bdayInfo(r.dob); if(b&&b.days<=7) list.push({who:cleanInst(r.inst), sub:'מדריך/ה', b:b, staff:1}); });
+  groups.forEach(function(g){ (g.students||[]).forEach(function(st){ var b=bdayInfo(st.dob); var k=norm(st.name);
+    if(b&&b.days<=7&&!seen[k]){ seen[k]=1; list.push({who:st.name, sub:cleanInst(g.instructor)+' · '+g.day+' · '+(BRN[g.branch]||g.branch), b:b}); } }); });
+  if(!list.length) return '';
+  list.sort(function(a,c){ return a.b.days-c.b.days || (c.staff||0)-(a.staff||0); });
+  var open=!!state.bdOpen, today=list.filter(function(x){ return x.b.days===0; }).length;
+  var bar='<button class="clubbar" id="bdbar" aria-expanded="'+open+'"><span class="cbl" style="color:#f472b6">🎂 ימי הולדת השבוע</span><span class="cbs">'+list.length+(today?' · <b style="color:#f472b6">'+today+' היום</b>':'')+'</span><span class="cbc">'+(open?'▴':'▾')+'</span></button>';
+  var body=open ? '<div class="clubbody">'+list.map(function(x){ return '<div class="bdi"><b>'+(x.staff?'⭐ ':'')+esc(x.who)+(x.b.age?' · '+x.b.age:'')+'</b><span>'+esc(x.sub)+'</span><em>'+esc(bdayWhen(x.b))+'</em></div>'; }).join('')+'</div>' : '';
+  return '<div class="clubwrap">'+bar+body+'</div>';
+}
 function renderStudents(){
   var cur = state.groups[state.gi]; var date = state.dates[state.di];
   var present = 0;
@@ -896,8 +972,9 @@ function renderStudents(){
     var v = s.attendance[date]||"";
     if(v==="v") present++;
     var ask = state.askReason && state.askReason.row===s.row && state.askReason.date===date;
+    var bb = bdayOn() ? bdayInfo(s.dob) : null;
     return '<div class="st">'+
-      '<button class="nm" data-card="'+idx+'">'+esc(s.name)+(s.notes&&s.notes.length?' ⚠️':'')+'<small>'+esc(s.parent||"")+(s.shirt?' · חולצה '+esc(s.shirt):'')+'</small></button>'+
+      '<button class="nm" data-card="'+idx+'">'+esc(s.name)+(s.notes&&s.notes.length?' ⚠️':'')+(bb&&bb.days<=7?'<span class="bday">🎂 '+esc(bdayWhen(bb))+(bb.age?' · '+bb.age:'')+'</span>':'')+'<small>'+esc(s.parent||"")+(s.shirt?' · חולצה '+esc(s.shirt):'')+'</small></button>'+
       '<div class="seg">'+
         '<button data-mark="v" data-row="'+s.row+'" class="'+(v==="v"?"ok":"")+'">✓</button>'+
         '<button data-mark="x" data-row="'+s.row+'" class="'+(v==="x"?"no":"")+'">✗</button>'+
@@ -1050,7 +1127,9 @@ function openCard(s, cur){
   '</div>';
   h += '<div class="grid">'+
     cell("מידת חולצה", s.shirt||"—", true)+ cell("גיל", s.age||"—")+
-    cell("תאריך לידה", s.dob||"—")+ cell("מין", s.gender||"—")+'</div>';
+    (bdayOn() && !parseDob(s.dob) ? '<div class="cell"><div class="k">תאריך לידה</div><div class="v"><button class="linkbtn" id="add_dob">➕ הוסף</button></div></div>'
+       : cell("תאריך לידה", (s.dob||"—")+(bdayOn()&&bdayInfo(s.dob)&&bdayInfo(s.dob).days<=7?' 🎂':'')))+ cell("מין", s.gender||"—")+'</div>'+
+    '<div id="dob_box"></div>';
   h += '<div class="notes"><div class="h"><span class="k">הערות</span></div><div id="nlist">'+notesHtml(s)+'</div>'+
     '<div class="naddrow"><input id="nin" placeholder="הוסף הערה…"><button id="nadd">הוסף</button></div></div>';
   if(state.isCoord) h += '<button class="rmst" id="rmst">🗑️ הסר חניך מהקבוצה</button>';   // רכזים בלבד
@@ -1059,7 +1138,23 @@ function openCard(s, cur){
   $("ovx").onclick = closeCard;
   if($("addcontact")) $("addcontact").onclick = function(){ saveContact(s, cur); };
   if($("rmst")) $("rmst").onclick = function(){ removeStudent(s, cur); };
+  if($("add_dob")) $("add_dob").onclick = function(){ addDobForm(s, cur); };
   $("nadd").onclick = function(){ addNote(s, cur); };
+}
+// (טל) הוספת תאריך לידה לחניך — נכתב בגיליון הנוכחות, בעמודת "תאריך לידה" של הקבוצה
+function addDobForm(s, cur){
+  var b=$("dob_box"); if(!b) return;
+  b.innerHTML='<div class="dobf"><label>תאריך הלידה של '+esc(norm(s.name).split(" ")[0])+'</label><input id="dob_in" type="date" class="asin">'+
+    '<div id="dob_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em"></div><button id="dob_save" class="asin bdsave">שמור</button></div>';
+  $("dob_in").focus();
+  $("dob_save").onclick=function(){
+    var iso=$("dob_in").value; if(!iso){ $("dob_err").textContent="בחרו תאריך"; return; }
+    var p=iso.split("-"), dob=(+p[2])+"/"+(+p[1])+"/"+p[0].slice(2), btn=this; btn.disabled=true; btn.textContent="שומר…";
+    post({action:"setStudentDob", branch:cur.branch, day:cur.day, row:s.row, name:norm(s.name), dob:dob}).then(function(j){
+      if(j&&j.ok){ s.dob=dob; try{ localStorage.removeItem("att_cache"); }catch(e){} openCard(s, cur); if($("stlist")) renderStudents(); }
+      else { btn.disabled=false; btn.textContent="שמור"; $("dob_err").textContent = /changed/.test((j&&j.error)||"") ? "הגיליון השתנה — רעננו ונסו שוב" : /no dob column/.test((j&&j.error)||"") ? "בגיליון של הקבוצה אין עמודת תאריך לידה" : "לא נשמר: "+((j&&j.error)||"נסו שוב"); }
+    }).catch(function(){ btn.disabled=false; btn.textContent="שמור"; $("dob_err").textContent="אין חיבור"; });
+  };
 }
 function removeStudent(s, cur){
   if(!confirm("להסיר את "+norm(s.name)+" מהקבוצה?\nהפעולה מוחקת אותו/ה מהרשימה בטבלה.")) return;
