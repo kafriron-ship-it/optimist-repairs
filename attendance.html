@@ -1815,24 +1815,77 @@ function toggleSummary(){
   };
   $("sumxls").onclick=function(){ exportHoursXls(list, grand); };
 }
-// ייצוא לאקסל: קובץ .xls (טבלת HTML) — פירוט כל השעות + סיכום לכל מדריך. נפתח ישר באקסל עם עברית.
+// ייצוא לאקסל (טל): קובץ ‎.xlsx‎ אמיתי — נפתח באקסל, ב-Google Sheets ובטלפון. (ה-‎.xls‎ הקודם היה טבלת HTML, ובטלפון נפתח כ"פגום")
+// בלי ספריות: zip בלי דחיסה + XML מינימלי. שני גיליונות: סיכום + פירוט.
+var CRC_T_=null;
+function crc32_(u8){
+  if(!CRC_T_){ CRC_T_=new Uint32Array(256); for(var n=0;n<256;n++){ var c=n; for(var k=0;k<8;k++) c = (c&1) ? (0xEDB88320^(c>>>1)) : (c>>>1); CRC_T_[n]=c>>>0; } }
+  var crc=0xFFFFFFFF; for(var i=0;i<u8.length;i++) crc=CRC_T_[(crc^u8[i])&0xFF]^(crc>>>8); return (crc^0xFFFFFFFF)>>>0;
+}
+function zipParts_(files){   // files: [{name, data}] → מערך חלקים בינאריים של zip (STORE)
+  var enc=new TextEncoder(), parts=[], central=[], off=0, csize=0;
+  files.forEach(function(f){
+    var name=enc.encode(f.name), data=enc.encode(f.data), crc=crc32_(data);
+    var h=new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true); h.setUint16(10,0,true); h.setUint16(12,0x21,true);
+    h.setUint32(14,crc,true); h.setUint32(18,data.length,true); h.setUint32(22,data.length,true); h.setUint16(26,name.length,true); h.setUint16(28,0,true);
+    parts.push(new Uint8Array(h.buffer), name, data);
+    var c=new DataView(new ArrayBuffer(46));
+    c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(10,0,true); c.setUint16(12,0,true); c.setUint16(14,0x21,true);
+    c.setUint32(16,crc,true); c.setUint32(20,data.length,true); c.setUint32(24,data.length,true); c.setUint16(28,name.length,true);
+    c.setUint16(30,0,true); c.setUint16(32,0,true); c.setUint16(34,0,true); c.setUint16(36,0,true); c.setUint32(38,0,true); c.setUint32(42,off,true);
+    central.push(new Uint8Array(c.buffer), name); csize += 46+name.length;
+    off += 30+name.length+data.length;
+  });
+  var e=new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true); e.setUint16(4,0,true); e.setUint16(6,0,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true);
+  e.setUint32(12,csize,true); e.setUint32(16,off,true); e.setUint16(20,0,true);
+  return parts.concat(central, [new Uint8Array(e.buffer)]);
+}
+function xesc_(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,""); }
+function xcol_(i){ var s=""; i++; while(i>0){ var m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26); } return s; }
+function xsheet_(rows, widths){   // מספר = תא מספרי, אחרת טקסט. שורה ראשונה מודגשת (סגנון 1)
+  var x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0" rightToLeft="1"/></sheetViews>';
+  if(widths) x+='<cols>'+widths.map(function(w,i){ return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>'; }).join('')+'</cols>';
+  x+='<sheetData>';
+  rows.forEach(function(r,ri){
+    x+='<row r="'+(ri+1)+'">';
+    r.forEach(function(v,ci){ if(v==="" || v==null) return; var ref=xcol_(ci)+(ri+1), st=(ri===0||r.bold)?' s="1"':'';
+      x += (typeof v==="number" && isFinite(v)) ? '<c r="'+ref+'"'+st+'><v>'+v+'</v></c>' : '<c r="'+ref+'"'+st+' t="inlineStr"><is><t xml:space="preserve">'+xesc_(v)+'</t></is></c>'; });
+    x+='</row>';
+  });
+  return x+'</sheetData></worksheet>';
+}
+function xlsxParts_(sheets){   // sheets: [{name, rows, widths}]
+  var X='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', NS='http://schemas.openxmlformats.org/', files=[
+    {name:"[Content_Types].xml", data:X+'<Types xmlns="'+NS+'package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+
+      sheets.map(function(s,i){ return '<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'; }).join('')+'</Types>'},
+    {name:"_rels/.rels", data:X+'<Relationships xmlns="'+NS+'package/2006/relationships"><Relationship Id="rId1" Type="'+NS+'officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+    {name:"xl/workbook.xml", data:X+'<workbook xmlns="'+NS+'spreadsheetml/2006/main" xmlns:r="'+NS+'officeDocument/2006/relationships"><sheets>'+
+      sheets.map(function(s,i){ return '<sheet name="'+xesc_(s.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>'; }).join('')+'</sheets></workbook>'},
+    {name:"xl/_rels/workbook.xml.rels", data:X+'<Relationships xmlns="'+NS+'package/2006/relationships">'+
+      sheets.map(function(s,i){ return '<Relationship Id="rId'+(i+1)+'" Type="'+NS+'officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>'; }).join('')+
+      '<Relationship Id="rId'+(sheets.length+1)+'" Type="'+NS+'officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
+    {name:"xl/styles.xml", data:X+'<styleSheet xmlns="'+NS+'spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="11"/><name val="Arial"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'}
+  ];
+  sheets.forEach(function(s,i){ files.push({name:"xl/worksheets/sheet"+(i+1)+".xml", data:xsheet_(s.rows, s.widths)}); });
+  return zipParts_(files);
+}
 function exportHoursXls(list, grand){
-  var r2=function(n){ return Math.round(n*100)/100; };
+  var r2=function(n){ return Math.round(n*100)/100; }, num=function(v){ var n=parseFloat(v); return isNaN(n) ? (v||"") : n; };
   var rows=hstate.rows.slice().sort(function(a,b){ var c=cleanInst(a.inst).localeCompare(cleanInst(b.inst),"he"); return c||(toDate_(a.date)-toDate_(b.date)); });
-  var detail=rows.map(function(x){ return '<tr><td>'+esc(cleanInst(x.inst))+'</td><td>'+esc(x.date)+'</td><td>'+esc(x.act||"")+'</td><td>'+esc(x.start||"")+'</td><td>'+esc(x.end||"")+'</td><td>'+esc(x.total||"")+'</td></tr>'; }).join('');
-  var totals=list.map(function(x){ return '<tr><td>'+esc(cleanInst(x.inst))+'</td><td>'+x.days+'</td><td>'+r2(x.total)+'</td></tr>'; }).join('');
-  var html='<html dir="rtl"><head><meta charset="utf-8"></head><body>'+
-    '<h3>שעות עבודה — '+esc(monthLabel(hstate.month))+'</h3>'+
-    '<table border="1" cellspacing="0" cellpadding="4"><tr><th>מדריך</th><th>תאריך</th><th>פעילות</th><th>התחלה</th><th>סיום</th><th>שעות</th></tr>'+detail+'</table><br>'+
-    '<h3>סיכום</h3>'+
-    '<table border="1" cellspacing="0" cellpadding="4"><tr><th>מדריך</th><th>ימים</th><th>סה״כ שעות</th></tr>'+totals+
-    '<tr><th>סה״כ</th><th></th><th>'+r2(grand)+'</th></tr></table></body></html>';
+  var sum=[["מדריך","ימים","סה״כ שעות"]].concat(list.map(function(x){ return [cleanInst(x.inst), x.days, r2(x.total)]; }));
+  var tot=["סה״כ","",r2(grand)]; tot.bold=true; sum.push(tot);
+  var det=[["מדריך","תאריך","פעילות","התחלה","סיום","שעות"]].concat(rows.map(function(x){ return [cleanInst(x.inst), x.date, norm(x.act||""), toHHMM(x.start)||norm(x.start||""), toHHMM(x.end)||norm(x.end||""), num(x.total)]; }));
+  var fname="שעות-"+monthLabel(hstate.month).replace(/\s+/g,"-")+".xlsx";
   try{
-    var blob=new Blob(["﻿"+html], {type:"application/vnd.ms-excel"});
+    var parts=xlsxParts_([{name:"סיכום", rows:sum, widths:[22,8,12]}, {name:"פירוט", rows:det, widths:[20,10,30,8,8,8]}]);
+    var type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    var blob=new Blob(parts, {type:type});
     var url=URL.createObjectURL(blob);
-    var a=document.createElement("a"); a.href=url; a.download="שעות-"+monthLabel(hstate.month).replace(/\s+/g,"-")+".xls";
+    var a=document.createElement("a"); a.href=url; a.download=fname;
     document.body.appendChild(a); a.click();
-    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); },1500);
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); },4000);
   }catch(e){ alert("הייצוא נכשל במכשיר הזה"); }
 }
 // ===================== החלפות — מהפעילות (תצוגת הנוכחות) =====================
