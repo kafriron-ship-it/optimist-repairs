@@ -37,6 +37,13 @@ button{font-family:inherit;cursor:pointer}
 .tdrow{display:flex;align-items:center;gap:10px}
 .tdnm{flex:1;min-width:0;display:flex;flex-direction:column}
 .tdnm b{font-size:1rem}.tdnm span{color:var(--muted);font-size:.85rem;font-weight:600}
+.clubwrap{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.clubbar{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;color:var(--ink);padding:10px 12px;cursor:pointer;text-align:start;font:inherit}
+.clubbar .cbl{font:800 .86rem 'Assistant',sans-serif;color:var(--flag);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.clubbar .cbs{margin-inline-start:auto;color:var(--muted);font:700 .78rem 'Assistant',sans-serif;white-space:nowrap}
+.clubbar .cbs b{color:var(--flag)}
+.clubbar .cbc{color:var(--muted);font-size:.8rem}
+.clubbody{border-top:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:10px}
 .tdsum{color:var(--muted);font-size:.82rem;font-weight:700;margin-top:-6px}
 .cchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 .cchip{font:800 .72rem 'Assistant',sans-serif;border-radius:999px;padding:2px 8px;border:1px solid var(--line);color:var(--muted)}
@@ -460,8 +467,11 @@ function clubToday(groups, todayName){
     return '<div class="tdrow"><div class="tdnm"><b>'+esc(cleanInst(g.instructor))+'</b><span>'+esc(BRN[g.branch]||g.branch)+(t?' · ⁦'+t.start+'–'+t.end+'⁩':'')+(isToday?'':' · '+esc(d))+'</span>'+(chips?'<div class="cchips">'+chips+'</div>':'')+'</div>'+
       '<button class="tdatt sm" data-hatt="'+giOf(g)+'">📋 נוכחות</button></div>';
   });
-  var head='<div class="tdh">'+label+'</div>'+(isToday?'<div class="tdsum">'+list.length+' קבוצות · נוכחות מולאה ב־'+done+'</div>':'<div class="tdsum">'+list.length+' קבוצות</div>');
-  return '<div class="todaycard">'+head+rows.join('')+'</div>';
+  // לשונית קטנה (סגורה כברירת מחדל) — נפתחת בלחיצה, כדי שלא יעמיס על המסך
+  var open=!!state.clubOpen, miss=isToday ? list.length-done : 0;
+  var sum = list.length+' קבוצות'+(isToday ? ' · נוכחות <span dir="ltr">'+done+'/'+list.length+'</span>' : '');
+  var bar='<button class="clubbar'+(open?' open':'')+'" id="clubbar" aria-expanded="'+open+'"><span class="cbl">'+label+'</span><span class="cbs">'+sum+(miss?' · <b>'+miss+' לא מולאו</b>':'')+'</span><span class="cbc">'+(open?'▴':'▾')+'</span></button>';
+  return '<div class="clubwrap">'+bar+(open?'<div class="clubbody">'+rows.join('')+'</div>':'')+'</div>';
 }
 function byDay(list){
   var out={}; list.forEach(function(g){ (out[g.day]=out[g.day]||[]).push(g); });
@@ -477,7 +487,7 @@ function renderHome(groups){
   if(state.homeMsg && Date.now() < (state.homeMsgT||0)) h += '<div style="color:#22c55e;font-weight:800;font-size:.9rem;margin:0 2px 10px">'+esc(state.homeMsg)+'</div>';
   // ביום שיש קבוצה — היא ראשונה, עם "נוכחות" גדול (מה שעושים הכי הרבה)
   var todayG = mine.filter(function(g){ return g.day===todayName; });
-  if(state.isCoord) h += clubToday(groups, todayName);   // רכז: כל הקבוצות של היום (כולל שלו) - במקום הכרטיס האישי
+  if(state.isCoord) h += clubToday(groups, todayName);   /* (לשונית נפתחת) */   // רכז: כל הקבוצות של היום (כולל שלו) - במקום הכרטיס האישי
   else if(todayG.length) h += '<div class="todaycard"><div class="tdh">📍 היום · '+esc(todayName)+'</div>'+todayG.map(function(g){
       var t=defaultTimes(g);
       return '<div class="tdrow"><div class="tdnm"><b>'+esc(cleanInst(g.instructor))+'</b><span>'+esc(BRN[g.branch]||g.branch)+(t?' · \u2066'+t.start+'–'+t.end+'\u2069':'')+'</span></div>'+
@@ -509,6 +519,7 @@ function renderHome(groups){
   function underRow(b){ var sp=$("subpanel"), row=b.closest(".arow"); row.parentNode.insertBefore(sp, row.nextSibling); return sp; }
   document.querySelectorAll("[data-hsub]").forEach(function(b){ b.onclick=function(){ underRow(b); attReqOpen(state.homeG[+b.dataset.hsub]); }; });
   document.querySelectorAll("[data-hpost]").forEach(function(b){ b.onclick=function(){ underRow(b); attPostOpen(state.homeG[+b.dataset.hpost]); }; });
+  if($("clubbar")) $("clubbar").onclick=function(){ state.clubOpen=!state.clubOpen; render(); };
   document.querySelectorAll("[data-cinst]").forEach(function(b){ b.onclick=function(){ underRow(b); setInstOpen(state.groups[+b.dataset.cinst]); }; });
   // רכז: החלפה / דחייה בשם המדריך של הקבוצה
   document.querySelectorAll("[data-csub]").forEach(function(b){ b.onclick=function(){ underRow(b); attReqOpen(state.groups[+b.dataset.csub], true); }; });
