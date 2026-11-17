@@ -606,8 +606,16 @@ function showTab(t){
   if(t==="hours" && !hoursTabAllowed()) t = "report";   // שעות — לפי רשימת היתר
   document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
   ["report","boats","stats","att","hours"].forEach(v=>$("view-"+v).hidden = v!==t);
-  if(t==="att"){ const f=$("attFrame"); if(f && !f.getAttribute("src")) f.setAttribute("src","attendance.html?embed=1"); }
-  if(t==="hours"){ const f=$("hoursFrame"); if(f && !f.getAttribute("src")) f.setAttribute("src","attendance.html?embed=1&hours=1"); }
+  if(t==="att") loadFrame("attFrame", "attendance.html?embed=1");
+  if(t==="hours") loadFrame("hoursFrame", "attendance.html?embed=1&hours=1");
+}
+// (טל) המסך המוטמע נטען מחדש אם השם השתנה מאז שנטען — אחרת הוא ממשיך להציג את הקבוצות של השם הקודם
+function frameWho(){ return ($("who").value||"").replace(/\s+/g," ").trim(); }
+function loadFrame(id, url){
+  const f=$(id); if(!f) return;
+  if(f.getAttribute("src") && f.dataset.who===frameWho()) return;
+  const again=!!f.getAttribute("src"); f.dataset.who=frameWho();
+  f.setAttribute("src", url + (again ? "&r="+Date.now() : ""));
 }
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{ location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
 // כתובת המחבר מוטמעת בקוד (מעורפלת — הסתרה, לא אבטחה) כדי שהקישור הראשי יעבוד לבד, בלי קישור נפרד
@@ -850,7 +858,10 @@ function askName(){ const p=($("who").value||"").split(" ").filter(Boolean); $("
 function saveName(){ const f=$("nameFirst").value.trim().replace(/\s+/g," "), l=$("nameLast").value.trim().replace(/\s+/g," ");
   if(!f || !l){ $("nameFirst").classList.toggle("need",!f); $("nameLast").classList.toggle("need",!l); $("needName").hidden=false; return; }
   const n=f+" "+l;
-  $("who").value = n; $("fixer").value = n; store.set("who", n); $("namePick").hidden = true; showName(); updateAttTab(); updateStatsTab(); updateHoursTab(); ensureRoster(); }
+  $("who").value = n; $("fixer").value = n; store.set("who", n); $("namePick").hidden = true; showName(); updateAttTab(); updateStatsTab(); updateHoursTab(); ensureRoster();
+  // אם מסך הנוכחות/מרכז המדריכים פתוח עכשיו — טוענים אותו מחדש עם השם החדש
+  if(!$("view-att").hidden) loadFrame("attFrame", "attendance.html?embed=1");
+  if(!$("view-hours").hidden) loadFrame("hoursFrame", "attendance.html?embed=1&hours=1"); }
 $("nameSave").addEventListener("click", saveName);
 $("nameFirst").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); $("nameLast").focus(); } });
 $("nameLast").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); saveName(); } });
