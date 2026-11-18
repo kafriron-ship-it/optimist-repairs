@@ -198,11 +198,27 @@ textarea{min-height:64px;resize:vertical}
 .toggle input{width:22px;height:22px;accent-color:var(--stop)}
 .primary{background:var(--flag);color:var(--flag-ink);border:0;border-radius:12px;padding:16px;font:800 1.15rem var(--body);cursor:pointer}
 #fbBtn{position:fixed;left:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:60;width:48px;height:48px;border-radius:50%;border:0;background:var(--flag);color:var(--flag-ink);font-size:1.3rem;box-shadow:0 5px 16px rgba(0,0,0,.28);cursor:pointer}
-#fbModal{position:fixed;inset:0;z-index:70;background:rgba(5,10,20,.6);display:flex;align-items:flex-end;justify-content:center}
-#fbModal .fbcard{background:var(--surface);color:var(--ink);border-top-left-radius:18px;border-top-right-radius:18px;width:100%;max-width:460px;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
-#fbModal .fbh{font:800 1.1rem var(--body)}
-#fbModal .fbsub{color:var(--muted);font-size:.85rem;margin-top:-4px}
-#fbModal .fbrow{display:flex;gap:8px;align-items:stretch}
+#fbModal,#shareModal{position:fixed;inset:0;z-index:70;background:rgba(5,10,20,.6);display:flex;align-items:flex-end;justify-content:center}
+#fbModal .fbcard,#shareModal .fbcard{background:var(--surface);color:var(--ink);border-top-left-radius:18px;border-top-right-radius:18px;width:100%;max-width:460px;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
+#fbModal .fbh,#shareModal .fbh{font:800 1.1rem var(--body)}
+#fbModal .fbsub,#shareModal .fbsub{color:var(--muted);font-size:.85rem;margin-top:-4px}
+#fbModal .fbrow,#shareModal .fbrow{display:flex;gap:8px;align-items:stretch}
+/* (רון) שיתוף הקישור לאפליקציה */
+.sharebtn{display:inline-flex;align-items:center;gap:5px;vertical-align:middle;background:rgba(255,255,255,.16);color:inherit;border:0;border-radius:999px;font:600 .8rem var(--body);padding:2px 10px;margin-inline-start:6px;cursor:pointer}
+.sharebtn:active{transform:scale(.97)}
+.sharelink{background:var(--chip);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:600 .85rem 'IBM Plex Mono',monospace;color:var(--ink);word-break:break-all;text-align:left;user-select:all}
+.sharewa{flex:1;padding:12px;font-size:1rem;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center}
+#shareModal .ghost{padding:11px 14px}
+/* (רון) הזמנה למשוב — בועה ליד כפתור המשוב, פעם בכמה זמן */
+.fbnudge{position:fixed;left:14px;bottom:calc(74px + env(safe-area-inset-bottom));z-index:61;width:min(280px,calc(100vw - 28px));background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:14px 14px 12px;box-shadow:0 12px 30px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:6px;animation:fbn .28s cubic-bezier(.2,.8,.2,1)}
+.fbnudge[hidden]{display:none}
+.fbnudge::after{content:"";position:absolute;left:24px;bottom:-7px;width:12px;height:12px;background:var(--surface);border-right:1px solid var(--line);border-bottom:1px solid var(--line);transform:rotate(45deg)}
+.fbnudge b{font-size:.98rem;padding-inline-end:22px}
+.fbnudge span{color:var(--muted);font-size:.85rem;line-height:1.4}
+.fbnudge .primary{padding:10px;font-size:.95rem;margin-top:4px}
+.fbnx{position:absolute;top:8px;left:8px;background:none;border:0;color:var(--muted);font-size:.95rem;padding:4px 6px;cursor:pointer}
+@keyframes fbn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.fbnudge{animation:none}}
 .primary:disabled{opacity:.45;cursor:not-allowed}
 .toast{min-height:1.4em;font-weight:600;color:var(--ok);text-align:center}
 .sentcard{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;background:var(--surface);border:2px solid var(--ok);border-radius:16px;padding:18px 16px}
@@ -321,7 +337,7 @@ textarea{min-height:64px;resize:vertical}
 <header>
   <div class="brand">
     <svg class="logo" id="danielLogo" viewBox="0 0 40 40" role="img" aria-label="מרכז דניאל"><rect width="40" height="40" rx="9" fill="#fff"/><path d="M3 20 Q20 16.6 37 20 Q20 23.4 3 20 Z" fill="#ec8f33"/><g fill="#2e6fb7"><path d="M11.7 9 L14.5 9 L13.4 15.5 L12.4 15.5 Z"/><path d="M16.7 9 L19.5 9 L18.4 15.5 L17.4 15.5 Z"/><path d="M21.7 9 L24.5 9 L23.4 15.5 L22.4 15.5 Z"/><path d="M26.7 9 L29.5 9 L28.4 15.5 L27.4 15.5 Z"/><path d="M12.6 24.5 L13.6 24.5 L14.4 31 L11.6 31 Z"/><path d="M17.6 24.5 L18.6 24.5 L19.4 31 L16.6 31 Z"/><path d="M22.6 24.5 L23.6 24.5 L24.4 31 L21.6 31 Z"/><path d="M27.6 24.5 L28.6 24.5 L29.4 31 L26.6 31 Z"/></g></svg>
-    <div><h1 id="clubName"></h1><div class="sub">תקלות בסירות<button type="button" id="nameBtn" class="namebtn" hidden></button></div></div>
+    <div><h1 id="clubName"></h1><div class="sub">תקלות בסירות<button type="button" id="nameBtn" class="namebtn" hidden></button><button type="button" id="shareBtn" class="sharebtn" aria-label="שליחת הקישור לאפליקציה" title="שלחו את האפליקציה למדריך"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98"/></svg><span>שיתוף</span></button></div></div>
   </div>
   <nav role="tablist">
     <button role="tab" id="tab-report" data-tab="report" aria-selected="true">דיווח</button>
@@ -338,6 +354,22 @@ textarea{min-height:64px;resize:vertical}
       <textarea id="fbText" rows="4" maxlength="400" placeholder="כתבו כאן…"></textarea>
       <div class="fbrow"><button type="button" class="primary" id="fbSend" style="flex:1;padding:12px">שלח</button><button type="button" class="ghost" id="fbCancel">ביטול</button></div>
     </div>
+  </div>
+  <div id="shareModal" hidden>
+    <div class="fbcard">
+      <div class="fbh">שלחו את האפליקציה</div>
+      <div class="fbsub">למדריך חדש או לחבר צוות: פותחים את הקישור, כותבים את השם, ומוסיפים למסך הבית.</div>
+      <div class="sharelink" id="shareLink" dir="ltr"></div>
+      <div class="fbrow"><a class="primary sharewa" id="shareWa" target="_blank" rel="noopener">שליחה בוואטסאפ</a><button type="button" class="ghost" id="shareCopy">העתק קישור</button></div>
+      <button type="button" class="ghost" id="shareMore" hidden>שיתוף בדרך אחרת…</button>
+      <button type="button" class="ghost" id="shareClose">סגור</button>
+    </div>
+  </div>
+  <div id="fbNudge" class="fbnudge" hidden role="dialog" aria-label="הזמנה למשוב">
+    <button type="button" class="fbnx" id="fbNudgeX" aria-label="סגירה">✕</button>
+    <b>משהו לא עובד? רעיון לשיפור?</b>
+    <span>ספרו לנו בכמה מילים, זה עוזר לנו לשפר את האפליקציה.</span>
+    <button type="button" class="primary" id="fbNudgeGo">כתיבת משוב</button>
   </div>
 </header>
 
@@ -782,13 +814,48 @@ $("reqKind").addEventListener("click", e=>{ const b=e.target.closest("[data-rk]"
   $("reqKind").querySelectorAll("[data-rk]").forEach(x=>x.setAttribute("aria-pressed", x===b)); $("reqText").placeholder = REQ_HINT[reqKind]; });
 $("reqOpen").addEventListener("click", ()=>{ $("reqPanel").hidden = false; $("reqOpen").hidden = true; $("reqText").focus(); });
 $("reqCancel").addEventListener("click", ()=>{ $("reqPanel").hidden = true; $("reqOpen").hidden = !!pin; });
-$("fbBtn").addEventListener("click", ()=>{ $("fbModal").hidden=false; $("fbText").focus(); });
+$("fbBtn").addEventListener("click", ()=>{ $("fbNudge").hidden=true; $("fbModal").hidden=false; $("fbText").focus(); });
+// (רון) שיתוף הקישור לאפליקציה — וואטסאפ / העתקה / שיתוף של הטלפון. הקישור הכללי בלבד (בלי פרטים אישיים).
+function appLink(){ return location.origin + location.pathname.replace(/index\.html$/,"") + (ORG && ORG!=="daniel" ? "?org="+encodeURIComponent(ORG) : ""); }
+function shareText(){ const club=($("clubName").textContent||"").trim(); return "האפליקציה של "+(club||"החוג")+" (תקלות בסירות, נוכחות ושעות):\n"+appLink(); }
+$("shareBtn").addEventListener("click", ()=>{
+  $("shareLink").textContent = appLink();
+  $("shareWa").href = "https://wa.me/?text=" + encodeURIComponent(shareText());
+  $("shareMore").hidden = !navigator.share;
+  $("shareCopy").textContent = "העתק קישור";
+  $("shareModal").hidden = false;
+});
+$("shareClose").addEventListener("click", ()=>{ $("shareModal").hidden=true; });
+$("shareModal").addEventListener("click", e=>{ if(e.target.id==="shareModal") $("shareModal").hidden=true; });
+$("shareCopy").addEventListener("click", ()=>{
+  const b=$("shareCopy"), url=appLink();
+  const done=()=>{ b.textContent="✓ הועתק"; setTimeout(()=>{ b.textContent="העתק קישור"; },2000); };
+  const old=()=>{ const t=document.createElement("textarea"); t.value=url; t.style.position="fixed"; t.style.opacity="0"; document.body.appendChild(t); t.select(); try{ document.execCommand("copy"); done(); }catch(e){} t.remove(); };
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, old); else old();
+});
+$("shareMore").addEventListener("click", ()=>{ navigator.share({title:"תקלות סירות", text:shareText().split("\n")[0], url:appLink()}).catch(()=>{}); });
+// (רון) הזמנה למשוב מדי פעם: אחרי 3 ימי שימוש, לכל היותר פעם ב־14 יום, ולא אם שלחו משוב ב־30 הימים האחרונים
+const FBN = {
+  k: skey("fb_nudge"),
+  get(){ try{ return JSON.parse(localStorage.getItem(this.k)||"{}")||{}; }catch(e){ return {}; } },
+  set(st){ try{ localStorage.setItem(this.k, JSON.stringify(st)); }catch(e){} },
+  show(){ $("fbNudge").hidden=false; const st=this.get(); st.shown=Date.now(); this.set(st); },
+  sent(){ const st=this.get(); st.sent=Date.now(); this.set(st); }
+};
+(function(){
+  const st=FBN.get(), day=new Date().toLocaleDateString("en-CA"), now=Date.now(), D=864e5;
+  st.days=(st.days||[]).filter(d=>d!==day).concat(day).slice(-10); FBN.set(st);
+  const due = st.days.length>=3 && now-(st.shown||0) > 14*D && now-(st.sent||0) > 30*D;
+  if(due) setTimeout(()=>{ if($("fbModal").hidden && $("shareModal").hidden && !document.hidden) FBN.show(); }, 6000);
+})();
+$("fbNudgeX").addEventListener("click", ()=>{ $("fbNudge").hidden=true; });
+$("fbNudgeGo").addEventListener("click", ()=>{ $("fbNudge").hidden=true; $("fbModal").hidden=false; $("fbText").focus(); });
 $("fbCancel").addEventListener("click", ()=>{ $("fbModal").hidden=true; });
 $("fbModal").addEventListener("click", e=>{ if(e.target.id==="fbModal") $("fbModal").hidden=true; });
 $("fbSend").addEventListener("click", ()=>{
   const text=$("fbText").value.trim(); if(!text){ $("fbText").focus(); return; }
   const by=($("who").value||localStorage.getItem("who")||"").trim();
-  $("fbText").value=""; $("fbModal").hidden=true; toast("תודה! המשוב נשלח");
+  $("fbText").value=""; $("fbModal").hidden=true; FBN.sent(); toast("תודה! המשוב נשלח");
   api("request",{text, by, type:(typeof curType!=="undefined"?curType:""), kind:"app"}).catch(e=> toast("המשוב לא נשלח, נסו שוב",true));
 });
 $("reqSend").addEventListener("click", ()=>{
