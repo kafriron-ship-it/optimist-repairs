@@ -59,6 +59,12 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
 .brand .sub{font-size:.85rem;opacity:.85}
 .brand{position:relative}
 .logo{width:40px;height:40px;flex:none;display:block}
+/* (רון) מסך מוטמע (נוכחות / מרכז מדריכים): הדף עצמו לא נגלל — רק המסך שבפנים. קודם היו שתי גלילות אחת בתוך השנייה ("עצירה באמצע הגלילה") */
+html.frametab,html.frametab body{height:100%;overflow:hidden;overscroll-behavior:none}
+html.frametab .wrap{height:100vh;height:100dvh;box-sizing:border-box;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:0}
+html.frametab header{position:relative;top:0;flex:none}
+html.frametab #view-att,html.frametab #view-hours{flex:1 1 auto;min-height:0}
+html.frametab #attFrame,html.frametab #hoursFrame{height:100%!important}
 nav{display:flex;gap:4px;margin-top:12px}
 nav button{flex:1;min-width:0;background:none;border:0;color:var(--head-ink);opacity:.88;font:600 .95rem var(--body);padding:10px 2px 12px;white-space:nowrap;border-bottom:3px solid transparent;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:6px}
 nav button[aria-selected="true"]{opacity:1;border-bottom-color:var(--flag)}
@@ -639,6 +645,9 @@ function showTab(t){
   if(t==="hours" && !hoursTabAllowed()) t = "report";   // שעות — לפי רשימת היתר
   document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
   ["report","boats","stats","att","hours"].forEach(v=>$("view-"+v).hidden = v!==t);
+  const ft = t==="att" || t==="hours", root=document.documentElement;   // (רון) גלילה אחת בלבד במסך המוטמע
+  if(ft && !root.classList.contains("frametab")) window.scrollTo(0,0);
+  root.classList.toggle("frametab", ft);
   if(t==="att") loadFrame("attFrame", "attendance.html?embed=1");
   if(t==="hours") loadFrame("hoursFrame", "attendance.html?embed=1&hours=1");
 }
