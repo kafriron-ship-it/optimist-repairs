@@ -633,7 +633,7 @@ let have = new Set(JSON.parse(store.get("have") || "[]"));
 /* ---------- tabs ---------- */
 function showTab(t){
   if(t==="parts") t = "boats";
-  if(!["report","boats","stats","att","hours"].includes(t)) t = "report";
+  if(!["report","boats","stats","att","hours"].includes(t)) t = homeTab();   // (רון) בלי בחירה — מסך הבית לפי מי שנכנס
   if(t==="stats" && !statsTabAllowed()) t = "report";   // נתונים — רכזים בלבד
   if(t==="att" && hoursLaunched()) t = "hours";            // אחרי ההשקה "לוח פעילות" סגור — עוברים למסך השעות
   if(t==="hours" && !hoursTabAllowed()) t = "report";   // שעות — לפי רשימת היתר
@@ -650,7 +650,12 @@ function loadFrame(id, url){
   const again=!!f.getAttribute("src"); f.dataset.who=frameWho();
   f.setAttribute("src", url + (again ? "&r="+Date.now() : ""));
 }
-document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{ location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
+// (רון) מסך ברירת מחדל: מדריכים → מרכז מדריכים (לפני ההשקה מי שעוד לא רואה אותו → נוכחות חניכים); כל השאר (חניכים) → דיווח כרגיל
+function homeTab(){ try{ if(hoursTabAllowed()) return "hours"; if(!hoursLaunched() && attTabAllowed()) return "att"; }catch(e){} return "report"; }
+var tabPicked = false;
+// הרשימה מהשרת מגיעה אחרי הטעינה — אם עוד לא בחרו טאב ולא התחילו למלא דיווח, עוברים למסך הבית
+function maybeHome(){ try{ if(tabPicked || location.hash.length>1 || $("view-report").hidden || $("boat").value || selected.size) return; var h=homeTab(); if(h!=="report") showTab(h); }catch(e){} }
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{ tabPicked = true; location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
 // כתובת המחבר מוטמעת בקוד (מעורפלת — הסתרה, לא אבטחה) כדי שהקישור הראשי יעבוד לבד, בלי קישור נפרד
 var ATT_ENC="DEAaQUBWSxsdUkEFFEBAVlwDA1gLH1ADCRsDUFAeC0dBQhwtL1IXUlEbLnZDUws/N1gkR2BYBw1cBR4tAGYtSGE+NHY3QgVZNURfZwc8KllcS1svPGVYCV1UUl0lAVAKCUQtdUoONXc0VQBZJRsLSVYP";
 function attDeob(e){ try{ var x=atob(e),k="d4n13l",o=""; for(var i=0;i<x.length;i++) o+=String.fromCharCode(x.charCodeAt(i)^k.charCodeAt(i%k.length)); return o; }catch(_){ return ""; } }
@@ -684,7 +689,7 @@ function attTabAllowed(){
     return (localStorage.getItem("att_ok") || "") === who;             // גיבוי: אומת בתוך מסך הנוכחות
   }catch(e){ return false; }
 }
-function updateAttTab(){ try{ $("tab-att").hidden = hoursLaunched() || !attTabAllowed(); if($("tab-att").hidden && location.hash==="#att") showTab(hoursLaunched()?"hours":"report"); updateHoursTab(); }catch(e){} }
+function updateAttTab(){ try{ $("tab-att").hidden = hoursLaunched() || !attTabAllowed(); if($("tab-att").hidden && location.hash==="#att") showTab(hoursLaunched()?"hours":"report"); updateHoursTab(); maybeHome(); }catch(e){} }
 // טאב "נתונים" (סטטיסטיקות) — רק לרכזים
 function statsTabAllowed(){ try{ var who=($("who").value||localStorage.getItem("who")||"").replace(/\s+/g," ").trim(); return attIsCoord(who); }catch(e){ return false; } }
 function updateStatsTab(){ try{ $("tab-stats").hidden = !statsTabAllowed(); if($("tab-stats").hidden && location.hash==="#stats") showTab("report"); }catch(e){} }
