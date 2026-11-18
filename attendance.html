@@ -83,6 +83,30 @@ button{font-family:inherit;cursor:pointer}
 .wpmode button.on{background:var(--navy);color:var(--surface)}
 .wprow.off{opacity:.55}
 .wprow:last-child{border-bottom:0;padding-bottom:0}
+.wpopen{display:flex;align-items:center;gap:10px;width:100%;margin-top:18px;background:var(--surface);border:1.5px solid var(--navy);border-radius:14px;padding:13px 14px;color:var(--ink);text-align:start;cursor:pointer}
+.wpopen .wpot{flex:1;font:800 1rem 'Assistant',sans-serif}
+.wpopen small{display:block;color:var(--muted);font-size:.78rem;font-weight:600}
+.wpopen .chev{color:var(--navy);font-size:1.4rem;font-weight:800}
+.arow.wpme{border-inline-start:3px solid var(--flag)}
+.wpday{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;scroll-margin-top:8px}
+.wpdh{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--navy);color:var(--surface);font:800 1.05rem 'Assistant',sans-serif}
+.wpdh .wptoday{background:var(--flag);color:#2b1400;border-radius:999px;padding:1px 8px;font-size:.72rem}
+.wpdh .wptn{margin-inline-start:auto;font-size:.78rem;font-weight:700;opacity:.85}
+.wpt{width:100%;border-collapse:collapse;table-layout:fixed;font-size:.88rem}
+.wpt col.c1{width:40%}.wpt col.c2{width:17%}.wpt col.c3{width:15%}.wpt col.c4{width:28%}
+.wpt th{background:var(--chip);color:var(--muted);font:800 .72rem 'Assistant',sans-serif;padding:6px 8px;text-align:start}
+.wpt th.c,.wpt td.c{text-align:center}
+.wpt td{padding:9px 8px;border-top:1px solid var(--line);vertical-align:middle}
+.wpt tr.wps td{color:var(--flag);font:800 .84rem 'Assistant',sans-serif;padding:10px 8px 4px;border-top:0}
+.wpt tr.wps td span{color:var(--muted);font-weight:700;margin-inline-start:6px}
+.wpt tr.z td{background:rgba(127,127,127,.07)}
+.wpt tr.me td{background:rgba(250,204,21,.14)}
+.wpt tr.me td:first-child{box-shadow:inset -3px 0 0 var(--flag)}
+.wpt td b{display:block;font-weight:800;line-height:1.25}
+.wpt td small{display:block;color:var(--muted);font-weight:700;font-size:.74rem;margin-top:1px}
+.wpt td.n{font-weight:800;font-size:1rem}
+.wpt td.t{font-size:.8rem;line-height:1.25}
+.wpt .no{color:var(--muted);opacity:.65;font-weight:700}
 .silbl{font-size:.8rem;color:var(--muted);font-weight:700;display:block;margin-bottom:4px}
 .sislot{display:flex;gap:8px;margin-bottom:10px}
 .sislot .on{border-color:var(--flag);box-shadow:inset 0 0 0 1px var(--flag);color:var(--flag)}
@@ -241,6 +265,8 @@ button{font-family:inherit;cursor:pointer}
 /* מצב "שעות בלבד" (טאב נפרד): רק מסך השעות */
 body.hoursonly #main{display:none}
 body.hoursonly #hov{background:var(--bg)}
+#wpov .box{max-width:560px;height:100vh;height:100dvh;max-height:100dvh;border-radius:0;padding-top:calc(16px + env(safe-area-inset-top))}
+body.hoursonly #wpov{background:var(--bg)}
 .ov .top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .ov .av{width:50px;height:50px;border-radius:13px;background:#214a7d;color:#fff;display:grid;place-items:center;font:800 1.2rem 'Assistant';flex:none}
 .ov .av.f{background:#7a3a63}
@@ -315,6 +341,7 @@ body.hoursonly #hov{background:var(--bg)}
 
 <div class="ov" id="ov" hidden><div class="box" id="ovbox"></div></div>
 <div class="ov" id="hov" hidden><div class="box" id="hovbox"></div></div>
+<div class="ov" id="wpov" hidden><div class="box" id="wpbox"></div></div>
 
 <script>
 // כתובת המחבר אינה בקוד — היא מגיעה פעם אחת דרך הקישור הפרטי (#api=...) ונשמרת במכשיר.
@@ -546,7 +573,26 @@ function renderHome(groups){
   h += bdayWeekHTML(groups);   // (רכז) 🎂 ימי הולדת השבוע
   h += '<div id="homehours"></div>';
   h += '<div id="subui" style="margin-top:10px"></div><div id="subpanel"></div>';
-  h += scheduleHTML(state.isCoord ? groups : (state.all||groups), mine, todayName);   // (טל) 🗓 סידור עבודה — במקום "הקבוצות שלי" + "כל הקבוצות"
+  var mineOwn = mine.filter(function(g){ return !subOnly(g) || state.isCoord; });   // קבוצה שאני רק מחליף בה היום — רק בכרטיס "היום"
+  if(mineOwn.length){
+    h += '<div class="asec">⛵ הקבוצות שלי</div>';
+    byDay(mineOwn).forEach(function(d){
+      h += '<div class="aday">'+esc(d.day)+(d.day===todayName?'<span class="tchip today">היום</span>':'')+'</div><div class="abox">'+
+        d.groups.map(function(g){ return homeRow(g, mine.indexOf(g), true); }).join('')+'</div>';
+    });
+  }
+  if(state.isCoord){   // רכז: כל הקבוצות לפי ימים (נפתח בלחיצה) — ✏️ פרטי הקבוצה + נוכחות/החלפה/דחייה
+    if(state.openDay==null) state.openDay = todayName;
+    h += '<div class="asec">📋 כל הקבוצות</div><div class="gsel acc">';
+    byDay(groups).forEach(function(d){
+      var open = state.openDay===d.day;
+      h += '<button class="dayhdr'+(open?" open":"")+'" data-hday="'+esc(d.day)+'"><span>'+esc(d.day)+' <span class="cnt">'+d.groups.length+'</span></span><span class="chev">'+(open?"▾":"▸")+'</span></button>';
+      if(open) h += '<div class="abox" style="margin-bottom:6px">'+d.groups.map(function(g){ return homeRow(g, -1, false); }).join('')+'</div>';
+    });
+    h += '</div>';
+  }
+  if(!mineOwn.length && !state.isCoord) h += '<div class="msg">לא מצאנו קבוצה על השם שלך.</div>';
+  h += wpOpenBtn();   // (טל/רון) 🗓 סידור עבודה — מסך נפרד, נפתח מלמטה
   $("main").innerHTML = h;
   document.querySelectorAll("[data-hatt]").forEach(function(b){ b.onclick=function(){ var gi=+b.dataset.hatt; if(gi<0) return; state.gi=gi; state.diFor=-1; state.view="att"; render(); window.scrollTo(0,0); }; });
   document.querySelectorAll("[data-hday]").forEach(function(b){ b.onclick=function(){ state.openDay = state.openDay===b.dataset.hday ? "" : b.dataset.hday; render(); }; });
@@ -555,8 +601,7 @@ function renderHome(groups){
   document.querySelectorAll("[data-hpost]").forEach(function(b){ b.onclick=function(){ underRow(b); attPostOpen(state.homeG[+b.dataset.hpost]); }; });
   if($("clubbar")) $("clubbar").onclick=function(){ state.clubOpen=!state.clubOpen; render(); };
   if($("bdbar")) $("bdbar").onclick=function(){ state.bdOpen=!state.bdOpen; render(); };
-  document.querySelectorAll("[data-wpday]").forEach(function(b){ b.onclick=function(){ state.wpDay=b.dataset.wpday; render(); }; });
-  document.querySelectorAll("[data-wpm]").forEach(function(b){ b.onclick=function(){ state.wpMine = b.dataset.wpm==="1"; try{ localStorage.setItem("att_wp_mine", state.wpMine?"1":"0"); }catch(e){} if($("subpanel")) $("subpanel").innerHTML=""; render(); }; });
+  if($("wpopen")) $("wpopen").onclick=openSchedule;
   bindBdayAsk();
   document.querySelectorAll("[data-cinst]").forEach(function(b){ b.onclick=function(){ underRow(b); setInstOpen(state.groups[+b.dataset.cinst]); }; });
   // רכז: החלפה / דחייה בשם המדריך של הקבוצה
@@ -580,6 +625,7 @@ function loadHomeHours(){
     try{ var me=hstate.inst, own=function(r){ return norm(r.inst)===me; };
       localStorage.setItem("att_hcache", JSON.stringify({m:hstate.month, who:me, rows:hstate.rows.filter(own), sched:hstate.sched.filter(own)})); }catch(e){}
     renderHomeHours();
+    renderSchedule();
     autoFillMonth();
   }).catch(function(){ state.hh=0; });
 }
@@ -1019,7 +1065,8 @@ function loadGInfo(){
   state.ginfo=null;
   api({action:"groupInfoRead"}).then(function(j){
     state.ginfo=(j&&j.ok&&j.rows)||[]; state.ginfoOk=!!(j&&j.ok);
-    if(state.wpOpen && HOURS_MODE && state.view!=="att" && !($("subpanel") && $("subpanel").innerHTML)) render();
+    if($("wpov") && !$("wpov").hidden) renderSchedule();
+    else if(HOURS_MODE && state.view!=="att" && !($("subpanel") && $("subpanel").innerHTML) && !/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName||"")) render();
   }).catch(function(){ state.ginfo=[]; });
 }
 function groupType(g){
@@ -1028,46 +1075,75 @@ function groupType(g){
         rows.filter(function(x){ return x.branch===g.branch && x.day===g.day && x.inst && norm(x.inst)===norm(ownerOf(g)||g.instructor); })[0];
   return r ? r.type : "";
 }
-// מצב תצוגה: "1" = רק שלי, "0" = כל המדריכים, null = עוד לא בחרו (נזכר בטלפון)
-function wpPref(){ if(state.wpMine===undefined){ try{ var v=localStorage.getItem("att_wp_mine"); state.wpMine = v==="1" ? true : v==="0" ? false : null; }catch(e){ state.wpMine=null; } } return state.wpMine; }
 // קבוצה שכל התאריכים בגיליון שלה כבר עברו (תאריכים של שנה שעברה) — הנוכחות שלה נרשמת לתאריך הלא נכון
 function groupStale(g){ var t=new Date(); t.setHours(0,0,0,0); var c=g.dateCols||[]; return !c.length || !c.some(function(d){ try{ return toDate_(d.date)>=t; }catch(e){ return false; } }); }
 // שורת מידע לקבוצה: אפיון · גילאים · כמה חניכים
 function groupInfoLine(g){ var ages=groupAges(g), typ=groupType(g); return [typ, ages?'גיל ⁦'+ages+'⁩':'', g.students.length+' חניכים'].filter(Boolean).join(' · '); }
-// 🗓 סידור עבודה (טל) — מקום אחד: "רק שלי" = הקבוצות שלי עם הכפתורים; "כל המדריכים" = לפי ימים, בוקר/צהריים
-// (לרכז "כל המדריכים" מחליף גם את "כל הקבוצות": ✏️ מדריך + נוכחות/החלפה/דחייה)
-function scheduleHTML(all, mine, todayName){
+// 🗓 סידור עבודה (טל) — מסך נפרד: כל המדריכים, לפי ימים. 📋 רשימה (יום אחד, בוקר/צהריים) או 📊 טבלה (כל השבוע).
+function wpOpenBtn(){
   if(hoursOK()) loadGInfo();
-  var pref=wpPref(), showMine = pref===true || (pref===null && mine.length>0);
-  var h='<div class="asec">🗓 סידור עבודה</div>'+
-    '<div class="wpmode" style="margin:6px 0 2px"><button data-wpm="1" class="'+(showMine?'on':'')+'">🙋 הקבוצות שלי</button><button data-wpm="0" class="'+(showMine?'':'on')+'">👥 הקבוצות של כולם</button></div>';
-  if(showMine){
-    var mineOwn=mine.filter(function(g){ return !subOnly(g) || state.isCoord; });
-    if(!mineOwn.length) return h+'<div class="msg">לא מצאנו קבוצה על השם שלך.</div>';
-    byDay(mineOwn).forEach(function(d){
-      h += '<div class="aday">'+esc(d.day)+(d.day===todayName?'<span class="tchip today">היום</span>':'')+'</div><div class="abox">'+
-        d.groups.map(function(g){ return homeRow(g, mine.indexOf(g), true); }).join('')+'</div>';
-    });
-    return h;
-  }
-  all=all||[];
-  var days=DORD.filter(function(d){ return all.some(function(g){ return g.day===d; }); });
-  if(!days.length) return h+'<div class="msg">אין קבוצות</div>';
-  if(days.indexOf(state.wpDay)<0){ var i0=DORD.indexOf(todayName); for(var k=0;k<7;k++){ var dn=DORD[(i0+k)%7]; if(days.indexOf(dn)>-1){ state.wpDay=dn; break; } } }
-  h+='<div class="wpdays" style="margin-top:10px">'+days.map(function(d){ return '<button class="wpd'+(d===state.wpDay?' on':'')+'" data-wpday="'+esc(d)+'">'+esc(d)+'</button>'; }).join('')+'</div>';
-  var list=all.filter(function(g){ return g.day===state.wpDay; }).map(function(g){ return {g:g, k:slotKind(groupSlot(g))}; }), kids=0;
-  [["am","☀️ בוקר"],["pm","🌤 צהריים"],["","❓ עוד לא נקבע מתי"]].forEach(function(s){
-    var rows=list.filter(function(x){ return x.k===s[0]; }).sort(function(a,b){ return (a.g.branch==="jaffa"?1:0)-(b.g.branch==="jaffa"?1:0) || cleanInst(a.g.instructor).localeCompare(cleanInst(b.g.instructor),"he"); });
-    if(!rows.length) return;
-    h+='<div class="aday">'+s[1]+'</div><div class="abox">'+rows.map(function(x){ kids+=x.g.students.length; return state.isCoord ? homeRow(x.g, -1, false) : wpRow(x.g); }).join('')+'</div>';
-  });
-  h+='<div class="wpsum" style="margin-top:10px">יום '+esc(state.wpDay)+': <b>'+kids+'</b> חניכים · '+list.length+' קבוצות</div>';
-  return h;
+  return '<button class="wpopen" id="wpopen"><span class="wpot">🗓 סידור עבודה<small>מי עובד בכל יום · כל המדריכים</small></span><span class="chev">‹</span></button>';
 }
-// שורה למדריך (לא רכז) בתצוגת "כל המדריכים" — מידע בלבד
+function wpView(){ if(!state.wpView){ try{ state.wpView = localStorage.getItem("att_wp_view")==="table" ? "table" : "list"; }catch(e){ state.wpView="list"; } } return state.wpView; }
+function openSchedule(){ $("wpov").hidden=false; $("wpbox").scrollTop=0; renderSchedule(); }
+function closeSchedule(){ $("wpov").hidden=true; }
+function isMineG(g){ return matchName(g.instructor, state.who) || matchName(cleanInst(g.instructor), state.who); }
+function slotMin(g){ var t=groupSlot(g); var m=t?parseT(t.start):null; return m==null ? 9999 : m; }
+function renderSchedule(){
+  if(!$("wpov") || $("wpov").hidden) return;
+  loadGInfo();
+  var all=state.all||state.groups||[], todayName=DAYS[new Date().getDay()], view=wpView();
+  var h='<div class="top"><div><div class="nm">🗓 סידור עבודה</div><div class="sub">כל המדריכים · הקבוצות שלך מסומנות</div></div><button class="x" id="wpx">סגור</button></div>'+
+    '<div class="wpmode"><button data-wpv="list" class="'+(view==="list"?'on':'')+'">📋 רשימה</button><button data-wpv="table" class="'+(view==="table"?'on':'')+'">📊 טבלה</button></div>';
+  var days=DORD.filter(function(d){ return all.some(function(g){ return g.day===d; }); });
+  if(!days.length) h+='<div class="msg">אין קבוצות</div>';
+  else if(view==="list"){
+    if(days.indexOf(state.wpDay)<0){ var i0=DORD.indexOf(todayName); for(var k=0;k<7;k++){ var dn=DORD[(i0+k)%7]; if(days.indexOf(dn)>-1){ state.wpDay=dn; break; } } }
+    h+='<div class="wpdays" style="margin-top:10px">'+days.map(function(d){ return '<button class="wpd'+(d===state.wpDay?' on':'')+'" data-wpday="'+esc(d)+'">'+esc(d)+(d===todayName?' •':'')+'</button>'; }).join('')+'</div>';
+    var list=all.filter(function(g){ return g.day===state.wpDay; }).map(function(g){ return {g:g, k:slotKind(groupSlot(g))}; }), kids=0;
+    [["am","☀️ בוקר"],["pm","🌤 צהריים"],["","❓ עוד לא נקבע מתי"]].forEach(function(s){
+      var rows=list.filter(function(x){ return x.k===s[0]; }).sort(function(a,b){ return slotMin(a.g)-slotMin(b.g) || (a.g.branch==="jaffa"?1:0)-(b.g.branch==="jaffa"?1:0) || cleanInst(a.g.instructor).localeCompare(cleanInst(b.g.instructor),"he"); });
+      if(!rows.length) return;
+      h+='<div class="aday">'+s[1]+'</div><div class="abox">'+rows.map(function(x){ kids+=x.g.students.length; return wpRow(x.g); }).join('')+'</div>';
+    });
+    h+='<div class="wpsum" style="margin-top:10px">יום '+esc(state.wpDay)+': <b>'+kids+'</b> חניכים · '+list.length+' קבוצות</div>';
+  } else {   // 📊 טבלה — כל יום בכרטיס משלו, בתוך היום: בוקר / צהריים (השעה בכותרת אם לכולם אותה שעה)
+    var tk=0, tg=0;
+    h+='<div class="wpdays" style="margin-top:10px">'+days.map(function(d,i){ return '<button class="wpd'+(d===todayName?' on':'')+'" data-wpj="'+i+'">'+esc(d)+'</button>'; }).join('')+'</div>';
+    days.forEach(function(d,i){
+      var dg=all.filter(function(g){ return g.day===d; }), dk=dg.reduce(function(n,g){ return n+g.students.length; },0); tk+=dk; tg+=dg.length;
+      h+='<div class="wpday" id="wpd'+i+'"><div class="wpdh">'+esc(d)+(d===todayName?'<span class="wptoday">היום</span>':'')+'<span class="wptn">'+dg.length+' קבוצות · '+dk+' חניכים</span></div>'+
+        '<table class="wpt"><colgroup><col class="c1"><col class="c2"><col class="c3"><col class="c4"></colgroup>'+
+        '<thead><tr><th>מדריך</th><th class="c">גיל</th><th class="c">חניכים</th><th>אפיון</th></tr></thead><tbody>';
+      [["am","☀️ בוקר"],["pm","🌤 צהריים"],["","❓ עוד לא נקבע מתי"]].forEach(function(sl){
+        var rows=dg.filter(function(g){ return slotKind(groupSlot(g))===sl[0]; }).sort(function(a,b){ return slotMin(a)-slotMin(b) || (a.branch==="jaffa"?1:0)-(b.branch==="jaffa"?1:0) || cleanInst(a.instructor).localeCompare(cleanInst(b.instructor),"he"); });
+        if(!rows.length) return;
+        var tm={}; rows.forEach(function(g){ var t=groupSlot(g); if(t) tm[t.start+"–"+t.end]=1; }); tm=Object.keys(tm);
+        var one = tm.length===1 ? tm[0] : "";
+        h+='<tr class="wps"><td colspan="4">'+sl[1]+(one?'<span>⁦'+esc(one)+'⁩</span>':'')+'</td></tr>';
+        rows.forEach(function(g,k){
+          var t=groupSlot(g), nm=cleanInst(g.instructor), ages=groupAges(g), typ=groupType(g);
+          h+='<tr class="'+(isMineG(g)?'me':(k%2?'z':''))+'"><td><b>'+(nm==="קבוצה"?'<span class="no">בלי מדריך</span>':esc(nm))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+'</b>'+
+            (t&&!one?'<small>⁦'+esc(t.start)+'–'+esc(t.end)+'⁩</small>':'')+'</td>'+
+            '<td class="c">'+(ages?'⁦'+esc(ages)+'⁩':'<span class="no">—</span>')+'</td>'+
+            '<td class="c n">'+g.students.length+'</td>'+
+            '<td class="t">'+(typ?esc(typ):'<span class="no">—</span>')+'</td></tr>';
+        });
+      });
+      h+='</tbody></table></div>';
+    });
+    h+='<div class="wpsum" style="margin-top:12px">כל השבוע: <b>'+tk+'</b> חניכים · '+tg+' קבוצות</div>';
+  }
+  $("wpbox").innerHTML=h;
+  $("wpx").onclick=closeSchedule;
+  document.querySelectorAll("[data-wpv]").forEach(function(b){ b.onclick=function(){ state.wpView=b.dataset.wpv; try{ localStorage.setItem("att_wp_view", state.wpView); }catch(e){} renderSchedule(); }; });
+  document.querySelectorAll("[data-wpday]").forEach(function(b){ b.onclick=function(){ state.wpDay=b.dataset.wpday; renderSchedule(); }; });
+  document.querySelectorAll("[data-wpj]").forEach(function(b){ b.onclick=function(){ var el=$("wpd"+b.dataset.wpj); if(el) el.scrollIntoView({behavior:"smooth", block:"start"}); }; });
+}
+// שורה במסך סידור העבודה — מידע בלבד (הקבוצות שלי מסומנות)
 function wpRow(g){
   var t=groupSlot(g), nm=cleanInst(g.instructor), sub=[BRN[g.branch]||g.branch]; if(t) sub.push("⁦"+t.start+"–"+t.end+"⁩");
-  return '<div class="arow"><div class="nm"><b>'+(nm==="קבוצה"?'❓ בלי מדריך':esc(nm))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+'</b><span>'+esc(sub.join(" · "))+'</span><span class="hinfo">'+esc(groupInfoLine(g))+'</span></div></div>';
+  return '<div class="arow'+(isMineG(g)?' wpme':'')+'"><div class="nm"><b>'+(nm==="קבוצה"?'❓ בלי מדריך':esc(nm))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+(isMineG(g)?' <span class="tchip today">שלך</span>':'')+'</b><span>'+esc(sub.join(" · "))+'</span><span class="hinfo">'+esc(groupInfoLine(g))+'</span></div></div>';
 }
 function renderStudents(){
   var cur = state.groups[state.gi]; var date = state.dates[state.di];
