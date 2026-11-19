@@ -444,6 +444,12 @@ body.hoursonly #wpov{background:var(--bg)}
 .wpact .wax{flex:none;align-self:flex-start}
 .undobtn.sm{min-height:0;padding:1px 9px;font:800 .72rem 'Assistant',sans-serif;border-radius:999px;background:none;border:1px solid var(--line);color:var(--muted);cursor:pointer}
 .undobtn.sm:hover{border-color:var(--stop);color:var(--stop)}
+/* (טל) סידור עבודה בטלפון — יומן חודשי */
+.wpcalbody{padding:10px}
+.hcd.grp{border-color:var(--navy)}
+.hcd.grp .fill{background:var(--navy);opacity:.4}
+.hcd.grp .n{color:var(--ink)}
+.hclg i.grp{background:var(--navy);opacity:.6}
 </style>
 </head>
 <body>
@@ -842,21 +848,20 @@ function renderHoursCal(){
   if(sel && monthOf(sel)===mk){
     var sl=by[sel]||[];
     D = '<div class="hcdet"><b class="hcdt">יום '+esc(HDAY[toDate_(sel).getDay()])+' '+esc(sel)+'</b>'+
-      (state.isCoord ? calWhoHTML_(sel)+'<div class="dwh" style="margin-top:6px">השעות שלי ביום הזה</div>' : '')+
       (sl.length ? sl.map(function(r,i){ var s=toHHMM(r.start), e=toHHMM(r.end); return '<div class="hcjob"><span>'+esc(norm(r.act)||"עבודה")+(s&&e?' · <span dir="ltr" style="white-space:nowrap">'+esc(s)+'–'+esc(e)+'</span>':'')+' · <b>'+esc(r2(hn(r)))+' שע׳</b></span><button class="linkbtn" data-ce="'+i+'">✏️ שנה</button></div>'; }).join('')+
                    (sl.length>1 ? '<div style="color:var(--muted);font-weight:700">סה״כ ביום: '+r2(sl.reduce(function(t,r){ return t+hn(r); },0))+' שע׳</div>' : '')
                  : '<div style="color:var(--muted)">לא רשומות שעות ביום הזה</div>')+
       '<button class="ghostbtn" id="hc_add" style="justify-content:center">'+(sl.length?'➕ הוסף עוד עבודה ביום הזה':'➕ הוסף עבודה ביום הזה')+'</button></div>';
-  } else if(state.isCoord) D = '<div class="hcalpick">👆 לחצו על יום ביומן — יופיע מי עובד בו, עם נוכחות / החלפה / דחייה</div>';
+  }
   el.innerHTML='<div class="hcal2'+(D?' two':'')+'">'+H+'</div>'+(D?'<div class="hcalR">'+D+'</div>':'')+'</div>';   // (מחשב) היומן משמאל, היום שנבחר מימין
   calBind_(el, mk, by);
 }
-// (טל) סימן ביומן לפי מה שקורה ביום: 🔄 החלפה, 📅 דחייה. רכז רואה של כולם, מדריך — רק שלו (ביקש / מחליף)
-function calReqIcons_(){
+// (טל) סימן ביומן לפי מה שקורה ביום: 🔄 החלפה, 📅 דחייה. ב"השעות שלי" — רק שלי (ביקשתי / מחליף). בסידור העבודה (all) — רכז רואה של כולם
+function calReqIcons_(all){
   var out={};
   (state.reqs||[]).forEach(function(r){
     if(!/^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(r.status)) return;
-    if(!state.isCoord && !matchName(r.requester||"", state.who) && !(r.chosen && matchName(r.chosen, state.who))) return;
+    if(!(all && state.isCoord) && !matchName(r.requester||"", state.who) && !(r.chosen && matchName(r.chosen, state.who))) return;
     var o=out[r.date]=out[r.date]||{};
     if(/^(ביטול ממתין|בוטל)$/.test(r.status)) o.post=1; else o.sub=1;
   });
@@ -1388,6 +1393,28 @@ function dmy_(d){ return d.getDate()+"/"+(d.getMonth()+1)+"/"+String(d.getFullYe
 // (טל) שבוע עם תאריכים: מדפדפים קדימה/אחורה, ורואים החלפות (🔄) ודחיות (📅). לחיצה על קבוצה → נוכחות / החלפה / דחייה לאותו תאריך
 function wpWeekStart_(){ var d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-d.getDay()+7*(state.wpWeek||0)); return d; }
 function wpReq_(g, ds){ var act=subAct(g); return (state.reqs||[]).filter(function(r){ return r.act===act && r.date===ds && /^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(r.status); })[0]; }
+// (טל) בטלפון הטבלה רחבה מדי — סידור העבודה מוצג כיומן חודשי, כמו "השעות שלי". לחיצה על יום → מי עובד בו, עם נוכחות / החלפה / דחייה
+function wpCalMode_(){ return window.innerWidth < 900; }
+function wpMonth_(){ var t=new Date(); return state.wpMonth || (t.getFullYear()+"-"+pad2s(t.getMonth()+1)); }
+function wpCalHTML_(all){
+  var mk=wpMonth_(), days=monthDays(mk), first=toDate_(days[0]).getDay(), tdy=todayDmy(), ric=calReqIcons_(true), sel=state.wpCalSel||"";
+  var cnt={}; all.forEach(function(g){ cnt[g.day]=(cnt[g.day]||0)+1; });
+  var mx=Math.max.apply(null, Object.keys(cnt).map(function(k){ return cnt[k]; }).concat([1]));
+  var G='<div class="hcalgrid">'+["א","ב","ג","ד","ה","ו","ש"].map(function(x){ return '<div class="hcw">'+x+'</div>'; }).join('');
+  for(var i=0;i<first;i++) G+='<div></div>';
+  days.forEach(function(ds){
+    var dt=toDate_(ds), n=cnt[DAYS[dt.getDay()]]||0, ic=ric[ds];
+    G+='<button class="hcd'+(n?' grp':'')+(ds===tdy?' today':'')+(sel===ds?' sel':'')+(dt.getDay()===6?' sat':'')+'" data-wcd="'+ds+'"><span class="n">'+dt.getDate()+'</span>'+
+      (ic ? '<span class="ric" title="'+(ic.sub?'החלפה':'')+(ic.sub&&ic.post?' + ':'')+(ic.post?'דחייה':'')+'">'+(ic.sub?'🔄':'')+(ic.post?'📅':'')+'</span>' : '')+
+      (n ? '<span class="fill" style="height:'+Math.max(20, Math.round(n/mx*100))+'%"></span><span class="h">'+n+'</span>' : '')+'</button>';
+  });
+  G+='</div>';
+  var H='<div class="hcal"><div class="hcalnav"><button class="nav" id="wc_prev" aria-label="חודש קודם">‹</button><b>'+esc(monthLabel(mk))+'</b><button class="nav" id="wc_next" aria-label="חודש הבא">›</button></div>'+G+
+    '<div class="hclg"><span><i class="grp"></i>המספר = קבוצות</span><span>🔄 החלפה</span><span>📅 דחייה</span></div></div>';
+  var D = (sel && monthOf(sel)===mk) ? '<div class="hcdet"><b class="hcdt">יום '+esc(HDAY[toDate_(sel).getDay()])+' '+esc(sel)+'</b>'+calWhoHTML_(sel)+'</div>'
+        : '<div class="hcalpick">👆 לחצו על יום — יופיע מי עובד בו, עם נוכחות / החלפה / דחייה</div>';
+  return H+D;
+}
 function workPlanHTML(){
   if(!state.isCoord) return '';
   loadGInfo();
@@ -1396,6 +1423,7 @@ function workPlanHTML(){
   var kids=all.reduce(function(n,g){ return n+g.students.length; },0);
   var bar='<button class="clubbar" id="wpbar" aria-expanded="'+open+'"><span class="cbl" style="color:var(--navy)">🗓 סידור עבודה</span><span class="cbs">'+all.length+' קבוצות · '+kids+' חניכים</span><span class="cbc">'+(open?'▴':'▾')+'</span></button>';
   if(!open || !days.length) return '<div class="clubwrap">'+bar+'</div>';
+  if(wpCalMode_()) return '<div class="clubwrap wgbox">'+bar+'<div class="wgbody wpcalbody">'+wpCalHTML_(all)+'</div></div>';   // (טל) בטלפון — יומן
   var ws=wpWeekStart_(), we=new Date(ws); we.setDate(ws.getDate()+6);
   var dsOf=function(d){ var x=new Date(ws); x.setDate(ws.getDate()+DORD.indexOf(d)); return dmy_(x); };
   var wk=state.wpWeek||0, sel=state.wpSel||null;
@@ -1454,8 +1482,22 @@ function bindWorkPlan(){
   document.querySelectorAll("#wpinline [data-wsub]").forEach(function(b){ b.onclick=function(){ openReqOn_("sub", +b.dataset.wsub, ds, b); }; });
   document.querySelectorAll("#wpinline [data-wpost]").forEach(function(b){ b.onclick=function(){ openReqOn_("post", +b.dataset.wpost, ds, b); }; });
   document.querySelectorAll("#wpinline [data-winst]").forEach(function(b){ b.onclick=function(){ if(subUnder_(b)) setInstOpen(state.groups[+b.dataset.winst]); }; });
+  // (טל) יומן סידור העבודה (טלפון)
+  var wgo=function(n){ var p=wpMonth_().split("-"), d=new Date(+p[0], +p[1]-1+n, 1); state.wpMonth=d.getFullYear()+"-"+pad2s(d.getMonth()+1); state.wpCalSel=""; renderWorkPlanInline(); };
+  if($("wc_prev")) $("wc_prev").onclick=function(){ wgo(-1); };
+  if($("wc_next")) $("wc_next").onclick=function(){ wgo(1); };
+  document.querySelectorAll("#wpinline [data-wcd]").forEach(function(b){ b.onclick=function(){
+    state.wpCalSel = state.wpCalSel===b.dataset.wcd ? "" : b.dataset.wcd; renderWorkPlanInline();
+    var d=document.querySelector("#wpinline .hcdet"); if(d) d.scrollIntoView({behavior:"smooth", block:"nearest"});
+  }; });
+  var cs=state.wpCalSel;
+  document.querySelectorAll("#wpinline [data-datt]").forEach(function(b){ b.onclick=function(){ openAttOn_(+b.dataset.datt, cs); }; });
+  document.querySelectorAll("#wpinline [data-dsub]").forEach(function(b){ b.onclick=function(){ openReqOn_("sub", +b.dataset.dsub, cs, b); }; });
+  document.querySelectorAll("#wpinline [data-dpost]").forEach(function(b){ b.onclick=function(){ openReqOn_("post", +b.dataset.dpost, cs, b); }; });
+  document.querySelectorAll("#wpinline [data-dinst]").forEach(function(b){ b.onclick=function(){ if(subUnder_(b)) setInstOpen(state.groups[+b.dataset.dinst]); }; });
 }
 function renderWorkPlanInline(){ var w=$("wpinline"); if(!w) return; rescueSub_(w); w.innerHTML=workPlanHTML(); bindWorkPlan(); }
+(function(){ try{ var mq=matchMedia("(max-width:899px)"), f=function(){ renderWorkPlanInline(); }; if(mq.addEventListener) mq.addEventListener("change", f); else mq.addListener(f); }catch(e){} })();   // טלפון ↔ מחשב: יומן ↔ טבלה
 // שורה במסך סידור העבודה — מידע בלבד (הקבוצות שלי מסומנות)
 function wpRow(g){
   var t=groupSlot(g), nm=cleanInst(g.instructor), sub=[BRN[g.branch]||g.branch]; if(t) sub.push("⁦"+t.start+"–"+t.end+"⁩");
