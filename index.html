@@ -72,21 +72,30 @@ nav button[aria-selected="true"]{opacity:1;border-bottom-color:var(--flag)}
 nav a.navlink{flex:1;min-width:0;text-align:center;color:var(--head-ink);opacity:.88;font:600 .95rem var(--body);padding:10px 2px 12px;white-space:nowrap;border-bottom:3px solid transparent;text-decoration:none;display:flex;justify-content:center;align-items:center;gap:6px}
 nav .badge{background:var(--flag);color:var(--flag-ink);font:600 .75rem var(--mono);border-radius:999px;padding:1px 7px}
 nav button:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
-/* (טל) מחשב: תפריט המבורגר בצד — הלשוניות עוברות לפס צד, והמסך רחב יותר */
-#menuBtn{display:none}
+/* (טל) תפריט המבורגר בצד: במחשב צמוד לצד (☰ מסתיר), בטלפון נפתח מעל המסך ב-☰ */
+#menuBtn{display:inline-flex;align-items:center;justify-content:center;flex:none;width:40px;height:40px;border:0;border-radius:10px;background:rgba(255,255,255,.14);color:var(--head-ink);cursor:pointer}
+#menuBtn:hover{background:rgba(255,255,255,.24)}
+nav{position:fixed;top:0;bottom:0;right:0;width:236px;flex-direction:column;gap:4px;margin:0;padding:calc(16px + env(safe-area-inset-top,0px)) 12px 16px;background:var(--head);border-left:4px solid var(--flag);box-sizing:border-box;overflow-y:auto;z-index:7;transition:transform .22s ease}
+nav::before{content:"תפריט";display:block;font:400 1.15rem var(--display);color:var(--head-ink);opacity:.75;padding:8px 14px 14px}
+nav button,nav a.navlink{flex:none;justify-content:flex-start;padding:12px 14px;border-bottom:0;border-radius:10px;font-size:1.02rem}
+nav button:hover{background:rgba(255,255,255,.1)}
+nav button[aria-selected="true"]{background:rgba(255,255,255,.18);border-bottom:0;box-shadow:inset -4px 0 0 var(--flag)}
+.curtab{display:flex;align-items:center;gap:6px;width:100%;background:none;border:0;color:var(--head-ink);font:700 1rem var(--body);padding:10px 2px 11px;cursor:pointer;text-align:start}
+.curtab::after{content:"▾";font-size:.8rem;opacity:.7}
+#navScrim{display:none}
 @media (min-width:900px){
-  #menuBtn{display:inline-flex;align-items:center;justify-content:center;flex:none;width:40px;height:40px;border:0;border-radius:10px;background:rgba(255,255,255,.14);color:var(--head-ink);cursor:pointer}
-  #menuBtn:hover{background:rgba(255,255,255,.24)}
   body{padding-right:236px;transition:padding-right .2s ease}
   html.sidex body{padding-right:0}
+  html.sidex nav{transform:translateX(100%)}
   .wrap{max-width:1120px}
   header{padding-bottom:14px}
-  nav{position:fixed;top:0;bottom:0;right:0;width:236px;flex-direction:column;gap:4px;margin:0;padding:calc(16px + env(safe-area-inset-top,0px)) 12px 16px;background:var(--head);border-left:4px solid var(--flag);box-sizing:border-box;overflow-y:auto;z-index:6;transition:transform .2s ease}
-  html.sidex nav{transform:translateX(100%)}
-  nav::before{content:"תפריט";display:block;font:400 1.15rem var(--display);color:var(--head-ink);opacity:.75;padding:8px 14px 14px}
-  nav button,nav a.navlink{flex:none;justify-content:flex-start;padding:12px 14px;border-bottom:0;border-radius:10px;font-size:1.02rem}
-  nav button:hover{background:rgba(255,255,255,.1)}
-  nav button[aria-selected="true"]{background:rgba(255,255,255,.18);border-bottom:0;box-shadow:inset -4px 0 0 var(--flag)}
+  .curtab{display:none}
+}
+@media (max-width:899px){
+  nav{width:min(80vw,290px);transform:translateX(105%);visibility:hidden;box-shadow:-8px 0 24px rgba(0,0,0,.3);transition:transform .22s ease,visibility 0s linear .22s}
+  html.sideopen nav{transform:none;visibility:visible;transition:transform .22s ease}
+  html.sideopen #navScrim{display:block;position:fixed;inset:0;background:rgba(5,10,20,.55);z-index:6}
+  nav button,nav a.navlink{padding:13px 14px;font-size:1.05rem}
 }
 section{display:flex;flex-direction:column;gap:18px;padding-top:20px}
 .label{font-weight:700;font-size:.8rem;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;display:block}
@@ -369,6 +378,8 @@ textarea{min-height:64px;resize:vertical}
     <button role="tab" id="tab-att" data-tab="att" aria-selected="false" hidden>נוכחות חניכים</button>
     <button role="tab" id="tab-hours" data-tab="hours" aria-selected="false" hidden>מרכז מדריכים</button>
   </nav>
+  <button type="button" id="curTab" class="curtab" aria-label="פתיחת התפריט"></button>
+  <div id="navScrim"></div>
   <button id="fbBtn" type="button" aria-label="משוב על האפליקציה" title="משוב / רעיון לשיפור">💬</button>
   <div id="fbModal" hidden>
     <div class="fbcard">
@@ -661,6 +672,7 @@ function showTab(t){
   if(t==="att" && hoursLaunched()) t = "hours";            // אחרי ההשקה "לוח פעילות" סגור — עוברים למסך השעות
   if(t==="hours" && !hoursTabAllowed()) t = "report";   // שעות — לפי רשימת היתר
   document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
+  const cb=$("tab-"+t); if($("curTab") && cb) $("curTab").textContent = cb.firstChild.textContent.trim();   // (טל) בטלפון: שם המסך הנוכחי מתחת ללוגו
   ["report","boats","stats","att","hours"].forEach(v=>$("view-"+v).hidden = v!==t);
   const ft = t==="att" || t==="hours", root=document.documentElement;   // (רון) גלילה אחת בלבד במסך המוטמע
   if(ft && !root.classList.contains("frametab")) window.scrollTo(0,0);
@@ -682,11 +694,24 @@ var tabPicked = false;
 // הרשימה מהשרת מגיעה אחרי הטעינה — אם עוד לא בחרו טאב ולא התחילו למלא דיווח, עוברים למסך הבית
 function maybeHome(){ try{ if(tabPicked || location.hash.length>1 || $("view-report").hidden || $("boat").value || selected.size) return; var h=homeTab(); if(h!=="report") showTab(h); }catch(e){} }
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{ tabPicked = true; location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
-// (טל) מחשב: ☰ פותח/סוגר את התפריט בצד (נזכר בין כניסות)
-(function(){ const r=document.documentElement, mb=$("menuBtn"); if(!mb) return;
-  const set=c=>{ r.classList.toggle("sidex", c); mb.setAttribute("aria-expanded", String(!c)); };
-  set(store.get("side_closed")==="1");
-  mb.addEventListener("click", ()=>{ const c=!r.classList.contains("sidex"); set(c); store.set("side_closed", c?"1":"0"); });
+// (טל) ☰ תפריט בצד. במחשב: צמוד, ☰ מסתיר/מחזיר (נזכר בין כניסות). בטלפון: ☰ פותח מעל המסך, בחירה / לחיצה בחוץ סוגרת
+(function(){ const r=document.documentElement, mb=$("menuBtn"), mq=matchMedia("(min-width:900px)"); if(!mb) return;
+  r.classList.toggle("sidex", store.get("side_closed")==="1");
+  const isOpen=()=> mq.matches ? !r.classList.contains("sidex") : r.classList.contains("sideopen");
+  const sync=()=> mb.setAttribute("aria-expanded", String(isOpen()));
+  const close=()=>{ r.classList.remove("sideopen"); sync(); };
+  const toggle=()=>{
+    if(mq.matches){ const c=!r.classList.contains("sidex"); r.classList.toggle("sidex", c); store.set("side_closed", c?"1":"0"); }
+    else r.classList.toggle("sideopen");
+    sync();
+  };
+  mb.addEventListener("click", toggle);
+  $("curTab").addEventListener("click", toggle);
+  $("navScrim").addEventListener("click", close);
+  document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click", close));
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape" && r.classList.contains("sideopen")) close(); });
+  if(mq.addEventListener) mq.addEventListener("change", close);
+  sync();
 })();
 // כתובת המחבר מוטמעת בקוד (מעורפלת — הסתרה, לא אבטחה) כדי שהקישור הראשי יעבוד לבד, בלי קישור נפרד
 var ATT_ENC="DEAaQUBWSxsdUkEFFEBAVlwDA1gLH1ADCRsDUFAeC0dBQhwtL1IXUlEbLnZDUws/N1gkR2BYBw1cBR4tAGYtSGE+NHY3QgVZNURfZwc8KllcS1svPGVYCV1UUl0lAVAKCUQtdUoONXc0VQBZJRsLSVYP";
