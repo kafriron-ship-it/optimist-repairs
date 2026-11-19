@@ -86,6 +86,20 @@ nav .navx button{background:none;border:0;color:var(--head-ink);opacity:.8;font:
 nav .navx button svg{display:block;flex:none}
 nav .navx button:hover{background:rgba(255,255,255,.1);opacity:1}
 nav .navx #mnName{opacity:1;font-weight:700}
+/* (רון) אייקון לכל מסך בתפריט; כפתור התפריט מראה את האייקון של המסך הנוכחי */
+nav button .tic{flex:none;width:19px;height:19px}
+#menuBtn{position:relative}
+#menuBtn .tic{width:22px;height:22px}
+#menuBtn .mbx{position:absolute;bottom:3px;left:3px;width:10px;height:10px;opacity:.8}
+#curTab{display:none!important}
+/* (רון) תפריט צפוף ככל האפשר: רוחב לפי הפריט הארוך ביותר, פחות ריווח */
+nav{width:max-content;max-width:72vw;gap:1px;padding:calc(10px + env(safe-area-inset-top,0px)) 6px 10px}
+nav::before{font-size:.95rem;padding:2px 10px 8px}
+nav button,nav a.navlink{padding:8px 10px;font-size:.96rem;gap:7px}
+nav .navx{padding-top:6px;gap:0}
+nav .navx button{padding:7px 10px;font-size:.86rem;gap:7px}
+nav .navx button svg{width:16px;height:16px}
+nav button .tic{width:18px;height:18px}
 /* (רון) השם והשיתוף עברו לתפריט — לא בכותרת */
 #nameBtn,#shareBtn{display:none!important}
 nav button[aria-selected="true"]{background:rgba(255,255,255,.18);border-bottom:0;box-shadow:inset -4px 0 0 var(--flag)}
@@ -93,7 +107,7 @@ nav button[aria-selected="true"]{background:rgba(255,255,255,.18);border-bottom:
 .curtab::after{content:"▾";font-size:.8rem;opacity:.7}
 #navScrim{display:none}
 @media (min-width:900px){
-  body{padding-right:196px;transition:padding-right .2s ease}   /* (רון) תפריט צר יותר */
+  body{padding-right:var(--navw,170px);transition:padding-right .2s ease}   /* (רון) כמו רוחב התפריט */
   html.sidex body{padding-right:0}
   html.sidex nav{transform:translateX(100%)}
   .wrap{max-width:1120px}
@@ -101,7 +115,7 @@ nav button[aria-selected="true"]{background:rgba(255,255,255,.18);border-bottom:
   .curtab{display:none}
 }
 @media (max-width:899px){
-  nav{width:min(70vw,212px);transform:translateX(105%);visibility:hidden;box-shadow:-8px 0 24px rgba(0,0,0,.3);transition:transform .22s ease,visibility 0s linear .22s}
+  nav{transform:translateX(105%);visibility:hidden;box-shadow:-8px 0 24px rgba(0,0,0,.3);transition:transform .22s ease,visibility 0s linear .22s}
   html.sideopen nav{transform:none;visibility:visible;transition:transform .22s ease}
   html.sideopen #navScrim{display:block;position:fixed;inset:0;background:rgba(5,10,20,.55);z-index:6}
   nav button,nav a.navlink{padding:13px 14px;font-size:1.05rem}
@@ -381,11 +395,11 @@ textarea{min-height:64px;resize:vertical}
     <div><h1 id="clubName"></h1><div class="sub">תקלות בסירות<button type="button" id="nameBtn" class="namebtn" hidden></button><button type="button" id="shareBtn" class="sharebtn" aria-label="שליחת הקישור לאפליקציה" title="שלחו את האפליקציה למדריך"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98"/></svg><span>שיתוף</span></button></div></div>
   </div>
   <nav role="tablist">
-    <button role="tab" id="tab-report" data-tab="report" aria-selected="true">דיווח</button>
-    <button role="tab" id="tab-boats" data-tab="boats" aria-selected="false">תיקונים <span class="badge" id="boatsBadge">0</span></button>
-    <button role="tab" id="tab-stats" data-tab="stats" aria-selected="false">נתונים</button>
-    <button role="tab" id="tab-att" data-tab="att" aria-selected="false" hidden>נוכחות חניכים</button>
-    <button role="tab" id="tab-hours" data-tab="hours" aria-selected="false" hidden>מרכז מדריכים</button>
+    <button role="tab" id="tab-report" data-tab="report" aria-selected="true"><svg class="tic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.2"/><path d="M12 17.1h.01"/></svg>דיווח</button>
+    <button role="tab" id="tab-boats" data-tab="boats" aria-selected="false"><svg class="tic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.3 5.2L3.5 17.4a1.9 1.9 0 0 0 2.7 2.7l5.9-5.9a4 4 0 0 0 5.2-5.3l-2.5 2.5-2.3-.4-.4-2.3z"/></svg>תיקונים <span class="badge" id="boatsBadge">0</span></button>
+    <button role="tab" id="tab-stats" data-tab="stats" aria-selected="false"><svg class="tic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 20.5h17"/><path d="M6.5 17v-5M11 17V6.5M15.5 17v-8M20 17v-3"/></svg>נתונים</button>
+    <button role="tab" id="tab-att" data-tab="att" aria-selected="false" hidden><svg class="tic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4.5" width="14" height="16.5" rx="2"/><path d="M9 4.5V3h6v1.5"/><path d="m9 13 2.2 2.2L15.5 11"/></svg>נוכחות חניכים</button>
+    <button role="tab" id="tab-hours" data-tab="hours" aria-selected="false" hidden><svg class="tic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.3"/><path d="M3 20.5c0-3.4 2.7-6.2 6-6.2s6 2.8 6 6.2"/><path d="M15.5 4.8a3.2 3.2 0 0 1 0 6.3"/><path d="M17.6 14.6c2.2.7 3.6 2.9 3.6 5.9"/></svg>מרכז מדריכים</button>
     <div class="navx" role="presentation">
       <button type="button" id="mnName" hidden title="שינוי שם"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="mnNameT"></span><span aria-hidden="true" style="opacity:.6">✎</span></button>
       <button type="button" id="mnShare"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98"/></svg><span>שליחת האפליקציה</span></button>
@@ -679,6 +693,7 @@ let pin = store.get("pin") || "";
 let have = new Set(JSON.parse(store.get("have") || "[]"));
 
 /* ---------- tabs ---------- */
+const MENU_MINI='<svg class="mbx" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';   // ☰ קטן בפינה — שיהיה ברור שזה תפריט
 function showTab(t){
   if(t==="parts") t = "boats";
   if(!["report","boats","stats","att","hours"].includes(t)) t = homeTab();   // (רון) בלי בחירה — מסך הבית לפי מי שנכנס
@@ -686,7 +701,9 @@ function showTab(t){
   if(t==="att" && hoursLaunched()) t = "hours";            // אחרי ההשקה "לוח פעילות" סגור — עוברים למסך השעות
   if(t==="hours" && !hoursTabAllowed()) t = "report";   // שעות — לפי רשימת היתר
   document.querySelectorAll("nav button[data-tab]").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
-  const cb=$("tab-"+t); if($("curTab") && cb) $("curTab").textContent = cb.firstChild.textContent.trim();   // (טל) בטלפון: שם המסך הנוכחי מתחת ללוגו
+  const cb=$("tab-"+t); if(cb){ const nm=[...cb.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join("").trim(), ic=cb.querySelector(".tic");
+    if($("curTab")) $("curTab").textContent = nm;
+    if(ic && $("menuBtn")){ $("menuBtn").innerHTML = ic.outerHTML + MENU_MINI; $("menuBtn").title = nm+" · תפריט"; $("menuBtn").setAttribute("aria-label", "תפריט · עכשיו: "+nm); } }   // (רון) כפתור התפריט מראה את האייקון של המסך הנוכחי
   ["report","boats","stats","att","hours"].forEach(v=>$("view-"+v).hidden = v!==t);
   const ft = t==="att" || t==="hours", root=document.documentElement;   // (רון) גלילה אחת בלבד במסך המוטמע
   if(ft && !root.classList.contains("frametab")) window.scrollTo(0,0);
@@ -1013,7 +1030,9 @@ $("other").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefaul
 $("customs").addEventListener("click", e=>{ const b=e.target.closest("[data-ci]"); if(!b) return; customs.splice(+b.dataset.ci,1); renderCustoms(); validate(); });
 $("who").value = store.get("who") || "";
 $("fixer").value = store.get("who") || "";
-function showName(){ const n = $("who").value.trim(); if($("mnName")){ $("mnName").hidden=!n; $("mnNameT").textContent=n; } $("nameBtn").hidden = !n; $("nameBtn").textContent = n ? n + " ✎" : ""; $("nameBtn").setAttribute("aria-label", "שינוי שם: " + n); }
+function navW_(){ try{ const n=document.querySelector("nav"); if(n) document.documentElement.style.setProperty("--navw", n.offsetWidth+"px"); }catch(e){} }
+window.addEventListener("resize", navW_); window.addEventListener("load", navW_); try{ new ResizeObserver(navW_).observe(document.querySelector("nav")); }catch(e){} if(document.fonts && document.fonts.ready) document.fonts.ready.then(navW_);
+function showName(){ const n = $("who").value.trim(); if($("mnName")){ $("mnName").hidden=!n; $("mnNameT").textContent=n; navW_(); } $("nameBtn").hidden = !n; $("nameBtn").textContent = n ? n + " ✎" : ""; $("nameBtn").setAttribute("aria-label", "שינוי שם: " + n); }
 function askName(){ const p=($("who").value||"").split(" ").filter(Boolean); $("nameFirst").value=p[0]||""; $("nameLast").value=p.slice(1).join(" "); $("needName").hidden=true; $("nameFirst").classList.remove("need"); $("nameLast").classList.remove("need"); $("namePick").hidden=false; setTimeout(()=>$("nameFirst").focus(), 50); }
 function saveName(){ const f=$("nameFirst").value.trim().replace(/\s+/g," "), l=$("nameLast").value.trim().replace(/\s+/g," ");
   if(!f || !l){ $("nameFirst").classList.toggle("need",!f); $("nameLast").classList.toggle("need",!l); $("needName").hidden=false; return; }
