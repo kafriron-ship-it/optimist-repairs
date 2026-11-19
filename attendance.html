@@ -2558,11 +2558,11 @@ function attReqOpen(g, forOther){
   var top=subFormTop(g, forOther, "לאיזה תאריך?");
   if(top.err){ p.innerHTML='<div class="card" style="padding:12px">'+esc(top.err)+' <button class="linkbtn" id="ar_cancel">סגור</button></div>'; $("ar_cancel").onclick=function(){ p.innerHTML=""; }; return; }
   var H='<div class="card" style="padding:12px"><div class="sumh" style="margin:0 0 8px">🔄 '+(forOther?'החלפה':'אני צריך החלפה')+' — '+esc(subAct(g))+'</div>'+top.html;
-  H+='<label style="font-size:.8rem;color:var(--muted)">למי להציע? (אפשר כמה)</label>'+
+  H+='<label id="ar_plbl" style="font-size:.8rem;color:var(--muted)">למי להציע? (אפשר כמה)</label>'+
      '<div id="ar_plist" class="pickl">'+   // (רון) צ׳יפים בסגנון האפליקציה במקום רשימת תיבות
        subInstList().map(function(n){ return '<label><input type="checkbox" class="ar_p" value="'+esc(n)+'">'+esc(cleanInst(n))+'</label>'; }).join('')+'</div>'+
      '<div id="ar_busy" style="color:var(--muted);font-size:.75rem;min-height:1em;margin-bottom:8px"></div>';
-  if(state.isCoord) H+='<div style="color:var(--muted);font-size:.78rem;margin-bottom:6px">את/ה רכז/ת — הבקשה נפתחת מיד למחליפים שסימנת.</div>';
+  if(state.isCoord) H+='<div id="ar_cnote" style="color:var(--muted);font-size:.78rem;margin-bottom:6px">את/ה רכז/ת — הבקשה נפתחת מיד למחליפים שסימנת.</div>';
   H+='<div id="ar_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em"></div>';
   H+='<div style="display:flex;gap:8px"><button id="ar_send" class="asin pri">שלח בקשה</button><button id="ar_cancel" class="asin" style="flex:0 0 76px">סגור</button></div></div>';
   p.innerHTML=H; p.scrollIntoView({behavior:"smooth",block:"center"});
@@ -2601,7 +2601,21 @@ function busyInsts(g, date, own, rows, sched, ref){
     if(why) out[k]=why; });
   return out;
 }
+// (טל) רכז על תאריך שעבר = עדכון בדיעבד: בוחרים מי החליף בפועל (אחד), וזה נרשם מיד — השעות עוברות למחליף
+function arPast_(){ var d=$("ar_date"); if(!state.isCoord || !d || !d.value) return false; var t=new Date(); t.setHours(0,0,0,0); try{ return toDate_(d.value)<t; }catch(e){ return false; } }
+function arMode_(){
+  var past=arPast_();
+  if($("ar_plbl")) $("ar_plbl").textContent = past ? "מי החליף בפועל? (מדריך אחד)" : "למי להציע? (אפשר כמה)";
+  if($("ar_cnote")) $("ar_cnote").textContent = past ? "עדכון בדיעבד — ההחלפה נרשמת מיד והשעות עוברות למי שבחרת." : "את/ה רכז/ת — הבקשה נפתחת מיד למחליפים שסימנת.";
+  if($("ar_send") && !$("ar_send").disabled) $("ar_send").textContent = past ? "רשום החלפה" : "שלח בקשה";
+  if(past){ var on=[].slice.call(document.querySelectorAll(".ar_p:checked")); on.slice(1).forEach(function(c){ c.checked=false; c.closest("label").classList.remove("on"); }); }
+}
+document.addEventListener("change", function(e){   // בדיעבד — רק מחליף אחד
+  var c=e.target; if(!c || !c.classList || !c.classList.contains("ar_p") || !c.checked || !arPast_()) return;
+  [].slice.call(document.querySelectorAll(".ar_p:checked")).forEach(function(x){ if(x!==c){ x.checked=false; x.closest("label").classList.remove("on"); } });
+});
 function arRefresh(g, forOther){
+  arMode_();
   var own=norm(forOther ? ($("ar_owner") ? $("ar_owner").value : ownerOf(g)) : state.who), date=$("ar_date") && $("ar_date").value;
   var boxes=[].slice.call(document.querySelectorAll(".ar_p"));
   boxes.forEach(function(c){ var me=norm(c.value)===own; c.closest("label").style.display = me ? "none" : ""; if(me) c.checked=false; });
@@ -2628,6 +2642,8 @@ function attReqSubmit(g){
   var owner=subOwner();
   if(!owner){ $("ar_err").textContent="בחרו של מי הקבוצה"; return; }
   if(!proposed.length){ $("ar_err").textContent="בחרו לפחות מדריך אחד"; return; }
+  var past=arPast_();
+  if(past && proposed.length!==1){ $("ar_err").textContent="בחרו מי החליף — מדריך אחד"; return; }
   var btn=$("ar_send"); btn.disabled=true; btn.textContent="שולח…";
   var month=monthOf(date), coord=!!state.isCoord, hr={};
   api({action:"hoursRead", month:month}).then(function(j){
@@ -2636,9 +2652,13 @@ function attReqSubmit(g){
   }).then(function(res){
     // רכז: מאשרים מיד — הבקשה נפתחת למחליפים בלי שלב אישור נוסף
     if(res&&res.ok&&res.id) addReq({id:res.id, requester:owner, act:subAct(g), date:date, start:hr.start||"", end:hr.end||"", status:"ממתין", proposed:proposed, accepted:[]});
-    if(res&&res.ok&&coord&&res.id) return post({action:"subReqApprove", id:res.id, approved:proposed}).then(function(a){ if(a&&a.ok) setReq(res.id, {status:"פתוח", accepted:proposed}); return {ok:true, approved:a&&a.ok}; });
+    if(res&&res.ok&&coord&&res.id) return post({action:"subReqApprove", id:res.id, approved:proposed}).then(function(a){ if(a&&a.ok) setReq(res.id, {status:"פתוח", accepted:proposed});
+      if(!(a&&a.ok) || !past) return {ok:true, approved:a&&a.ok};
+      return post({action:"subReqTake", id:res.id, inst:proposed[0]}).then(function(t){ if(t&&t.ok) setReq(res.id, {status:"הושלם", chosen:proposed[0]}); return {ok:true, approved:true, taken:!!(t&&t.ok)}; });   // (טל) בדיעבד — נרשם מיד
+    });
     return res;
   }).then(function(res){
+    if(res&&res.ok&&past){ afterSub(res.taken ? "ההחלפה נרשמה ✓ השעות של "+date+" עברו ל"+cleanInst(proposed[0]) : "ההחלפה נפתחה, אבל הרישום לא הושלם — נסו שוב מהבקשה"); return; }
     if(res&&res.ok){ var rq={act:subAct(g), date:date, requester:owner, start:hr.start||"", end:hr.end||""};
       waOffer(coord ? (res.approved ? proposed.map(function(n){ return {to:n, text:waOfferText(n, rq)}; }) : []) : [{to:WA_COORD, text:waReqText("sub", rq.act, date, "", rq.start, rq.end)}]);
       afterSub(coord ? (res.approved ? "ההחלפה נפתחה למחליפים ✓" : "הבקשה נשלחה, אבל האישור לא נשמר — אשרו אותה מרשימת הבקשות") : "בקשת ההחלפה נשלחה ✓ הרכז יקבל אותה לאישור."); }
