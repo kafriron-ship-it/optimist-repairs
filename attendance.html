@@ -905,7 +905,7 @@ function calWhoHTML_(ds){
   [["am","☀️ בוקר"],["pm","🌤 צהריים"],["","❓ עוד לא נקבע מתי"]].forEach(function(s){
     var rows=list.filter(function(g){ return slotKind(groupSlot(g))===s[0]; }).sort(function(a,b){ return slotMin(a)-slotMin(b) || (a.branch==="jaffa"?1:0)-(b.branch==="jaffa"?1:0) || cleanInst(a.instructor).localeCompare(cleanInst(b.instructor),"he"); });
     if(!rows.length) return;
-    H+='<div class="dws">'+s[1]+'</div><div class="abox">'+rows.map(function(g){ return calDayRow_(g, ds, dt<=today0, dt>=today0); }).join('')+'</div>';
+    H+='<div class="dws">'+s[1]+'</div><div class="abox">'+rows.map(function(g){ return calDayRow_(g, ds, dt<=today0, state.isCoord || dt>=today0); }).join('')+'</div>';
   });
   return H+'</div>';
 }
@@ -934,6 +934,7 @@ function openAttOn_(gi, ds){
 }
 function openReqOn_(kind, gi, ds, b){
   var g=state.groups[gi]; if(!g || !subUnder_(b)) return;
+  state.reqWantDs=ds;   // (טל) רכז יכול גם על תאריך שעבר — הטופס יכלול אותו
   if(kind==="sub") attReqOpen(g, true); else attPostOpen(g, true);
   var s=$("ar_date"); if(!s) return;
   var o=[].filter.call(s.options, function(x){ return x.value===ds && !x.disabled; })[0];
@@ -1472,7 +1473,7 @@ function workPlanHTML(){
   var A='';
   if(sel){
     var g=state.groups[sel.gi], x=toDate_(sel.ds), today0=new Date(); today0.setHours(0,0,0,0);
-    if(g){ var rq=wpReq_(g, sel.ds), canReq=x>=today0;
+    if(g){ var rq=wpReq_(g, sel.ds), canReq=state.isCoord || x>=today0;
       A='<div class="arow wpact"><div class="nm"><b>'+esc(cleanInst(g.instructor))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+'</b><span>יום '+esc(HDAY[x.getDay()])+' '+x.getDate()+'/'+(x.getMonth()+1)+' · '+esc(groupInfoLine(g))+'</span>'+(rq?'<div class="cchips">'+reqChip_(rq, true)+'</div>':'')+'</div>'+
         '<button class="wax" id="wp_x" aria-label="סגור">✕</button>'+
         '<div class="dacts"><button class="ab att" data-watt="'+sel.gi+'">📋 נוכחות</button>'+(canReq?'<button class="ab sub" data-wsub="'+sel.gi+'">🔄 החלפה</button><button class="ab post" data-wpost="'+sel.gi+'">📅 דחייה</button>':'')+'<button class="ab inf" data-winst="'+sel.gi+'">✏️ פרטים</button></div></div>';
@@ -2508,7 +2509,10 @@ function takenDates(g){
 // בורר תאריכים + (לרכז שפועל בשם אחר) בורר "של מי הקבוצה"
 function subFormTop(g, forOther, label){
   var today=new Date(); today.setHours(0,0,0,0);
-  var dates=(g.dateCols||[]).map(function(d){return d.date;}).filter(function(d){ try{ return toDate_(d)>=today; }catch(e){ return false; } }).sort(function(a,b){ return toDate_(a)-toDate_(b); });
+  var dates=(g.dateCols||[]).map(function(d){return d.date;}).filter(function(d){ try{ return toDate_(d)>=today; }catch(e){ return false; } });
+  var want=state.reqWantDs; state.reqWantDs="";
+  if(state.isCoord && want && dates.indexOf(want)<0) dates.push(want);   // (טל) רכז: גם תאריך שעבר (תיעוד החלפה / דחייה שכבר קרתה)
+  dates.sort(function(a,b){ return toDate_(a)-toDate_(b); });
   var taken=takenDates(g), free=dates.filter(function(d){ return !taken[d]; });
   if(!dates.length) return {err:'אין תאריכי פעילות קרובים לקבוצה הזו.'};
   if(!free.length) return {err:'לכל התאריכים הקרובים של הקבוצה כבר נשלחה בקשה.'};

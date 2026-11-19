@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#2161ad">
+<meta name="build" content="20261119-2024">
 <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <title>תקלות סירות</title>
 <script src="icons.js?v=1"></script>
@@ -717,8 +718,22 @@ function loadFrame(id, url){
   const f=$(id); if(!f) return;
   if(f.getAttribute("src") && f.dataset.who===frameWho()) return;
   const again=!!f.getAttribute("src"); f.dataset.who=frameWho();
-  f.setAttribute("src", url + (again ? "&r="+Date.now() : ""));
+  f.setAttribute("src", url + (BUILD ? "&b="+BUILD : "") + (again ? "&r="+Date.now() : ""));   // b = גרסה → אחרי עדכון נטען הקובץ החדש, לא עותק שמור
 }
+// (רון) אחרי עדכון באתר הטלפון שומר עותק ישן עד ~10 דקות. בפתיחה (ובחזרה לאפליקציה אחרי הפסקה) בודקים אם יש גרסה חדשה וטוענים אותה.
+const BUILD=(document.querySelector('meta[name="build"]')||{}).content||"";
+let hiddenAt_=0;
+function checkUpdate_(onResume){
+  if(!BUILD || navigator.onLine===false) return;
+  fetch(location.pathname+"?u="+Date.now(), {cache:"no-store"}).then(r=>r.ok ? r.text() : "").then(t=>{
+    const m=/<meta name="build" content="([^"]+)"/.exec(t||""); if(!m || m[1]===BUILD) return;
+    if(onResume && ($("boat") && $("boat").value)) return;   // באמצע דיווח — לא מרעננים
+    try{ if(sessionStorage.getItem("upd_to")===m[1]) return; sessionStorage.setItem("upd_to", m[1]); }catch(e){}
+    location.replace(location.pathname+"?v="+encodeURIComponent(m[1])+location.hash);
+  }).catch(()=>{});
+}
+setTimeout(()=>checkUpdate_(false), 1200);
+document.addEventListener("visibilitychange", ()=>{ if(document.hidden){ hiddenAt_=Date.now(); return; } if(hiddenAt_ && Date.now()-hiddenAt_>60000) checkUpdate_(true); });
 // (רון) מסך ברירת מחדל: מדריכים → מרכז מדריכים (לפני ההשקה מי שעוד לא רואה אותו → נוכחות חניכים); כל השאר (חניכים) → דיווח כרגיל
 function homeTab(){ try{ if(hoursTabAllowed()) return "hours"; if(!hoursLaunched() && attTabAllowed()) return "att"; }catch(e){} return "report"; }
 var tabPicked = false;
