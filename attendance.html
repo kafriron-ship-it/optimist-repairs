@@ -1638,7 +1638,8 @@ function closeCard(){ $("ov").hidden = true; }
 var HOURS_ON = Date.now() >= new Date(2026,11,1).getTime();   // נפתח לכולם לבד ב-1/12/2026 בחצות (עד אז רק HOURS_WHO)
 var HOURS_WHO = ["רון כפרי","טל הררי"];   // משתמשים שרואים את מסך השעות גם כשהוא סגור לכולם
 function hoursOK(){ try{ return HOURS_ON || HOURS_WHO.indexOf(norm(state.who))>-1; }catch(e){ return HOURS_ON; } }
-function hoursAdmin(){ try{ return state.isCoord || HOURS_WHO.indexOf(norm(state.who))>-1; }catch(e){ return state.isCoord; } }
+// (טל/רון) שעות של כולם, סיכום, ייצוא ואישור בקשות — רק לרכזים. HOURS_WHO נותן רק גישה מוקדמת למסך, לא הרשאות רכז ("אני לא רכז")
+function hoursAdmin(){ return !!state.isCoord; }
 var HSTAFF = ["רון כפרי","ג׳וני גולן","מעין גלעד","ליאל עזרן","יעל שטייגמן","גלי מלכא","מיה סניפר","יסמין קרסנובסקי","איתמר ברייר","גאיה בן סימון","מירב לבנוני","ארז איתן","עידו חן","טל הררי"];
 var HMON = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
 var hstate = { inst:"", month:"", rows:[], sched:[], reqs:[] };
