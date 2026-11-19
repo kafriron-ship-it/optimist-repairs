@@ -316,6 +316,11 @@ button.asin.dng{background:var(--stop);color:#fff;border-color:var(--stop)}
 #subpanel .card{margin:8px}
 .hhome{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:4px}
 .hhome .hh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:800}
+.hhome.closed .hh{margin-bottom:0}
+.hhtog{display:flex;align-items:center;gap:8px;flex:1;min-width:0;background:none;border:0;color:var(--ink);font:800 1rem 'Assistant',sans-serif;padding:2px 0;cursor:pointer;text-align:start}
+.hhtog .hht{white-space:nowrap}
+.hhtog .hhs{color:var(--muted);font:700 .78rem 'Assistant',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.hhtog .cbc{color:var(--muted);font-size:.8rem;margin-inline-start:auto;padding-inline-end:8px}
 .linkbtn{background:none;border:0;color:var(--navy);font:800 .85rem 'Assistant';padding:4px}
 .ssearch{width:100%;background:var(--bg);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:600 .92rem 'Assistant'}
 .sres .sr{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 2px;border-top:1px solid var(--line);cursor:pointer}
@@ -742,16 +747,20 @@ function renderHomeHours(){
   var hn=function(r){ var n=parseFloat(r.total); return isNaN(n)?0:n; }, r2=function(n){ return Math.round(n*100)/100; };
   var done=mine.filter(function(r){ return toDate_(r.date)<=today0; }), plan=mine.filter(function(r){ return toDate_(r.date)>today0; });
   var sug = norm(hstate.inst)===me ? schedSuggestions() : [];
-  var h='<div class="hhome"><div class="hh"><span>🕐 השעות שלי · '+esc(HMON[new Date().getMonth()])+'</span><button class="linkbtn" id="hh_more">פירוט ›</button></div>';
+  // (טל) אפשר לצמצם את כל כרטיס השעות (נזכר בטלפון). פתוח: היומן תמיד פתוח, והסיכום שורה אחת בראש היומן
+  if(hstate.hhClosed===undefined){ try{ hstate.hhClosed = localStorage.getItem("att_hh_closed")==="1"; }catch(e){ hstate.hhClosed=false; } }
+  var closed=hstate.hhClosed, sumD=r2(done.reduce(function(t,r){ return t+hn(r); },0)), sumP=r2(plan.reduce(function(t,r){ return t+hn(r); },0));
+  var h='<div class="hhome'+(closed?' closed':'')+'"><div class="hh"><button class="hhtog" id="hh_tog" aria-expanded="'+(!closed)+'"><span class="hht">🕐 השעות שלי · '+esc(HMON[new Date().getMonth()])+'</span>'+
+    (closed?'<span class="hhs" title="עבדתי '+sumD+(sumP?' · מתוכנן '+sumP:'')+' שע׳">'+sumD+' שע׳</span>':'')+'<span class="cbc">'+(closed?'▾':'▴')+'</span></button><button class="linkbtn" id="hh_more">פירוט ›</button></div>';
   if(hstate.flash){ toast(hstate.flash, "ok"); hstate.flash=""; }
   if(hstate.addMsg && Date.now()<hstate.addMsgT){ toast(hstate.addMsg, "ok"); hstate.addMsg=""; }
-  // (טל) היומן תמיד פתוח, והסיכום קטן — שורה אחת בראש היומן (במקום שני הריבועים הגדולים)
-  h += '<div id="hh_cal"></div>';
-  if(sug.length) h += '<div id="hsugbox2" style="margin-bottom:8px"><div class="hflbl" style="margin-bottom:6px">📅 בחרו פעם אחת, והשעות יתמלאו לבד כל חודש:</div>'+sugHTML(sug)+'</div>';
-  h += hstate.add ? '<div id="hh_form"></div>' : '<button class="ghostbtn" id="hh_add" style="width:100%;justify-content:center;border-color:var(--flag);color:var(--flag)">➕ הוסף עבודה</button>';
+  if(!closed) h += '<div id="hh_cal"></div>';
+  if(sug.length) h += '<div id="hsugbox2" style="margin:'+(closed?'10px':'0')+' 0 8px"><div class="hflbl" style="margin-bottom:6px">📅 בחרו פעם אחת, והשעות יתמלאו לבד כל חודש:</div>'+sugHTML(sug)+'</div>';   // צריך לבחור — מופיע גם כשמצומצם
+  if(!closed) h += hstate.add ? '<div id="hh_form"></div>' : '<button class="ghostbtn" id="hh_add" style="width:100%;justify-content:center;border-color:var(--flag);color:var(--flag)">➕ הוסף עבודה</button>';
   h += '</div>';
   box.innerHTML=h;
   $("hh_more").onclick=function(){ openHours(); };
+  $("hh_tog").onclick=function(){ hstate.hhClosed=!hstate.hhClosed; try{ localStorage.setItem("att_hh_closed", hstate.hhClosed?"1":"0"); }catch(e){} renderHomeHours(); };
   if($("hh_cal")) renderHoursCal();
   if($("hh_add")) $("hh_add").onclick=function(){ hstate.add={date:todayDmy(), act:"", start:"", end:"", slot:""}; renderHomeHours(); $("hh_form").scrollIntoView({behavior:"smooth",block:"start"}); };
   if($("hh_form")) renderAddForm();
