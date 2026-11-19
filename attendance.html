@@ -480,6 +480,8 @@ body.hoursonly #wpov{background:var(--bg)}
 .wgc .wgsub{color:var(--flag)!important;font-weight:800!important}
 .wpact{border-top:1px solid var(--line);background:color-mix(in srgb,var(--navy) 6%,transparent)}
 .wpact .wax{flex:none;align-self:flex-start}
+.undobtn.sm{min-height:0;padding:1px 9px;font:800 .72rem 'Assistant',sans-serif;border-radius:999px;background:none;border:1px solid var(--line);color:var(--muted);cursor:pointer}
+.undobtn.sm:hover{border-color:var(--stop);color:var(--stop)}
 </style>
 </head>
 <body>
@@ -674,7 +676,8 @@ function homeRow(g, k, full){
   return '<div class="arow"><div class="nm"><b>'+esc(cleanInst(g.instructor))+
       (!full&&state.isCoord&&gi>-1?'<button class="pen" data-cinst="'+gi+'" title="מי המדריך של הקבוצה?">✏️ מדריך</button>':'')+
       (miss?'<span class="tchip miss">⏰ לא מולא</span>':'')+
-      (cs?'<span class="scchip sc-'+cs+'">'+esc(SUBLBL[cs])+'</span>':'')+'</b><span>'+esc(sub.join(" · "))+'</span>'+
+'</b><span>'+esc(sub.join(" · "))+'</span>'+
+      (function(){ var nx=nextReqOf_(g); return nx ? '<div class="cchips">'+reqChip_(nx, true)+'<span class="cchip">'+esc(nx.date.replace(/\/\d+$/,''))+'</span></div>' : ''; })()+
       '<span class="hinfo">'+esc(groupInfoLine(g))+'</span>'+
       (bds.length?'<span class="bdline">🎂 '+bds.map(function(x){ return esc(norm(x.name).split(" ")[0])+(x.b.age?' ('+x.b.age+')':'')+' '+esc(bdayWhen(x.b)); }).join(' · ')+'</span>':'')+'</div>'+
     '<div class="abtns"><button class="ab att" data-hatt="'+gi+'">📋 נוכחות</button>'+
@@ -886,7 +889,13 @@ function calReqIcons_(){
   });
   return out;
 }
-function reqChip_(rq){
+// (טל) "✕ בטל" על כל החלפה / דחייה — לרכז, ולמדריך שביקש. השרת מחזיר את השעות (subReqUndo)
+function canUndo_(rq){ return !!rq && /^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(rq.status) && (state.isCoord || matchName(rq.requester||"", state.who)); }
+function undoBtn_(rq){ return canUndo_(rq) ? '<button class="undobtn sm" data-undo="'+esc(rq.id)+'">✕ בטל</button>' : ''; }
+function reqChip_(rq, undo){
+  return reqChip0_(rq)+(undo ? undoBtn_(rq) : '');
+}
+function reqChip0_(rq){
   var why=rq.reason ? ' · '+rq.reason : '';
   return rq.status==="הושלם" ? '<span class="cchip ok">🔄 '+esc(cleanInst(rq.chosen||""))+' מחליף</span>'
        : rq.status==="בוטל" ? '<span class="cchip bad">📅 נדחתה'+esc(why)+'</span>'
@@ -912,7 +921,7 @@ function calDayRow_(g, ds, past, canReq){
   var rq=(state.reqs||[]).filter(function(r){ return r.act===act && r.date===ds && /^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(r.status); })[0];
   var hasDate=(g.dateCols||[]).some(function(d){ return d.date===ds; });
   var marked=hasDate ? g.students.filter(function(s){ return s.attendance && s.attendance[ds]; }).length : 0;
-  var chips=rq ? reqChip_(rq) : '';
+  var chips=rq ? reqChip_(rq, true) : '';
   if(past && hasDate && !(rq&&rq.status==="בוטל")) chips += marked ? '<span class="cchip ok">✓ נוכחות '+marked+'/'+g.students.length+'</span>' : '<span class="cchip warn">⏰ נוכחות לא מולאה</span>';
   var sub=[]; if(t) sub.push("\u2066"+t.start+"–"+t.end+"\u2069"); sub.push(groupInfoLine(g));
   // (רון) שורה נקייה: שם + סטטוס. לחיצה על השורה פותחת את הכפתורים
@@ -1268,6 +1277,7 @@ function todayRowHTML_(g){
   else if(rq && rq.status==="הושלם" && rq.chosen && !matchName(rq.chosen, state.who)){ chip='<span class="cchip ok">🔄 '+esc(cleanInst(rq.chosen))+' מחליף אותך</span>'; canAtt=false; }
   else if(rq && /^(ממתין|פתוח)$/.test(rq.status)) chip='<span class="cchip warn">🔄 מחכה למחליף</span>';
   else if(rq && rq.status==="ביטול ממתין") chip='<span class="cchip warn">📅 בקשת דחייה ממתינה</span>';
+  if(chip && rq) chip += undoBtn_(rq);
   return '<div class="tdrow'+(canAtt?'':' tdoff')+'"><div class="tdnm"><b>'+esc(cleanInst(g.instructor))+'</b><span>'+esc(BRN[g.branch]||g.branch)+(t?' · \u2066'+t.start+'–'+t.end+'\u2069':'')+'</span>'+(chip?'<div class="cchips">'+chip+'</div>':'')+'</div>'+
     (canAtt ? '<button class="tdatt" data-hatt="'+giOf(g)+'">📋 נוכחות</button>' : '')+'</div>';
 }
@@ -1489,7 +1499,7 @@ function workPlanHTML(){
   if(sel){
     var g=state.groups[sel.gi], x=toDate_(sel.ds), today0=new Date(); today0.setHours(0,0,0,0);
     if(g){ var rq=wpReq_(g, sel.ds), canReq=x>=today0;
-      A='<div class="arow wpact"><div class="nm"><b>'+esc(cleanInst(g.instructor))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+'</b><span>יום '+esc(HDAY[x.getDay()])+' '+x.getDate()+'/'+(x.getMonth()+1)+' · '+esc(groupInfoLine(g))+'</span>'+(rq?'<div class="cchips">'+reqChip_(rq)+'</div>':'')+'</div>'+
+      A='<div class="arow wpact"><div class="nm"><b>'+esc(cleanInst(g.instructor))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+'</b><span>יום '+esc(HDAY[x.getDay()])+' '+x.getDate()+'/'+(x.getMonth()+1)+' · '+esc(groupInfoLine(g))+'</span>'+(rq?'<div class="cchips">'+reqChip_(rq, true)+'</div>':'')+'</div>'+
         '<button class="wax" id="wp_x" aria-label="סגור">✕</button>'+
         '<div class="dacts"><button class="ab att" data-watt="'+sel.gi+'">📋 נוכחות</button>'+(canReq?'<button class="ab sub" data-wsub="'+sel.gi+'">🔄 החלפה</button><button class="ab post" data-wpost="'+sel.gi+'">📅 דחייה</button>':'')+'<button class="ab inf" data-winst="'+sel.gi+'">✏️ פרטים</button></div></div>';
     }
@@ -1554,7 +1564,7 @@ function renderStudents(){
     else if((x=pick("פתוח"))){ sty='background:#2a2712;border-color:#8a7a1e;color:#f0dd8a'; txt='🟡 רכז אישר — ממתין שמחליף ייקח (ביקש: '+esc(cleanInst(x.requester))+')'; }
     else if((x=pick("ממתין"))){ sty='background:#2a1e12;border-color:#a85a1e;color:#f0b98a'; txt='🟠 '+esc(cleanInst(x.requester))+' ביקש החלפה — ממתין לרכז'; }
     // (טל) לרכז תמיד יש "ביטול" — גם אחרי שהחלפה/דחייה כבר אושרה
-    $("submark").innerHTML = x ? '<div class="rem" style="'+sty+'"><span style="flex:1">'+txt+'</span>'+(state.isCoord?'<button class="undobtn" id="subundo">✕ ביטול</button>':'')+'</div>' : '';
+    $("submark").innerHTML = x ? '<div class="rem" style="'+sty+'"><span style="flex:1">'+txt+'</span>'+(canUndo_(x)?'<button class="undobtn" id="subundo">✕ ביטול</button>':'')+'</div>' : '';
     if($("subundo")) $("subundo").onclick=function(){ subUndo(x, this); };
   }
   $("cnt").innerHTML = '<b>'+present+'</b> / '+cur.students.length+' נוכחים';
@@ -2354,6 +2364,11 @@ function subTodayGroups(){
 function giOf(g){ for(var i=0;i<state.groups.length;i++){ var x=state.groups[i]; if(norm(x.instructor)===norm(g.instructor) && x.day===g.day && x.branch===g.branch) return i; } return -1; }
 function subAct(g){ return cleanInst(g.instructor)+" · "+g.day+" · "+(BRN[g.branch]||g.branch); }
 // סטטוס החלפה של פעילות (לתאריכים שעוד לא עברו) — לצביעת הלוח
+function nextReqOf_(g){   // הבקשה הקרובה של הקבוצה (מהיום והלאה)
+  var act=subAct(g), today=new Date(); today.setHours(0,0,0,0);
+  return (state.reqs||[]).filter(function(r){ try{ return r.act===act && toDate_(r.date)>=today && /^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(r.status); }catch(e){ return false; } })
+    .sort(function(a,b){ return toDate_(a.date)-toDate_(b.date); })[0];
+}
 function groupSubStatus(g){
   var act=subAct(g), today=new Date(); today.setHours(0,0,0,0);
   var rs=(state.reqs||[]).filter(function(r){ try{ return r.act===act && toDate_(r.date)>=today; }catch(e){ return false; } });
@@ -2710,11 +2725,16 @@ function attApprove(id, approved, btn){
   btn.disabled=true; btn.textContent="מאשר…";
   post({action:"subReqApprove", id:id, approved:approved}).then(function(j){ if(j&&j.ok){ setReq(id, {status:"פתוח", accepted:approved}); var r=reqById(id); if(r) waOffer(approved.map(function(n){ return {to:n, text:waOfferText(n, r)}; })); afterSub("אושר ✓ ההצעה נפתחה למחליפים."); } else { btn.disabled=false; btn.textContent="אשר ופתח"; toast("לא בוצע: "+reqErr(j)); } }).catch(function(){ btn.disabled=false; btn.textContent="אשר ופתח"; toast("אין חיבור"); });
 }
-// רכז מבטל החלפה/דחייה בכל שלב — השרת מחזיר את השעות למדריך המקורי
+document.addEventListener("click", function(e){
+  var b=e.target.closest && e.target.closest("[data-undo]"); if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  var r=reqById(b.dataset.undo); if(r) subUndo(r, b);
+}, true);
+// רכז (או המדריך שביקש) מבטל החלפה/דחייה בכל שלב — השרת מחזיר את השעות למדריך המקורי
 function subUndo(r, btn){
   var q = r.status==="הושלם" ? "לבטל את ההחלפה? "+cleanInst(r.chosen)+" לא יחליף, והשעות יחזרו ל"+cleanInst(r.requester)+"."
         : r.status==="בוטל" ? "לבטל את הדחייה? הפעילות חוזרת, והשעות יחזרו ל"+cleanInst(r.requester)+"."
-        : "לבטל את הבקשה של "+cleanInst(r.requester)+"?";
+        : matchName(r.requester||"", state.who) ? "לבטל את הבקשה שלך?" : "לבטל את הבקשה של "+cleanInst(r.requester)+"?";
   if(!confirm(q)) return;
   btn.disabled=true; btn.textContent="מבטל…";
   post({action:"subReqUndo", id:r.id}).then(function(j){
