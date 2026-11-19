@@ -218,10 +218,15 @@ button.asin.dng{background:var(--stop);color:#fff;border-color:var(--stop)}
 .wgc b .wpbr{display:inline-block;color:#3a2a00;font-size:.66rem;line-height:1.4;vertical-align:middle}
 .wgt .no{color:var(--muted);opacity:.6}
 .wglg{color:var(--muted);font-size:.72rem;font-weight:700;text-align:center;padding:6px 10px}
-/* (טל) ימי הולדת של הקבוצה שלי — בולטים */
-.bdi.me{background:rgba(244,114,182,.12);border-inline-start:3px solid #f472b6;border-radius:8px;padding:6px 9px}
-.bdi.me b{font-size:1.02rem}
-.bdme{display:inline-block;background:#f472b6;color:#3b0a24;border-radius:999px;padding:0 7px;font:800 .66rem 'Assistant',sans-serif;vertical-align:middle;margin-inline-start:4px}
+/* (רון) יום הולדת לחניך שלי — כרטיס בולט בראש המסך */
+.bdmine{background:linear-gradient(135deg,rgba(244,114,182,.24),rgba(244,114,182,.07));border:1.5px solid #f472b6;border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.bdmine.now{border-width:2px;box-shadow:0 0 0 4px rgba(244,114,182,.16)}
+.bdnow{font:800 1.18rem 'Assistant',sans-serif;line-height:1.3}
+.bdnow b{color:#f472b6}
+.bdg{color:var(--muted);font-size:.8rem;font-weight:700;margin:1px 0 8px}
+.bdg:last-child{margin-bottom:0}
+.bdsoon{font-size:.86rem;font-weight:600}
+.bdsoon b{color:#f472b6}
 .mybody .aday:first-child{margin-top:0}
 /* (טל) מחשב: מסך רחב — היומן והיום שנבחר זה לצד זה, הטבלה בלי גלילה הצידה */
 @media (min-width:900px){
@@ -655,6 +660,7 @@ function renderHome(groups){
   var todayG = mine.filter(function(g){ return g.day===todayName && !subOnly(g); });
   var subG = subTodayGroups().filter(function(g){ return todayG.indexOf(g)<0; });   // (רון) היום אני מחליף בקבוצה של מישהו אחר
   loadStaff();
+  h += myBdayHTML(groups);   // (רון) יום הולדת לחניך שלי — בראש המסך, ברור
   h += bdayAskHTML();
   h += waOfferHTML();
   if(state.isCoord) h += clubToday(groups, todayName);
@@ -1191,18 +1197,34 @@ function bindBdayAsk(){
   };
 }
 // (רכז) מי חוגג השבוע — מדריכים וחניכים
+// (רון) יום הולדת לחניך מהקבוצות שלי — כרטיס בולט בראש המסך (לא מקופל): היום בגדול, הקרובים בשורה קטנה.
+// ימי הולדת בקבוצות של אחרים — רק בפס המקופל של הרכז (צריך לדעת, לא דחוף).
+function myBdayHTML(groups){
+  if(!bdayOn()) return '';
+  var mineG = state.isCoord ? myOwnGroups() : groups, list=[], seen={};
+  mineG.forEach(function(g){ if(subOnly(g)) return; (g.students||[]).forEach(function(st){ var b=bdayInfo(st.dob), k=norm(st.name);
+    if(b && b.days<=7 && !seen[k]){ seen[k]=1; list.push({name:norm(st.name), b:b, g:g}); } }); });
+  if(!list.length) return '';
+  list.sort(function(a,c){ return a.b.days-c.b.days; });
+  var now=list.filter(function(x){ return x.b.days===0; }), soon=list.filter(function(x){ return x.b.days>0; });
+  var h='<div class="bdmine'+(now.length?' now':'')+'">';
+  now.forEach(function(x){ h+='<div class="bdnow">🎂 היום יום הולדת ל<b>'+esc(x.name)+'</b>'+(x.b.age?' · '+x.b.age:'')+'</div>'+
+    '<div class="bdg">הקבוצה שלך ביום '+esc(x.g.day)+(x.g.branch==="jaffa"?' · יפו':'')+'</div>'; });
+  if(soon.length) h+='<div class="bdsoon">'+(now.length?'בקרוב: ':'🎂 ימי הולדת בקבוצות שלך: ')+
+    soon.map(function(x){ return '<b>'+esc(x.name.split(" ")[0])+'</b>'+(x.b.age?' ('+x.b.age+')':'')+' '+esc(bdayWhen(x.b)); }).join(' · ')+'</div>';
+  return h+'</div>';
+}
 function bdayWeekHTML(groups){
   if(!bdayOn() || !state.isCoord) return '';
   var list=[], seen={};
   (state.staff||[]).forEach(function(r){ var b=bdayInfo(r.dob); if(b&&b.days<=7) list.push({who:cleanInst(r.inst), sub:'מדריך/ה', b:b, staff:1}); });
   groups.forEach(function(g){ (g.students||[]).forEach(function(st){ var b=bdayInfo(st.dob); var k=norm(st.name);
-    if(b&&b.days<=7&&!seen[k]){ seen[k]=1; list.push({who:st.name, sub:cleanInst(g.instructor)+' · '+g.day+' · '+(BRN[g.branch]||g.branch), b:b, mine:isMineG(g)?1:0}); } }); });
+    if(b&&b.days<=7&&!seen[k]){ seen[k]=1; if(!isMineG(g)) list.push({who:st.name, sub:cleanInst(g.instructor)+' · '+g.day+' · '+(BRN[g.branch]||g.branch), b:b}); } }); });   // שלי — בכרטיס למעלה
   if(!list.length) return '';
-  // (טל) ימי הולדת של חניכים מהקבוצות שלי — בולטים ולמעלה; השאר רגילים
-  list.sort(function(a,c){ return (c.mine||0)-(a.mine||0) || a.b.days-c.b.days || (c.staff||0)-(a.staff||0); });
-  var open=!!state.bdOpen, today=list.filter(function(x){ return x.b.days===0; }).length, nMine=list.filter(function(x){ return x.mine; }).length;
-  var bar='<button class="clubbar" id="bdbar" aria-expanded="'+open+'"><span class="cbl" style="color:#f472b6">🎂 ימי הולדת השבוע</span><span class="cbs">'+list.length+(nMine?' · <b style="color:#f472b6">'+nMine+' מהקבוצות שלך</b>':'')+(today?' · <b style="color:#f472b6">'+today+' היום</b>':'')+'</span><span class="cbc">'+(open?'▴':'▾')+'</span></button>';
-  var body=open ? '<div class="clubbody">'+list.map(function(x){ return '<div class="bdi'+(x.mine?' me':'')+'"><b>'+(x.staff?'⭐ ':'')+esc(x.who)+(x.b.age?' · '+x.b.age:'')+(x.mine?' <span class="bdme">הקבוצה שלך</span>':'')+'</b><span>'+esc(x.sub)+'</span><em>'+esc(bdayWhen(x.b))+'</em></div>'; }).join('')+'</div>' : '';
+  list.sort(function(a,c){ return a.b.days-c.b.days || (c.staff||0)-(a.staff||0); });
+  var open=!!state.bdOpen, today=list.filter(function(x){ return x.b.days===0; }).length;
+  var bar='<button class="clubbar" id="bdbar" aria-expanded="'+open+'"><span class="cbl" style="color:#f472b6">🎂 ימי הולדת השבוע · שאר הקבוצות</span><span class="cbs">'+list.length+(today?' · '+today+' היום':'')+'</span><span class="cbc">'+(open?'▴':'▾')+'</span></button>';
+  var body=open ? '<div class="clubbody">'+list.map(function(x){ return '<div class="bdi"><b>'+(x.staff?'⭐ ':'')+esc(x.who)+(x.b.age?' · '+x.b.age:'')+'</b><span>'+esc(x.sub)+'</span><em>'+esc(bdayWhen(x.b))+'</em></div>'; }).join('')+'</div>' : '';
   return '<div class="clubwrap">'+bar+body+'</div>';
 }
 
