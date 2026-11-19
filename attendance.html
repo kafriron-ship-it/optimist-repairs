@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>נוכחות חניכים · מרכז דניאל</title>
+<script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <script src="icons.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,7 +12,8 @@
 <style>
 :root{ --bg:#0b1422; --surface:#132134; --ink:#e7eef8; --muted:#94a6bd; --line:#24374f;
   --navy:#6ea6e8; --flag:#f19a45; --ok:#4cc39a; --stop:#ff6b55; --chip:#1b2c44; --head:#163a66; --plan:#a78bfa; }
-@media (prefers-color-scheme: light){ :root{ --bg:#f4f7fb; --surface:#fff; --ink:#132640; --muted:#56677d; --line:#d8e1ec; --navy:#2161ad; --flag:#ec8f33; --ok:#1d7f62; --stop:#c63a28; --chip:#e7eef8; --head:#2161ad; --plan:#7c4dde; } }
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){ --bg:#f4f7fb; --surface:#fff; --ink:#132640; --muted:#56677d; --line:#d8e1ec; --navy:#2161ad; --flag:#ec8f33; --ok:#1d7f62; --stop:#c63a28; --chip:#e7eef8; --head:#2161ad; --plan:#7c4dde; } }
+:root[data-theme="light"]{ --bg:#f4f7fb; --surface:#fff; --ink:#132640; --muted:#56677d; --line:#d8e1ec; --navy:#2161ad; --flag:#ec8f33; --ok:#1d7f62; --stop:#c63a28; --chip:#e7eef8; --head:#2161ad; --plan:#7c4dde; }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--ink);font-family:'Assistant',sans-serif;line-height:1.45}
 .wrap{max-width:560px;margin:0 auto;min-height:100vh}
@@ -218,28 +220,9 @@ button.asin.dng{background:var(--stop);color:#fff;border-color:var(--stop)}
 .wgc b .wpbr{display:inline-block;color:#3a2a00;font-size:.66rem;line-height:1.4;vertical-align:middle}
 .wgt .no{color:var(--muted);opacity:.6}
 .wglg{color:var(--muted);font-size:.72rem;font-weight:700;text-align:center;padding:6px 10px}
-/* (רון) כרטיס "היום" בראש המסך */
-.tday{background:color-mix(in srgb,var(--flag) 7%,var(--surface));border:2px solid var(--flag);border-radius:16px;padding:12px;margin-bottom:14px;display:flex;flex-direction:column;gap:10px}
-.tdh2{display:flex;align-items:baseline;gap:8px;font:800 1.08rem 'Assistant',sans-serif;color:var(--flag)}
-.tdh2 small{color:var(--muted);font-size:.8rem;font-weight:700}
-.tday .bdmine{margin:0}
-.tdgrp{display:flex;flex-direction:column;gap:10px}
-.tdclub{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 11px;font-size:.88rem;font-weight:700;color:var(--muted)}
-.tdclub b{color:var(--ink)} .tdclub .warn{color:var(--flag)}
-.tdclub .linkbtn{white-space:nowrap;flex:none}
-.tdnone{color:var(--muted);font-size:.88rem;font-weight:700}
-.tday #subui{display:flex;flex-direction:column;gap:8px}
-.tday #subui:empty{display:none}
-.tday #subui .rem{margin:0}
-/* (רון) מתחת לכרטיס — פסים שקטים, בלי צבעים */
-.quiet .clubwrap{margin-bottom:8px}
-.quiet .clubbar .cbl{color:var(--ink)!important;font-weight:700}
-.quiet .clubbar .cbl svg{color:var(--muted)}
-.quiet .hhome{margin-bottom:8px}
-/* (רון) יום ביומן אצל רכז: שורה נקייה, הכפתורים בלחיצה */
-.drow{cursor:pointer}
-.drow .dchev{flex:none;color:var(--muted);font-size:.85rem;padding:0 4px}
-.drow.open{background:color-mix(in srgb,var(--navy) 7%,transparent)}
+/* (טל) בקשות לאישור אצל רכז — למעלה ובאדום */
+.rem.urgent{background:color-mix(in srgb,var(--stop) 14%,var(--surface));border:1.5px solid var(--stop);color:var(--stop);font-weight:800}
+/* (טל) כפתורים לקבוצה שנבחרה בסידור העבודה */
 .dacts{flex-basis:100%;min-width:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;padding-top:6px}
 .dacts .ab{min-width:0;justify-content:center;gap:3px;padding:8px 2px;font-size:.8rem;white-space:nowrap;overflow:hidden}
 .ab.inf{border:1.5px solid var(--line);color:var(--ink);background:var(--chip)}
@@ -444,27 +427,6 @@ body.hoursonly #wpov{background:var(--bg)}
 [hidden]{display:none!important}
 .embed header{display:none}
 .embed .bd{padding-top:16px}
-/* ===== (טל) מצב שקט: פחות צבעים, פחות סימנים ===== */
-.tday{background:var(--surface);border:1.5px solid color-mix(in srgb,var(--flag) 55%,var(--line));gap:8px}
-.tdh2{font-size:.95rem}
-.tdbd{color:var(--ink);font-weight:700;font-size:.98rem;line-height:1.35}
-.tdbd b{color:#f472b6}
-.tdbd small{display:block;color:var(--muted);font-size:.76rem;font-weight:700}
-.tdclub{background:none;border:0;padding:0;border-top:1px solid var(--line);border-radius:0;padding-top:8px}
-.hcalgrid{gap:3px}
-.hcd{height:42px;display:grid;place-items:center;background:transparent;border-color:transparent}
-.hcd .n{position:static;font:700 .9rem 'Assistant',sans-serif;color:var(--ink)}
-.hcd.sat .n{color:var(--muted)}
-.hcd.done{background:color-mix(in srgb,var(--ok) 22%,var(--surface));border-color:transparent}
-.hcd.plan{background:color-mix(in srgb,var(--plan) 20%,var(--surface));border-color:transparent}
-.hcd.today{box-shadow:inset 0 0 0 2px var(--flag)}
-.hcd.today .n{color:var(--flag)}
-.hcd .ric{top:2px;inset-inline-end:2px;opacity:.8}
-.hclg{font-size:.7rem;gap:10px;margin-top:6px}
-.tday #subui .rem{background:none;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:0 0 8px;color:var(--flag);font-size:.86rem}
-.tday #subui .rem.urgent{background:color-mix(in srgb,var(--stop) 14%,var(--surface));border:1.5px solid var(--stop);border-radius:12px;padding:10px 12px;color:var(--stop);font-weight:800;font-size:.9rem}
-.hcalpick{border:0;padding:6px 4px;margin-bottom:4px;font-size:.76rem}
-@media (min-width:900px){ .hcal2.two .hcalpick{border:1px dashed var(--line);padding:40px 16px} }
 /* (טל) סידור עבודה לפי שבוע + לחיצה על קבוצה */
 .wpwk{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line)}
 .wpwk .nav{background:var(--chip);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-size:1.1rem;padding:3px 14px}
@@ -676,8 +638,7 @@ function homeRow(g, k, full){
   return '<div class="arow"><div class="nm"><b>'+esc(cleanInst(g.instructor))+
       (!full&&state.isCoord&&gi>-1?'<button class="pen" data-cinst="'+gi+'" title="מי המדריך של הקבוצה?">✏️ מדריך</button>':'')+
       (miss?'<span class="tchip miss">⏰ לא מולא</span>':'')+
-'</b><span>'+esc(sub.join(" · "))+'</span>'+
-      (function(){ var nx=nextReqOf_(g); return nx ? '<div class="cchips">'+reqChip_(nx, true)+'<span class="cchip">'+esc(nx.date.replace(/\/\d+$/,''))+'</span></div>' : ''; })()+
+      (cs?'<span class="scchip sc-'+cs+'">'+esc(SUBLBL[cs])+'</span>'+(function(){ var nx=nextReqOf_(g); return nx ? undoBtn_(nx).replace('data-undo=', 'title="'+esc(nx.date.replace(/\/\d+$/,''))+'" data-undo=') : ''; })():'')+'</b><span>'+esc(sub.join(" · "))+'</span>'+
       '<span class="hinfo">'+esc(groupInfoLine(g))+'</span>'+
       (bds.length?'<span class="bdline">🎂 '+bds.map(function(x){ return esc(norm(x.name).split(" ")[0])+(x.b.age?' ('+x.b.age+')':'')+' '+esc(bdayWhen(x.b)); }).join(' · ')+'</span>':'')+'</div>'+
     '<div class="abtns"><button class="ab att" data-hatt="'+gi+'">📋 נוכחות</button>'+
@@ -700,9 +661,9 @@ function clubToday(groups, todayName){
   var done=0, rows=list.slice().sort(function(a,b){ return (a.branch==="jaffa"?0:1)-(b.branch==="jaffa"?0:1); }).map(function(g){
     var t=groupSlot(g), d=isToday?todayDmy():dateOf(g), act=subAct(g);
     var marked=d ? g.students.filter(function(s){ return s.attendance[d]; }).length : 0, tot=g.students.length;
-    var rq=(state.reqs||[]).filter(function(r){ return r.act===act && r.date===d && /^(ממתין|פתוח|הושלם|ביטול ממתין|בוטל)$/.test(r.status); })[0];
+    var rq=(state.reqs||[]).filter(function(r){ return r.act===act && r.date===d && /^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(r.status); })[0];
     var chips='';
-    if(rq) chips+= reqChip_(rq);
+    if(rq) chips+= reqChip_(rq, true);
     if(isToday && !(rq&&rq.status==="בוטל")){ if(marked){ done++; chips+='<span class="cchip ok">✓ נוכחות '+marked+'/'+tot+'</span>'; } else chips+='<span class="cchip warn">⏰ נוכחות לא מולאה</span>'; }
     return '<div class="tdrow"><div class="tdnm"><b>'+esc(cleanInst(g.instructor))+'</b><span>'+esc(BRN[g.branch]||g.branch)+(t?' · ⁦'+t.start+'–'+t.end+'⁩':'')+(isToday?'':' · '+esc(d))+'</span>'+(chips?'<div class="cchips">'+chips+'</div>':'')+'</div>'+
       '<button class="tdatt sm" data-hatt="'+giOf(g)+'">📋 נוכחות</button></div>';
@@ -723,16 +684,30 @@ function renderHome(groups){
   var mine = state.isCoord ? myOwnGroups() : groups;
   state.homeG = mine;
   var todayName = DAYS[new Date().getDay()];
-  var h = '';   // (טל) שקט: בלי שורת "שלום" — השם בתפריט
+  var h = '<div class="who">שלום <b>'+esc(state.who)+'</b></div>';
+  h += '<div id="subui"></div>';   // (טל) בקשות לאישור / הצעות החלפה — למעלה
   if(state.homeMsg && Date.now() < (state.homeMsgT||0)){ toast(state.homeMsg, "ok"); state.homeMsg=""; }
   // ביום שיש קבוצה — היא ראשונה, עם "נוכחות" גדול (מה שעושים הכי הרבה)
   var todayG = mine.filter(function(g){ return g.day===todayName && !subOnly(g); });
   var subG = subTodayGroups().filter(function(g){ return todayG.indexOf(g)<0; });   // (רון) היום אני מחליף בקבוצה של מישהו אחר
   loadStaff();
+  h += myBdayHTML(groups);   // (רון) יום הולדת לחניך שלי — בראש המסך, ברור
   h += bdayAskHTML();
   h += waOfferHTML();
-  h += todayHubHTML(groups, mine, todayName, todayG, subG);   // (רון) כרטיס "היום" אחד בראש המסך: יום הולדת, הקבוצה שלי היום, המועדון (רכז), בקשות
-  h += '<div class="quiet">';   // מתחת — הפסים השקטים
+  if(state.isCoord) h += clubToday(groups, todayName);
+     /* (לשונית נפתחת) */   // רכז: כל הקבוצות של היום (כולל שלו) - במקום הכרטיס האישי
+  else if(todayG.length || subG.length) h += '<div class="todaycard"><div class="tdh">📍 היום · '+esc(todayName)+'</div>'+
+    todayG.concat(subG).map(function(g){
+      var t=groupSlot(g), rq=todayReq(g), mineG=!subOnly(g), chip='', canAtt=true;
+      if(!mineG) chip='<span class="cchip ok">🔄 אתה מחליף את '+esc(cleanInst(rq&&rq.requester||g.instructor))+'</span>';
+      else if(rq && rq.status==="בוטל"){ chip='<span class="cchip bad">📅 הפעילות נדחתה'+(rq.reason?' · '+esc(rq.reason):'')+'</span>'; canAtt=false; }
+      else if(rq && rq.status==="הושלם" && rq.chosen && !matchName(rq.chosen, state.who)){ chip='<span class="cchip ok">🔄 '+esc(cleanInst(rq.chosen))+' מחליף אותך</span>'; canAtt=false; }
+      else if(rq && /^(ממתין|פתוח)$/.test(rq.status)) chip='<span class="cchip warn">🔄 מחכה למחליף</span>';
+      else if(rq && rq.status==="ביטול ממתין") chip='<span class="cchip warn">📅 בקשת דחייה ממתינה</span>';
+      if(chip && rq) chip += undoBtn_(rq);   // (טל) ✕ בטל
+      return '<div class="tdrow'+(canAtt?'':' tdoff')+'"><div class="tdnm"><b>'+esc(cleanInst(g.instructor))+'</b><span>'+esc(BRN[g.branch]||g.branch)+(t?' · \u2066'+t.start+'–'+t.end+'\u2069':'')+'</span>'+(chip?'<div class="cchips">'+chip+'</div>':'')+'</div>'+
+        (canAtt ? '<button class="tdatt" data-hatt="'+giOf(g)+'">📋 נוכחות</button>' : '')+'</div>';
+    }).join('')+'</div>';
   h += bdayWeekHTML(groups);   // (רכז) 🎂 ימי הולדת השבוע
   if(state.isCoord) h += '<div id="wpinline">'+workPlanHTML()+'</div>';   // (טל) 🗓 סידור עבודה — רק לרכזים, מתחת לימי ההולדת ומעל השעות
   h += '<div id="homehours">'+((hstate.rows||[]).length ? '' : skel(1))+'</div>';   // עד שהשעות נטענות — כרטיס אפור
@@ -753,9 +728,7 @@ function renderHome(groups){
     h += '</div>';
   }
   if(!mineOwn.length && !state.isCoord) h += '<div class="msg">לא מצאנו קבוצה על השם שלך.</div>';
-  h += '</div>';   // .quiet
   $("main").innerHTML = h;
-  if($("td_who")) $("td_who").onclick=function(){ calShowDay_(this.dataset.ds); };
   document.querySelectorAll("[data-hatt]").forEach(function(b){ b.onclick=function(){ var gi=+b.dataset.hatt; if(gi<0) return; state.gi=gi; state.diFor=-1; state.view="att"; render(); window.scrollTo(0,0); }; });
   document.querySelectorAll("[data-hday]").forEach(function(b){ b.onclick=function(){ state.openDay = state.openDay===b.dataset.hday ? "" : b.dataset.hday; render(); }; });
   function underRow(b){ var sp=$("subpanel"), row=b.closest(".arow"); row.parentNode.insertBefore(sp, row.nextSibling); return sp; }
@@ -857,14 +830,14 @@ function renderHoursCal(){
     if(list.length){ if(fut){ hPlan+=hrs; nPlan++; } else { hDone+=hrs; nDone++; } }
     var cls='hcd'+(list.length?(fut?' plan':' done'):'')+(ds===tdy?' today':'')+(hstate.calSel===ds?' sel':'')+(dt.getDay()===6?' sat':'');
     G+='<button class="'+cls+'" data-cd="'+ds+'"><span class="n">'+dt.getDate()+'</span>'+
+       (list.length>1 ? '<span class="plus" title="כמה עבודות ביום">+</span>' : '')+
        (ic ? '<span class="ric" title="'+(ic.sub?'החלפה':'')+(ic.sub&&ic.post?' + ':'')+(ic.post?'דחייה':'')+'">'+(ic.sub?'🔄':'')+(ic.post?'📅':'')+'</span>' : '')+
-       '</button>';   // (טל) שקט: בלי מספר שעות על כל יום — רואים בלחיצה על היום
+       (list.length ? '<span class="fill" style="height:'+Math.max(12, Math.min(100, Math.round(hrs/8*100)))+'%"></span><span class="h">'+(hrs||"✓")+'</span>' : '')+'</button>';
   });
   G+='</div>';
   // (טל) סיכום קטן: שורה אחת במקום הריבועים
   H += '<div class="hcaltot"><span class="pd">עבדתי <b>'+r2(hDone)+'</b> שע׳ · '+nDone+' ימים</span>'+(nPlan?'<span class="pp">מתוכנן <b>'+r2(hPlan)+'</b> שע׳ · '+nPlan+' ימים</span>':'')+'</div>'+G;
-  var anyIc=Object.keys(ric).some(function(k){ return monthOf(k)===mk; });
-  H += '<div class="hclg"><span><i class="done"></i>עבדתי</span><span><i class="plan"></i>מתוכנן</span>'+(anyIc?'<span>🔄 החלפה</span><span>📅 דחייה</span>':'')+'</div>';
+  H += '<div class="hclg"><span><i class="done"></i>עבדתי</span><span><i class="plan"></i>מתוכנן</span><span>המספר = שעות</span><span>🔄 החלפה</span><span>📅 דחייה</span></div>';
   var sel=hstate.calSel, D='';
   if(sel && monthOf(sel)===mk){
     var sl=by[sel]||[];
@@ -874,7 +847,7 @@ function renderHoursCal(){
                    (sl.length>1 ? '<div style="color:var(--muted);font-weight:700">סה״כ ביום: '+r2(sl.reduce(function(t,r){ return t+hn(r); },0))+' שע׳</div>' : '')
                  : '<div style="color:var(--muted)">לא רשומות שעות ביום הזה</div>')+
       '<button class="ghostbtn" id="hc_add" style="justify-content:center">'+(sl.length?'➕ הוסף עוד עבודה ביום הזה':'➕ הוסף עבודה ביום הזה')+'</button></div>';
-  } else if(state.isCoord) D = '<div class="hcalpick">לחצו על יום — מי עובד בו</div>';
+  } else if(state.isCoord) D = '<div class="hcalpick">👆 לחצו על יום ביומן — יופיע מי עובד בו, עם נוכחות / החלפה / דחייה</div>';
   el.innerHTML='<div class="hcal2'+(D?' two':'')+'">'+H+'</div>'+(D?'<div class="hcalR">'+D+'</div>':'')+'</div>';   // (מחשב) היומן משמאל, היום שנבחר מימין
   calBind_(el, mk, by);
 }
@@ -917,20 +890,18 @@ function calWhoHTML_(ds){
   return H+'</div>';
 }
 function calDayRow_(g, ds, past, canReq){
-  var gi=giOf(g), t=groupSlot(g), act=subAct(g), nm=cleanInst(g.instructor), open=gi>-1 && hstate.calOpen===gi;
+  var gi=giOf(g), t=groupSlot(g), act=subAct(g), nm=cleanInst(g.instructor);
   var rq=(state.reqs||[]).filter(function(r){ return r.act===act && r.date===ds && /^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(r.status); })[0];
   var hasDate=(g.dateCols||[]).some(function(d){ return d.date===ds; });
   var marked=hasDate ? g.students.filter(function(s){ return s.attendance && s.attendance[ds]; }).length : 0;
   var chips=rq ? reqChip_(rq, true) : '';
   if(past && hasDate && !(rq&&rq.status==="בוטל")) chips += marked ? '<span class="cchip ok">✓ נוכחות '+marked+'/'+g.students.length+'</span>' : '<span class="cchip warn">⏰ נוכחות לא מולאה</span>';
-  var sub=[]; if(t) sub.push("\u2066"+t.start+"–"+t.end+"\u2069"); sub.push(groupInfoLine(g));
-  // (רון) שורה נקייה: שם + סטטוס. לחיצה על השורה פותחת את הכפתורים
-  return '<div class="arow drow'+(open?' open':'')+'"'+(gi>-1?' data-drow="'+gi+'"':'')+'><div class="nm"><b>'+(nm==="קבוצה"?'❓ בלי מדריך':esc(nm))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+'</b>'+
+  var sub=[]; if(t) sub.push("⁦"+t.start+"–"+t.end+"⁩"); sub.push(groupInfoLine(g));
+  return '<div class="arow"><div class="nm"><b>'+(nm==="קבוצה"?'❓ בלי מדריך':esc(nm))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+
+      (gi>-1?'<button class="pen" data-dinst="'+gi+'" title="פרטי הקבוצה">✏️ מדריך</button>':'')+'</b>'+
       '<span>'+esc(sub.join(" · "))+'</span>'+(chips?'<div class="cchips">'+chips+'</div>':'')+'</div>'+
-      (gi>-1?'<span class="dchev">'+(open?'▴':'▾')+'</span>':'')+
-      (open ? '<div class="dacts"><button class="ab att" data-datt="'+gi+'">📋 נוכחות</button>'+
-        (canReq?'<button class="ab sub" data-dsub="'+gi+'">🔄 החלפה</button><button class="ab post" data-dpost="'+gi+'">📅 דחייה</button>':'')+
-        '<button class="ab inf" data-dinst="'+gi+'">✏️ פרטים</button></div>' : '')+'</div>';
+    '<div class="abtns">'+(gi>-1?'<button class="ab att" data-datt="'+gi+'">📋 נוכחות</button>':'')+
+      (canReq&&gi>-1?'<button class="ab sub" data-dsub="'+gi+'">🔄 החלפה</button><button class="ab post" data-dpost="'+gi+'">📅 דחייה</button>':'')+'</div></div>';
 }
 // טופס החלפה/דחייה/✏️ נפתח מתחת לשורה ביומן; כשהיומן מצטייר מחדש — הטופס חוזר למקומו (ריק) כדי שלא יימחק
 function rescueSub_(container){ var sp=$("subpanel"); if(sp && container && container.contains(sp)){ sp.innerHTML=""; var su=$("subui"); if(su && su.parentNode) su.parentNode.insertBefore(sp, su.nextSibling); } }
@@ -953,12 +924,11 @@ function calBind_(el, mk, by){
   $("hc_next").onclick=function(){ calGo_(1); };
   if($("hc_retry")) $("hc_retry").onclick=function(){ delete hstate.calRows[mk]; renderHoursCal(); };
   el.querySelectorAll("[data-cd]").forEach(function(b){ b.onclick=function(){
-    hstate.calSel = hstate.calSel===b.dataset.cd ? "" : b.dataset.cd; hstate.calOpen=-1; renderHoursCal();
+    hstate.calSel = hstate.calSel===b.dataset.cd ? "" : b.dataset.cd; renderHoursCal();
     var d=el.querySelector(".hcalR .hcdet"); if(d && window.innerWidth<900) d.scrollIntoView({behavior:"smooth",block:"nearest"});
   }; });
   if($("hc_add")) $("hc_add").onclick=function(){ calAddFor_(hstate.calSel, null); };
   el.querySelectorAll("[data-ce]").forEach(function(b){ b.onclick=function(){ calAddFor_(hstate.calSel, (by[hstate.calSel]||[])[+b.dataset.ce]); }; });
-  el.querySelectorAll("[data-drow]").forEach(function(r){ r.onclick=function(e){ if(e.target.closest("button")) return; var gi=+r.dataset.drow; hstate.calOpen = hstate.calOpen===gi ? -1 : gi; renderHoursCal(); }; });
   el.querySelectorAll("[data-datt]").forEach(function(b){ b.onclick=function(){ openAttOn_(+b.dataset.datt, hstate.calSel); }; });
   el.querySelectorAll("[data-dsub]").forEach(function(b){ b.onclick=function(){ openReqOn_("sub", +b.dataset.dsub, hstate.calSel, b); }; });
   el.querySelectorAll("[data-dpost]").forEach(function(b){ b.onclick=function(){ openReqOn_("post", +b.dataset.dpost, hstate.calSel, b); }; });
@@ -1269,72 +1239,33 @@ function bindBdayAsk(){
   };
 }
 // (רכז) מי חוגג השבוע — מדריכים וחניכים
-// ----- (רון) כרטיס "היום": כל מה שצריך עכשיו במקום אחד -----
-function todayRowHTML_(g){
-  var t=groupSlot(g), rq=todayReq(g), mineG=!subOnly(g), chip='', canAtt=true;
-  if(!mineG) chip='<span class="cchip ok">🔄 אתה מחליף את '+esc(cleanInst(rq&&rq.requester||g.instructor))+'</span>';
-  else if(rq && rq.status==="בוטל"){ chip='<span class="cchip bad">📅 הפעילות נדחתה'+(rq.reason?' · '+esc(rq.reason):'')+'</span>'; canAtt=false; }
-  else if(rq && rq.status==="הושלם" && rq.chosen && !matchName(rq.chosen, state.who)){ chip='<span class="cchip ok">🔄 '+esc(cleanInst(rq.chosen))+' מחליף אותך</span>'; canAtt=false; }
-  else if(rq && /^(ממתין|פתוח)$/.test(rq.status)) chip='<span class="cchip warn">🔄 מחכה למחליף</span>';
-  else if(rq && rq.status==="ביטול ממתין") chip='<span class="cchip warn">📅 בקשת דחייה ממתינה</span>';
-  if(chip && rq) chip += undoBtn_(rq);
-  return '<div class="tdrow'+(canAtt?'':' tdoff')+'"><div class="tdnm"><b>'+esc(cleanInst(g.instructor))+'</b><span>'+esc(BRN[g.branch]||g.branch)+(t?' · \u2066'+t.start+'–'+t.end+'\u2069':'')+'</span>'+(chip?'<div class="cchips">'+chip+'</div>':'')+'</div>'+
-    (canAtt ? '<button class="tdatt" data-hatt="'+giOf(g)+'">📋 נוכחות</button>' : '')+'</div>';
-}
-function todayHubHTML(groups, mine, todayName, todayG, subG){
-  var t=new Date(), rows=todayG.concat(subG);
-  var h='<div class="tday"><div class="tdh2"><span>📍 היום</span><small>יום '+esc(todayName)+' '+t.getDate()+'/'+(t.getMonth()+1)+'</small></div>';
-  h += '<div id="subui"></div>';   // (טל) בקשות לאישור / הצעות החלפה — ראשונות בכרטיס
-  h += myBdayHTML(groups);
-  if(rows.length) h += '<div class="tdgrp">'+rows.map(todayRowHTML_).join('')+'</div>';
-  if(state.isCoord) h += clubLineHTML_(groups, todayName);
-  else if(!rows.length){
-    var nx=mine.filter(function(g){ return !subOnly(g); }).map(nextDateOf).filter(Boolean).sort(function(a,b){ return a.dt-b.dt; })[0];
-    h += '<div class="tdnone">אין לך פעילות היום'+(nx?' · הבאה: יום '+esc(HDAY[nx.dt.getDay()])+' '+nx.dt.getDate()+'/'+(nx.dt.getMonth()+1):'')+'</div>';
-  }
-  return h+'</div>';
-}
-// (רכז) שורה אחת על המועדון היום; "מי עובד ›" פותח את היום ביומן (עם כל הכפתורים)
-function clubLineHTML_(groups, todayName){
-  var day=todayName, list=groups.filter(function(g){ return g.day===day; }), isToday=true, ds=todayDmy();
-  if(!list.length){
-    var i0=DORD.indexOf(todayName); isToday=false;
-    for(var k=1;k<7 && !list.length;k++){ day=DORD[(i0+k)%7]; list=groups.filter(function(g){ return g.day===day; }); }
-    if(!list.length) return '';
-    var nd=list.map(nextDateOf).filter(Boolean).sort(function(a,b){ return a.dt-b.dt; })[0]; ds=nd?nd.date:"";
-  }
-  var done=isToday ? list.filter(function(g){ return g.students.some(function(s){ return s.attendance && s.attendance[ds]; }); }).length : 0;
-  var rq=(state.reqs||[]).filter(function(r){ return r.date===ds && /^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(r.status); });
-  var ic=(rq.some(function(r){ return !/ביטול|בוטל/.test(r.status); })?' 🔄':'')+(rq.some(function(r){ return /ביטול|בוטל/.test(r.status); })?' 📅':'');
-  var txt = isToday ? 'במועדון היום: <b>'+list.length+'</b> קבוצות · נוכחות <b dir="ltr">'+done+'/'+list.length+'</b>'+(done<list.length?' <span class="warn">· '+(list.length-done)+' לא מולאו</span>':'')
-                    : 'היום אין פעילות · הקרוב: יום <b>'+esc(day)+'</b> · '+list.length+' קבוצות';
-  return '<div class="tdclub"><span>'+txt+ic+'</span>'+(ds?'<button class="linkbtn" id="td_who" data-ds="'+esc(ds)+'">מי עובד ›</button>':'')+'</div>';
-}
-function calShowDay_(ds){
-  if(!ds) return;
-  hstate.hhClosed=false; hstate.calMonth=monthOf(ds); hstate.calSel=ds; hstate.calOpen=-1;
-  renderHomeHours();
-  var d=document.querySelector("#hh_cal .hcalR") || $("hh_cal"); if(d) d.scrollIntoView({behavior:"smooth", block:"start"});
-}
 // (רון) יום הולדת לחניך מהקבוצות שלי — כרטיס בולט בראש המסך (לא מקופל): היום בגדול, הקרובים בשורה קטנה.
 // ימי הולדת בקבוצות של אחרים — רק בפס המקופל של הרכז (צריך לדעת, לא דחוף).
 function myBdayHTML(groups){
   if(!bdayOn()) return '';
-  var mineG = state.isCoord ? myOwnGroups() : groups, out=[], seen={};
+  var mineG = state.isCoord ? myOwnGroups() : groups, list=[], seen={};
   mineG.forEach(function(g){ if(subOnly(g)) return; (g.students||[]).forEach(function(st){ var b=bdayInfo(st.dob), k=norm(st.name);
-    if(b && b.days===0 && !seen[k]){ seen[k]=1; out.push('<div class="tdbd">🎂 היום יום הולדת ל<b>'+esc(norm(st.name))+'</b>'+(b.age?' · '+b.age:'')+'<small>הקבוצה שלך ביום '+esc(g.day)+'</small></div>'); } }); });
-  return out.join('');   // (טל) שקט: רק של היום, שורה אחת בכרטיס "היום". הקרובים — בפס ימי ההולדת ובשורת הקבוצה
+    if(b && b.days<=7 && !seen[k]){ seen[k]=1; list.push({name:norm(st.name), b:b, g:g}); } }); });
+  if(!list.length) return '';
+  list.sort(function(a,c){ return a.b.days-c.b.days; });
+  var now=list.filter(function(x){ return x.b.days===0; }), soon=list.filter(function(x){ return x.b.days>0; });
+  var h='<div class="bdmine'+(now.length?' now':'')+'">';
+  now.forEach(function(x){ h+='<div class="bdnow">🎂 היום יום הולדת ל<b>'+esc(x.name)+'</b>'+(x.b.age?' · '+x.b.age:'')+'</div>'+
+    '<div class="bdg">הקבוצה שלך ביום '+esc(x.g.day)+(x.g.branch==="jaffa"?' · יפו':'')+'</div>'; });
+  if(soon.length) h+='<div class="bdsoon">'+(now.length?'בקרוב: ':'🎂 ימי הולדת בקבוצות שלך: ')+
+    soon.map(function(x){ return '<b>'+esc(x.name.split(" ")[0])+'</b>'+(x.b.age?' ('+x.b.age+')':'')+' '+esc(bdayWhen(x.b)); }).join(' · ')+'</div>';
+  return h+'</div>';
 }
 function bdayWeekHTML(groups){
   if(!bdayOn() || !state.isCoord) return '';
   var list=[], seen={};
   (state.staff||[]).forEach(function(r){ var b=bdayInfo(r.dob); if(b&&b.days<=7) list.push({who:cleanInst(r.inst), sub:'מדריך/ה', b:b, staff:1}); });
   groups.forEach(function(g){ (g.students||[]).forEach(function(st){ var b=bdayInfo(st.dob); var k=norm(st.name);
-    if(b&&b.days<=7&&!seen[k]){ seen[k]=1; if(!isMineG(g) || b.days>0) list.push({who:st.name, sub:cleanInst(g.instructor)+' · '+g.day+' · '+(BRN[g.branch]||g.branch), b:b}); } }); });   // שלי — בכרטיס למעלה
+    if(b&&b.days<=7&&!seen[k]){ seen[k]=1; if(!isMineG(g)) list.push({who:st.name, sub:cleanInst(g.instructor)+' · '+g.day+' · '+(BRN[g.branch]||g.branch), b:b}); } }); });   // שלי — בכרטיס למעלה
   if(!list.length) return '';
   list.sort(function(a,c){ return a.b.days-c.b.days || (c.staff||0)-(a.staff||0); });
   var open=!!state.bdOpen, today=list.filter(function(x){ return x.b.days===0; }).length;
-  var bar='<button class="clubbar" id="bdbar" aria-expanded="'+open+'"><span class="cbl" style="color:#f472b6">🎂 ימי הולדת השבוע</span><span class="cbs">'+list.length+(today?' · '+today+' היום':'')+'</span><span class="cbc">'+(open?'▴':'▾')+'</span></button>';
+  var bar='<button class="clubbar" id="bdbar" aria-expanded="'+open+'"><span class="cbl" style="color:#f472b6">🎂 ימי הולדת השבוע · שאר הקבוצות</span><span class="cbs">'+list.length+(today?' · '+today+' היום':'')+'</span><span class="cbc">'+(open?'▴':'▾')+'</span></button>';
   var body=open ? '<div class="clubbody">'+list.map(function(x){ return '<div class="bdi"><b>'+(x.staff?'⭐ ':'')+esc(x.who)+(x.b.age?' · '+x.b.age:'')+'</b><span>'+esc(x.sub)+'</span><em>'+esc(bdayWhen(x.b))+'</em></div>'; }).join('')+'</div>' : '';
   return '<div class="clubwrap">'+bar+body+'</div>';
 }
