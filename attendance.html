@@ -457,6 +457,14 @@ body.hoursonly #wpov{background:var(--bg)}
 .pickl label.on,.pickl label:has(input:checked){background:color-mix(in srgb,var(--navy) 20%,var(--surface));border-color:var(--navy)}
 .pickl label.on::before,.pickl label:has(input:checked)::before{content:"✓";font-weight:900;color:var(--navy)}
 .pickl label:has(input:focus-visible){outline:2px solid var(--flag);outline-offset:2px}
+/* (טל) סידור עבודה במחשב — טבלה צפופה, בלי חללים */
+.wgt th,.wgt td{padding:4px}
+.wgt thead th{padding:5px 4px}
+.wgc{padding:3px 7px;margin-bottom:3px;border-radius:7px}
+.wgc b{font-size:.84rem;line-height:1.25}
+.wgc .wginf{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.7rem;line-height:1.3}
+.wgt th.wgrh{font-size:.74rem;padding:4px 2px}
+.wgt td > .no{display:block;text-align:center;padding:2px 0}
 </style>
 </head>
 <body>
@@ -1454,8 +1462,8 @@ function workPlanHTML(){
         var on = sel && sel.gi===gi && sel.ds===ds;
         return '<div class="wgc'+(isMineG(g)?' me':'')+(post&&rq.status==="בוטל"?' off':'')+(noDate?' nod':'')+(on?' on':'')+'"'+(gi>-1?' data-wgi="'+gi+'" data-wds="'+esc(ds)+'" role="button" tabindex="0"':'')+'>'+mark+
           '<b>'+(nm==="קבוצה"?'<span class="no">בלי מדריך</span>':esc(nm))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+'</b>'+subLine+
-          (typ?'<span>'+esc(typ)+'</span>':'')+
-          '<span>'+(ages?'גיל ⁦'+esc(ages)+'⁩ · ':'')+g.students.length+' חניכים'+(t&&!one?' · ⁦'+esc(t.start)+'–'+esc(t.end)+'⁩':'')+'</span></div>';
+          (function(){ var inf=(typ?typ+' · ':'')+(ages?'גיל ⁦'+ages+'⁩ · ':'')+g.students.length+' חניכים'+(t&&!one?' · ⁦'+t.start+'–'+t.end+'⁩':'');   // (טל) שורה אחת — טבלה צפופה יותר
+            return '<span class="wginf" title="'+esc(inf)+'">'+esc(inf)+'</span>'; })()+'</div>';
       }).join('') : '<span class="no">—</span>')+'</td>';
     }).join('')+'</tr>';
   });

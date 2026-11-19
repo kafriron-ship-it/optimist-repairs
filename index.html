@@ -76,7 +76,7 @@ nav button:focus-visible,button:focus-visible,input:focus-visible,textarea:focus
 /* (טל) תפריט המבורגר בצד: במחשב צמוד לצד (☰ מסתיר), בטלפון נפתח מעל המסך ב-☰ */
 #menuBtn{display:inline-flex;align-items:center;justify-content:center;flex:none;width:40px;height:40px;border:0;border-radius:10px;background:rgba(255,255,255,.14);color:var(--head-ink);cursor:pointer}
 #menuBtn:hover{background:rgba(255,255,255,.24)}
-nav{position:fixed;top:0;bottom:0;right:0;width:236px;flex-direction:column;gap:4px;margin:0;padding:calc(16px + env(safe-area-inset-top,0px)) 12px 16px;background:var(--head);border-left:4px solid var(--flag);box-sizing:border-box;overflow-y:auto;z-index:7;transition:transform .22s ease}
+nav{position:fixed;top:0;bottom:0;right:0;width:196px;flex-direction:column;gap:4px;margin:0;padding:calc(16px + env(safe-area-inset-top,0px)) 12px 16px;background:var(--head);border-left:4px solid var(--flag);box-sizing:border-box;overflow-y:auto;z-index:7;transition:transform .22s ease}
 nav::before{content:"תפריט";display:block;font:400 1.15rem var(--display);color:var(--head-ink);opacity:.75;padding:8px 14px 14px}
 nav button,nav a.navlink{flex:none;justify-content:flex-start;padding:12px 14px;border-bottom:0;border-radius:10px;font-size:1.02rem}
 nav button:hover{background:rgba(255,255,255,.1)}
@@ -85,12 +85,15 @@ nav button:hover{background:rgba(255,255,255,.1)}
 nav .navx button{background:none;border:0;color:var(--head-ink);opacity:.8;font:600 .92rem var(--body);text-align:start;padding:10px 14px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:6px}
 nav .navx button svg{display:block;flex:none}
 nav .navx button:hover{background:rgba(255,255,255,.1);opacity:1}
+nav .navx #mnName{opacity:1;font-weight:700}
+/* (רון) השם והשיתוף עברו לתפריט — לא בכותרת */
+#nameBtn,#shareBtn{display:none!important}
 nav button[aria-selected="true"]{background:rgba(255,255,255,.18);border-bottom:0;box-shadow:inset -4px 0 0 var(--flag)}
 .curtab{display:flex;align-items:center;gap:6px;width:100%;background:none;border:0;color:var(--head-ink);font:700 1rem var(--body);padding:10px 2px 11px;cursor:pointer;text-align:start}
 .curtab::after{content:"▾";font-size:.8rem;opacity:.7}
 #navScrim{display:none}
 @media (min-width:900px){
-  body{padding-right:236px;transition:padding-right .2s ease}
+  body{padding-right:196px;transition:padding-right .2s ease}   /* (רון) תפריט צר יותר */
   html.sidex body{padding-right:0}
   html.sidex nav{transform:translateX(100%)}
   .wrap{max-width:1120px}
@@ -98,7 +101,7 @@ nav button[aria-selected="true"]{background:rgba(255,255,255,.18);border-bottom:
   .curtab{display:none}
 }
 @media (max-width:899px){
-  nav{width:min(80vw,290px);transform:translateX(105%);visibility:hidden;box-shadow:-8px 0 24px rgba(0,0,0,.3);transition:transform .22s ease,visibility 0s linear .22s}
+  nav{width:min(70vw,212px);transform:translateX(105%);visibility:hidden;box-shadow:-8px 0 24px rgba(0,0,0,.3);transition:transform .22s ease,visibility 0s linear .22s}
   html.sideopen nav{transform:none;visibility:visible;transition:transform .22s ease}
   html.sideopen #navScrim{display:block;position:fixed;inset:0;background:rgba(5,10,20,.55);z-index:6}
   nav button,nav a.navlink{padding:13px 14px;font-size:1.05rem}
@@ -384,6 +387,8 @@ textarea{min-height:64px;resize:vertical}
     <button role="tab" id="tab-att" data-tab="att" aria-selected="false" hidden>נוכחות חניכים</button>
     <button role="tab" id="tab-hours" data-tab="hours" aria-selected="false" hidden>מרכז מדריכים</button>
     <div class="navx" role="presentation">
+      <button type="button" id="mnName" hidden title="שינוי שם"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="mnNameT"></span><span aria-hidden="true" style="opacity:.6">✎</span></button>
+      <button type="button" id="mnShare"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98"/></svg><span>שליחת האפליקציה</span></button>
       <button type="button" id="mnTheme"><span id="mnThemeI" aria-hidden="true"></span><span id="mnThemeT"></span></button>
     </div>
   </nav>
@@ -1008,7 +1013,7 @@ $("other").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefaul
 $("customs").addEventListener("click", e=>{ const b=e.target.closest("[data-ci]"); if(!b) return; customs.splice(+b.dataset.ci,1); renderCustoms(); validate(); });
 $("who").value = store.get("who") || "";
 $("fixer").value = store.get("who") || "";
-function showName(){ const n = $("who").value.trim(); $("nameBtn").hidden = !n; $("nameBtn").textContent = n ? n + " ✎" : ""; $("nameBtn").setAttribute("aria-label", "שינוי שם: " + n); }
+function showName(){ const n = $("who").value.trim(); if($("mnName")){ $("mnName").hidden=!n; $("mnNameT").textContent=n; } $("nameBtn").hidden = !n; $("nameBtn").textContent = n ? n + " ✎" : ""; $("nameBtn").setAttribute("aria-label", "שינוי שם: " + n); }
 function askName(){ const p=($("who").value||"").split(" ").filter(Boolean); $("nameFirst").value=p[0]||""; $("nameLast").value=p.slice(1).join(" "); $("needName").hidden=true; $("nameFirst").classList.remove("need"); $("nameLast").classList.remove("need"); $("namePick").hidden=false; setTimeout(()=>$("nameFirst").focus(), 50); }
 function saveName(){ const f=$("nameFirst").value.trim().replace(/\s+/g," "), l=$("nameLast").value.trim().replace(/\s+/g," ");
   if(!f || !l){ $("nameFirst").classList.toggle("need",!f); $("nameLast").classList.toggle("need",!l); $("needName").hidden=false; return; }
@@ -1021,6 +1026,9 @@ $("nameSave").addEventListener("click", saveName);
 $("nameFirst").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); $("nameLast").focus(); } });
 $("nameLast").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); saveName(); } });
 $("nameBtn").addEventListener("click", askName);
+// (רון) שם ושיתוף — מהתפריט בצד
+$("mnName").addEventListener("click", ()=>{ document.documentElement.classList.remove("sideopen"); askName(); });
+$("mnShare").addEventListener("click", ()=>{ document.documentElement.classList.remove("sideopen"); $("shareBtn").click(); });
 showName(); if($("who").value.trim().split(" ").filter(Boolean).length < 2) askName();   // שם מלא חובה — גם למי ששמר רק שם פרטי
 // the send button stays clickable; pressing it with something missing says what is missing
 const hasBoat = () => !!$("boat").value.trim();
