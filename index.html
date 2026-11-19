@@ -83,6 +83,11 @@ nav button[aria-selected="true"]{background:rgba(255,255,255,.18);border-bottom:
 .curtab{display:flex;align-items:center;gap:6px;width:100%;background:none;border:0;color:var(--head-ink);font:700 1rem var(--body);padding:10px 2px 11px;cursor:pointer;text-align:start}
 .curtab::after{content:"▾";font-size:.8rem;opacity:.7}
 #navScrim{display:none}
+/* (טל) שקט: שם, שליחה ומשוב עברו לתפריט — לא על המסך */
+#nameBtn,#shareBtn,#fbBtn{display:none!important}
+.navx{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.18);display:flex;flex-direction:column;gap:2px}
+nav .navx button{background:none;border:0;color:var(--head-ink);opacity:.8;font:600 .92rem var(--body);text-align:start;padding:10px 14px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:6px}
+nav .navx button:hover{background:rgba(255,255,255,.1);opacity:1}
 @media (min-width:900px){
   body{padding-right:236px;transition:padding-right .2s ease}
   html.sidex body{padding-right:0}
@@ -377,6 +382,11 @@ textarea{min-height:64px;resize:vertical}
     <button role="tab" id="tab-stats" data-tab="stats" aria-selected="false">נתונים</button>
     <button role="tab" id="tab-att" data-tab="att" aria-selected="false" hidden>נוכחות חניכים</button>
     <button role="tab" id="tab-hours" data-tab="hours" aria-selected="false" hidden>מרכז מדריכים</button>
+    <div class="navx" role="presentation">
+      <button type="button" id="mnName" hidden>✎ <span id="mnNameT"></span></button>
+      <button type="button" id="mnShare">שליחת האפליקציה</button>
+      <button type="button" id="mnFb">משוב / רעיון לשיפור</button>
+    </div>
   </nav>
   <button type="button" id="curTab" class="curtab" aria-label="פתיחת התפריט"></button>
   <div id="navScrim"></div>
@@ -671,7 +681,7 @@ function showTab(t){
   if(t==="stats" && !statsTabAllowed()) t = "report";   // נתונים — רכזים בלבד
   if(t==="att" && hoursLaunched()) t = "hours";            // אחרי ההשקה "לוח פעילות" סגור — עוברים למסך השעות
   if(t==="hours" && !hoursTabAllowed()) t = "report";   // שעות — לפי רשימת היתר
-  document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
+  document.querySelectorAll("nav button[data-tab]").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
   const cb=$("tab-"+t); if($("curTab") && cb) $("curTab").textContent = cb.firstChild.textContent.trim();   // (טל) בטלפון: שם המסך הנוכחי מתחת ללוגו
   ["report","boats","stats","att","hours"].forEach(v=>$("view-"+v).hidden = v!==t);
   const ft = t==="att" || t==="hours", root=document.documentElement;   // (רון) גלילה אחת בלבד במסך המוטמע
@@ -693,7 +703,7 @@ function homeTab(){ try{ if(hoursTabAllowed()) return "hours"; if(!hoursLaunched
 var tabPicked = false;
 // הרשימה מהשרת מגיעה אחרי הטעינה — אם עוד לא בחרו טאב ולא התחילו למלא דיווח, עוברים למסך הבית
 function maybeHome(){ try{ if(tabPicked || location.hash.length>1 || $("view-report").hidden || $("boat").value || selected.size) return; var h=homeTab(); if(h!=="report") showTab(h); }catch(e){} }
-document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{ tabPicked = true; location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
+document.querySelectorAll("nav button[data-tab]").forEach(b=>b.addEventListener("click",()=>{ tabPicked = true; location.hash = b.dataset.tab; showTab(b.dataset.tab); }));
 // (טל) ☰ תפריט בצד. במחשב: צמוד, ☰ מסתיר/מחזיר (נזכר בין כניסות). בטלפון: ☰ פותח מעל המסך, בחירה / לחיצה בחוץ סוגרת
 (function(){ const r=document.documentElement, mb=$("menuBtn"), mq=matchMedia("(min-width:900px)"); if(!mb) return;
   r.classList.toggle("sidex", store.get("side_closed")==="1");
@@ -908,9 +918,14 @@ const FBN = {
   const st=FBN.get(), day=new Date().toLocaleDateString("en-CA"), now=Date.now(), D=864e5;
   st.days=(st.days||[]).filter(d=>d!==day).concat(day).slice(-10); FBN.set(st);
   const due = st.days.length>=3 && now-(st.shown||0) > 14*D && now-(st.sent||0) > 30*D;
-  if(due) setTimeout(()=>{ if($("fbModal").hidden && $("shareModal").hidden && !document.hidden) FBN.show(); }, 6000);
+  // (טל) במסכי המדריכים (נוכחות / מרכז מדריכים) — בלי חלונית שקופצת לבד
+  if(due) setTimeout(()=>{ if($("fbModal").hidden && $("shareModal").hidden && !document.hidden && !document.documentElement.classList.contains("frametab")) FBN.show(); }, 6000);
 })();
 $("fbNudgeX").addEventListener("click", ()=>{ $("fbNudge").hidden=true; });
+// (טל) שקט: שם / שליחה / משוב — בתפריט בצד, לא על המסך
+$("mnName").addEventListener("click", ()=>{ document.documentElement.classList.remove("sideopen"); askName(); });
+$("mnShare").addEventListener("click", ()=>{ document.documentElement.classList.remove("sideopen"); $("shareBtn").click(); });
+$("mnFb").addEventListener("click", ()=>{ document.documentElement.classList.remove("sideopen"); $("fbNudge").hidden=true; $("fbModal").hidden=false; $("fbText").focus(); });
 $("fbNudgeGo").addEventListener("click", ()=>{ $("fbNudge").hidden=true; $("fbModal").hidden=false; $("fbText").focus(); });
 $("fbCancel").addEventListener("click", ()=>{ $("fbModal").hidden=true; });
 $("fbModal").addEventListener("click", e=>{ if(e.target.id==="fbModal") $("fbModal").hidden=true; });
@@ -983,7 +998,7 @@ $("other").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefaul
 $("customs").addEventListener("click", e=>{ const b=e.target.closest("[data-ci]"); if(!b) return; customs.splice(+b.dataset.ci,1); renderCustoms(); validate(); });
 $("who").value = store.get("who") || "";
 $("fixer").value = store.get("who") || "";
-function showName(){ const n = $("who").value.trim(); $("nameBtn").hidden = !n; $("nameBtn").textContent = n ? n + " ✎" : ""; $("nameBtn").setAttribute("aria-label", "שינוי שם: " + n); }
+function showName(){ const n = $("who").value.trim(); if($("mnName")){ $("mnName").hidden=!n; $("mnNameT").textContent=n; } $("nameBtn").hidden = !n; $("nameBtn").textContent = n ? n + " ✎" : ""; $("nameBtn").setAttribute("aria-label", "שינוי שם: " + n); }
 function askName(){ const p=($("who").value||"").split(" ").filter(Boolean); $("nameFirst").value=p[0]||""; $("nameLast").value=p.slice(1).join(" "); $("needName").hidden=true; $("nameFirst").classList.remove("need"); $("nameLast").classList.remove("need"); $("namePick").hidden=false; setTimeout(()=>$("nameFirst").focus(), 50); }
 function saveName(){ const f=$("nameFirst").value.trim().replace(/\s+/g," "), l=$("nameLast").value.trim().replace(/\s+/g," ");
   if(!f || !l){ $("nameFirst").classList.toggle("need",!f); $("nameLast").classList.toggle("need",!l); $("needName").hidden=false; return; }

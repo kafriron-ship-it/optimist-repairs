@@ -218,6 +218,31 @@ button.asin.dng{background:var(--stop);color:#fff;border-color:var(--stop)}
 .wgc b .wpbr{display:inline-block;color:#3a2a00;font-size:.66rem;line-height:1.4;vertical-align:middle}
 .wgt .no{color:var(--muted);opacity:.6}
 .wglg{color:var(--muted);font-size:.72rem;font-weight:700;text-align:center;padding:6px 10px}
+/* (רון) כרטיס "היום" בראש המסך */
+.tday{background:color-mix(in srgb,var(--flag) 7%,var(--surface));border:2px solid var(--flag);border-radius:16px;padding:12px;margin-bottom:14px;display:flex;flex-direction:column;gap:10px}
+.tdh2{display:flex;align-items:baseline;gap:8px;font:800 1.08rem 'Assistant',sans-serif;color:var(--flag)}
+.tdh2 small{color:var(--muted);font-size:.8rem;font-weight:700}
+.tday .bdmine{margin:0}
+.tdgrp{display:flex;flex-direction:column;gap:10px}
+.tdclub{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 11px;font-size:.88rem;font-weight:700;color:var(--muted)}
+.tdclub b{color:var(--ink)} .tdclub .warn{color:var(--flag)}
+.tdclub .linkbtn{white-space:nowrap;flex:none}
+.tdnone{color:var(--muted);font-size:.88rem;font-weight:700}
+.tday #subui{display:flex;flex-direction:column;gap:8px}
+.tday #subui:empty{display:none}
+.tday #subui .rem{margin:0}
+/* (רון) מתחת לכרטיס — פסים שקטים, בלי צבעים */
+.quiet .clubwrap{margin-bottom:8px}
+.quiet .clubbar .cbl{color:var(--ink)!important;font-weight:700}
+.quiet .clubbar .cbl svg{color:var(--muted)}
+.quiet .hhome{margin-bottom:8px}
+/* (רון) יום ביומן אצל רכז: שורה נקייה, הכפתורים בלחיצה */
+.drow{cursor:pointer}
+.drow .dchev{flex:none;color:var(--muted);font-size:.85rem;padding:0 4px}
+.drow.open{background:color-mix(in srgb,var(--navy) 7%,transparent)}
+.dacts{flex-basis:100%;min-width:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;padding-top:6px}
+.dacts .ab{min-width:0;justify-content:center;gap:3px;padding:8px 2px;font-size:.8rem;white-space:nowrap;overflow:hidden}
+.ab.inf{border:1.5px solid var(--line);color:var(--ink);background:var(--chip)}
 /* (רון) יום הולדת לחניך שלי — כרטיס בולט בראש המסך */
 .bdmine{background:linear-gradient(135deg,rgba(244,114,182,.24),rgba(244,114,182,.07));border:1.5px solid #f472b6;border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .bdmine.now{border-width:2px;box-shadow:0 0 0 4px rgba(244,114,182,.16)}
@@ -419,6 +444,42 @@ body.hoursonly #wpov{background:var(--bg)}
 [hidden]{display:none!important}
 .embed header{display:none}
 .embed .bd{padding-top:16px}
+/* ===== (טל) מצב שקט: פחות צבעים, פחות סימנים ===== */
+.tday{background:var(--surface);border:1.5px solid color-mix(in srgb,var(--flag) 55%,var(--line));gap:8px}
+.tdh2{font-size:.95rem}
+.tdbd{color:var(--ink);font-weight:700;font-size:.98rem;line-height:1.35}
+.tdbd b{color:#f472b6}
+.tdbd small{display:block;color:var(--muted);font-size:.76rem;font-weight:700}
+.tdclub{background:none;border:0;padding:0;border-top:1px solid var(--line);border-radius:0;padding-top:8px}
+.hcalgrid{gap:3px}
+.hcd{height:42px;display:grid;place-items:center;background:transparent;border-color:transparent}
+.hcd .n{position:static;font:700 .9rem 'Assistant',sans-serif;color:var(--ink)}
+.hcd.sat .n{color:var(--muted)}
+.hcd.done{background:color-mix(in srgb,var(--ok) 22%,var(--surface));border-color:transparent}
+.hcd.plan{background:color-mix(in srgb,var(--plan) 20%,var(--surface));border-color:transparent}
+.hcd.today{box-shadow:inset 0 0 0 2px var(--flag)}
+.hcd.today .n{color:var(--flag)}
+.hcd .ric{top:2px;inset-inline-end:2px;opacity:.8}
+.hclg{font-size:.7rem;gap:10px;margin-top:6px}
+.tday #subui .rem{background:none;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:0 0 8px;color:var(--flag);font-size:.86rem}
+.tday #subui .rem.urgent{background:color-mix(in srgb,var(--stop) 14%,var(--surface));border:1.5px solid var(--stop);border-radius:12px;padding:10px 12px;color:var(--stop);font-weight:800;font-size:.9rem}
+.hcalpick{border:0;padding:6px 4px;margin-bottom:4px;font-size:.76rem}
+@media (min-width:900px){ .hcal2.two .hcalpick{border:1px dashed var(--line);padding:40px 16px} }
+/* (טל) סידור עבודה לפי שבוע + לחיצה על קבוצה */
+.wpwk{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.wpwk .nav{background:var(--chip);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-size:1.1rem;padding:3px 14px}
+.wpwkt{flex:1;text-align:center;display:flex;flex-direction:column;line-height:1.2}
+.wpwkt b{font-size:.98rem} .wpwkt small{color:var(--muted);font-size:.72rem;font-weight:700}
+.wgc{position:relative;cursor:pointer}
+.wgc.on{outline:2px solid var(--navy);outline-offset:1px}
+.wgc.off b{text-decoration:line-through;opacity:.65}
+.wgc.nod{opacity:.45}
+.wgc .wgi{position:absolute;top:4px;inset-inline-end:5px;font-style:normal;font-size:.7rem;line-height:1}
+.wgc .wgi svg{width:13px;height:13px}
+.wgc .wgi.post{color:var(--stop)} .wgc .wgi.sub{color:var(--navy)}
+.wgc .wgsub{color:var(--flag)!important;font-weight:800!important}
+.wpact{border-top:1px solid var(--line);background:color-mix(in srgb,var(--navy) 6%,transparent)}
+.wpact .wax{flex:none;align-self:flex-start}
 </style>
 </head>
 <body>
@@ -659,32 +720,20 @@ function renderHome(groups){
   var mine = state.isCoord ? myOwnGroups() : groups;
   state.homeG = mine;
   var todayName = DAYS[new Date().getDay()];
-  var h = '<div class="who">שלום <b>'+esc(state.who)+'</b></div>';
+  var h = '';   // (טל) שקט: בלי שורת "שלום" — השם בתפריט
   if(state.homeMsg && Date.now() < (state.homeMsgT||0)){ toast(state.homeMsg, "ok"); state.homeMsg=""; }
   // ביום שיש קבוצה — היא ראשונה, עם "נוכחות" גדול (מה שעושים הכי הרבה)
   var todayG = mine.filter(function(g){ return g.day===todayName && !subOnly(g); });
   var subG = subTodayGroups().filter(function(g){ return todayG.indexOf(g)<0; });   // (רון) היום אני מחליף בקבוצה של מישהו אחר
   loadStaff();
-  h += myBdayHTML(groups);   // (רון) יום הולדת לחניך שלי — בראש המסך, ברור
   h += bdayAskHTML();
   h += waOfferHTML();
-  if(state.isCoord) h += clubToday(groups, todayName);
-     /* (לשונית נפתחת) */   // רכז: כל הקבוצות של היום (כולל שלו) - במקום הכרטיס האישי
-  else if(todayG.length || subG.length) h += '<div class="todaycard"><div class="tdh">📍 היום · '+esc(todayName)+'</div>'+
-    todayG.concat(subG).map(function(g){
-      var t=groupSlot(g), rq=todayReq(g), mineG=!subOnly(g), chip='', canAtt=true;
-      if(!mineG) chip='<span class="cchip ok">🔄 אתה מחליף את '+esc(cleanInst(rq&&rq.requester||g.instructor))+'</span>';
-      else if(rq && rq.status==="בוטל"){ chip='<span class="cchip bad">📅 הפעילות נדחתה'+(rq.reason?' · '+esc(rq.reason):'')+'</span>'; canAtt=false; }
-      else if(rq && rq.status==="הושלם" && rq.chosen && !matchName(rq.chosen, state.who)){ chip='<span class="cchip ok">🔄 '+esc(cleanInst(rq.chosen))+' מחליף אותך</span>'; canAtt=false; }
-      else if(rq && /^(ממתין|פתוח)$/.test(rq.status)) chip='<span class="cchip warn">🔄 מחכה למחליף</span>';
-      else if(rq && rq.status==="ביטול ממתין") chip='<span class="cchip warn">📅 בקשת דחייה ממתינה</span>';
-      return '<div class="tdrow'+(canAtt?'':' tdoff')+'"><div class="tdnm"><b>'+esc(cleanInst(g.instructor))+'</b><span>'+esc(BRN[g.branch]||g.branch)+(t?' · \u2066'+t.start+'–'+t.end+'\u2069':'')+'</span>'+(chip?'<div class="cchips">'+chip+'</div>':'')+'</div>'+
-        (canAtt ? '<button class="tdatt" data-hatt="'+giOf(g)+'">📋 נוכחות</button>' : '')+'</div>';
-    }).join('')+'</div>';
+  h += todayHubHTML(groups, mine, todayName, todayG, subG);   // (רון) כרטיס "היום" אחד בראש המסך: יום הולדת, הקבוצה שלי היום, המועדון (רכז), בקשות
+  h += '<div class="quiet">';   // מתחת — הפסים השקטים
   h += bdayWeekHTML(groups);   // (רכז) 🎂 ימי הולדת השבוע
   if(state.isCoord) h += '<div id="wpinline">'+workPlanHTML()+'</div>';   // (טל) 🗓 סידור עבודה — רק לרכזים, מתחת לימי ההולדת ומעל השעות
   h += '<div id="homehours">'+((hstate.rows||[]).length ? '' : skel(1))+'</div>';   // עד שהשעות נטענות — כרטיס אפור
-  h += '<div id="subui" style="margin-top:10px"></div><div id="subpanel"></div>';
+  h += '<div id="subpanel"></div>';
   var mineOwn = mine.filter(function(g){ return !subOnly(g) || state.isCoord; });   // קבוצה שאני רק מחליף בה היום — רק בכרטיס "היום"
   // (טל) "הקבוצות שלי" מקופל — נפתח בלחיצה. (רכז: "כל הקבוצות" ירד — הכול בסידור העבודה, והכפתורים בלחיצה על יום ביומן)
   if(mineOwn.length){
@@ -701,7 +750,9 @@ function renderHome(groups){
     h += '</div>';
   }
   if(!mineOwn.length && !state.isCoord) h += '<div class="msg">לא מצאנו קבוצה על השם שלך.</div>';
+  h += '</div>';   // .quiet
   $("main").innerHTML = h;
+  if($("td_who")) $("td_who").onclick=function(){ calShowDay_(this.dataset.ds); };
   document.querySelectorAll("[data-hatt]").forEach(function(b){ b.onclick=function(){ var gi=+b.dataset.hatt; if(gi<0) return; state.gi=gi; state.diFor=-1; state.view="att"; render(); window.scrollTo(0,0); }; });
   document.querySelectorAll("[data-hday]").forEach(function(b){ b.onclick=function(){ state.openDay = state.openDay===b.dataset.hday ? "" : b.dataset.hday; render(); }; });
   function underRow(b){ var sp=$("subpanel"), row=b.closest(".arow"); row.parentNode.insertBefore(sp, row.nextSibling); return sp; }
@@ -751,7 +802,7 @@ function renderHomeHours(){
   if(hstate.hhClosed===undefined){ try{ hstate.hhClosed = localStorage.getItem("att_hh_closed")==="1"; }catch(e){ hstate.hhClosed=false; } }
   var closed=hstate.hhClosed, sumD=r2(done.reduce(function(t,r){ return t+hn(r); },0)), sumP=r2(plan.reduce(function(t,r){ return t+hn(r); },0));
   var h='<div class="hhome'+(closed?' closed':'')+'"><div class="hh"><button class="hhtog" id="hh_tog" aria-expanded="'+(!closed)+'"><span class="hht">🕐 השעות שלי · '+esc(HMON[new Date().getMonth()])+'</span>'+
-    (closed?'<span class="hhs" title="עבדתי '+sumD+(sumP?' · מתוכנן '+sumP:'')+' שע׳">'+sumD+' שע׳</span>':'')+'<span class="cbc">'+(closed?'▾':'▴')+'</span></button><button class="linkbtn" id="hh_more">פירוט ›</button></div>';
+    (closed?'<span class="hhs" title="עבדתי '+sumD+(sumP?' · מתוכנן '+sumP:'')+' שע׳">'+sumD+' שע׳</span>':'')+'<span class="cbc">'+(closed?'▾':'▴')+'</span></button>'+(hoursAdmin()?'<button class="linkbtn" id="hh_more">פירוט ›</button>':'')+'</div>';   // (טל) "פירוט" — רק לרכזים
   if(hstate.flash){ toast(hstate.flash, "ok"); hstate.flash=""; }
   if(hstate.addMsg && Date.now()<hstate.addMsgT){ toast(hstate.addMsg, "ok"); hstate.addMsg=""; }
   if(!closed) h += '<div id="hh_cal"></div>';
@@ -759,7 +810,7 @@ function renderHomeHours(){
   if(!closed) h += hstate.add ? '<div id="hh_form"></div>' : '<button class="ghostbtn" id="hh_add" style="width:100%;justify-content:center;border-color:var(--flag);color:var(--flag)">➕ הוסף עבודה</button>';
   h += '</div>';
   box.innerHTML=h;
-  $("hh_more").onclick=function(){ openHours(); };
+  if($("hh_more")) $("hh_more").onclick=function(){ openHours(); };
   $("hh_tog").onclick=function(){ hstate.hhClosed=!hstate.hhClosed; try{ localStorage.setItem("att_hh_closed", hstate.hhClosed?"1":"0"); }catch(e){} renderHomeHours(); };
   if($("hh_cal")) renderHoursCal();
   if($("hh_add")) $("hh_add").onclick=function(){ hstate.add={date:todayDmy(), act:"", start:"", end:"", slot:""}; renderHomeHours(); $("hh_form").scrollIntoView({behavior:"smooth",block:"start"}); };
@@ -803,14 +854,14 @@ function renderHoursCal(){
     if(list.length){ if(fut){ hPlan+=hrs; nPlan++; } else { hDone+=hrs; nDone++; } }
     var cls='hcd'+(list.length?(fut?' plan':' done'):'')+(ds===tdy?' today':'')+(hstate.calSel===ds?' sel':'')+(dt.getDay()===6?' sat':'');
     G+='<button class="'+cls+'" data-cd="'+ds+'"><span class="n">'+dt.getDate()+'</span>'+
-       (list.length>1 ? '<span class="plus" title="כמה עבודות ביום">+</span>' : '')+
        (ic ? '<span class="ric" title="'+(ic.sub?'החלפה':'')+(ic.sub&&ic.post?' + ':'')+(ic.post?'דחייה':'')+'">'+(ic.sub?'🔄':'')+(ic.post?'📅':'')+'</span>' : '')+
-       (list.length ? '<span class="fill" style="height:'+Math.max(12, Math.min(100, Math.round(hrs/8*100)))+'%"></span><span class="h">'+(hrs||"✓")+'</span>' : '')+'</button>';
+       '</button>';   // (טל) שקט: בלי מספר שעות על כל יום — רואים בלחיצה על היום
   });
   G+='</div>';
   // (טל) סיכום קטן: שורה אחת במקום הריבועים
   H += '<div class="hcaltot"><span class="pd">עבדתי <b>'+r2(hDone)+'</b> שע׳ · '+nDone+' ימים</span>'+(nPlan?'<span class="pp">מתוכנן <b>'+r2(hPlan)+'</b> שע׳ · '+nPlan+' ימים</span>':'')+'</div>'+G;
-  H += '<div class="hclg"><span><i class="done"></i>עבדתי</span><span><i class="plan"></i>מתוכנן</span><span>המספר = שעות</span><span>🔄 החלפה</span><span>📅 דחייה</span></div>';
+  var anyIc=Object.keys(ric).some(function(k){ return monthOf(k)===mk; });
+  H += '<div class="hclg"><span><i class="done"></i>עבדתי</span><span><i class="plan"></i>מתוכנן</span>'+(anyIc?'<span>🔄 החלפה</span><span>📅 דחייה</span>':'')+'</div>';
   var sel=hstate.calSel, D='';
   if(sel && monthOf(sel)===mk){
     var sl=by[sel]||[];
@@ -820,7 +871,7 @@ function renderHoursCal(){
                    (sl.length>1 ? '<div style="color:var(--muted);font-weight:700">סה״כ ביום: '+r2(sl.reduce(function(t,r){ return t+hn(r); },0))+' שע׳</div>' : '')
                  : '<div style="color:var(--muted)">לא רשומות שעות ביום הזה</div>')+
       '<button class="ghostbtn" id="hc_add" style="justify-content:center">'+(sl.length?'➕ הוסף עוד עבודה ביום הזה':'➕ הוסף עבודה ביום הזה')+'</button></div>';
-  } else if(state.isCoord) D = '<div class="hcalpick">👆 לחצו על יום ביומן — יופיע מי עובד בו, עם נוכחות / החלפה / דחייה</div>';
+  } else if(state.isCoord) D = '<div class="hcalpick">לחצו על יום — מי עובד בו</div>';
   el.innerHTML='<div class="hcal2'+(D?' two':'')+'">'+H+'</div>'+(D?'<div class="hcalR">'+D+'</div>':'')+'</div>';   // (מחשב) היומן משמאל, היום שנבחר מימין
   calBind_(el, mk, by);
 }
@@ -857,18 +908,20 @@ function calWhoHTML_(ds){
   return H+'</div>';
 }
 function calDayRow_(g, ds, past, canReq){
-  var gi=giOf(g), t=groupSlot(g), act=subAct(g), nm=cleanInst(g.instructor);
+  var gi=giOf(g), t=groupSlot(g), act=subAct(g), nm=cleanInst(g.instructor), open=gi>-1 && hstate.calOpen===gi;
   var rq=(state.reqs||[]).filter(function(r){ return r.act===act && r.date===ds && /^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(r.status); })[0];
   var hasDate=(g.dateCols||[]).some(function(d){ return d.date===ds; });
   var marked=hasDate ? g.students.filter(function(s){ return s.attendance && s.attendance[ds]; }).length : 0;
   var chips=rq ? reqChip_(rq) : '';
   if(past && hasDate && !(rq&&rq.status==="בוטל")) chips += marked ? '<span class="cchip ok">✓ נוכחות '+marked+'/'+g.students.length+'</span>' : '<span class="cchip warn">⏰ נוכחות לא מולאה</span>';
-  var sub=[]; if(t) sub.push("⁦"+t.start+"–"+t.end+"⁩"); sub.push(groupInfoLine(g));
-  return '<div class="arow"><div class="nm"><b>'+(nm==="קבוצה"?'❓ בלי מדריך':esc(nm))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+
-      (gi>-1?'<button class="pen" data-dinst="'+gi+'" title="פרטי הקבוצה">✏️ מדריך</button>':'')+'</b>'+
+  var sub=[]; if(t) sub.push("\u2066"+t.start+"–"+t.end+"\u2069"); sub.push(groupInfoLine(g));
+  // (רון) שורה נקייה: שם + סטטוס. לחיצה על השורה פותחת את הכפתורים
+  return '<div class="arow drow'+(open?' open':'')+'"'+(gi>-1?' data-drow="'+gi+'"':'')+'><div class="nm"><b>'+(nm==="קבוצה"?'❓ בלי מדריך':esc(nm))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+'</b>'+
       '<span>'+esc(sub.join(" · "))+'</span>'+(chips?'<div class="cchips">'+chips+'</div>':'')+'</div>'+
-    '<div class="abtns">'+(gi>-1?'<button class="ab att" data-datt="'+gi+'">📋 נוכחות</button>':'')+
-      (canReq&&gi>-1?'<button class="ab sub" data-dsub="'+gi+'">🔄 החלפה</button><button class="ab post" data-dpost="'+gi+'">📅 דחייה</button>':'')+'</div></div>';
+      (gi>-1?'<span class="dchev">'+(open?'▴':'▾')+'</span>':'')+
+      (open ? '<div class="dacts"><button class="ab att" data-datt="'+gi+'">📋 נוכחות</button>'+
+        (canReq?'<button class="ab sub" data-dsub="'+gi+'">🔄 החלפה</button><button class="ab post" data-dpost="'+gi+'">📅 דחייה</button>':'')+
+        '<button class="ab inf" data-dinst="'+gi+'">✏️ פרטים</button></div>' : '')+'</div>';
 }
 // טופס החלפה/דחייה/✏️ נפתח מתחת לשורה ביומן; כשהיומן מצטייר מחדש — הטופס חוזר למקומו (ריק) כדי שלא יימחק
 function rescueSub_(container){ var sp=$("subpanel"); if(sp && container && container.contains(sp)){ sp.innerHTML=""; var su=$("subui"); if(su && su.parentNode) su.parentNode.insertBefore(sp, su.nextSibling); } }
@@ -891,11 +944,12 @@ function calBind_(el, mk, by){
   $("hc_next").onclick=function(){ calGo_(1); };
   if($("hc_retry")) $("hc_retry").onclick=function(){ delete hstate.calRows[mk]; renderHoursCal(); };
   el.querySelectorAll("[data-cd]").forEach(function(b){ b.onclick=function(){
-    hstate.calSel = hstate.calSel===b.dataset.cd ? "" : b.dataset.cd; renderHoursCal();
+    hstate.calSel = hstate.calSel===b.dataset.cd ? "" : b.dataset.cd; hstate.calOpen=-1; renderHoursCal();
     var d=el.querySelector(".hcalR .hcdet"); if(d && window.innerWidth<900) d.scrollIntoView({behavior:"smooth",block:"nearest"});
   }; });
   if($("hc_add")) $("hc_add").onclick=function(){ calAddFor_(hstate.calSel, null); };
   el.querySelectorAll("[data-ce]").forEach(function(b){ b.onclick=function(){ calAddFor_(hstate.calSel, (by[hstate.calSel]||[])[+b.dataset.ce]); }; });
+  el.querySelectorAll("[data-drow]").forEach(function(r){ r.onclick=function(e){ if(e.target.closest("button")) return; var gi=+r.dataset.drow; hstate.calOpen = hstate.calOpen===gi ? -1 : gi; renderHoursCal(); }; });
   el.querySelectorAll("[data-datt]").forEach(function(b){ b.onclick=function(){ openAttOn_(+b.dataset.datt, hstate.calSel); }; });
   el.querySelectorAll("[data-dsub]").forEach(function(b){ b.onclick=function(){ openReqOn_("sub", +b.dataset.dsub, hstate.calSel, b); }; });
   el.querySelectorAll("[data-dpost]").forEach(function(b){ b.onclick=function(){ openReqOn_("post", +b.dataset.dpost, hstate.calSel, b); }; });
@@ -1206,33 +1260,71 @@ function bindBdayAsk(){
   };
 }
 // (רכז) מי חוגג השבוע — מדריכים וחניכים
+// ----- (רון) כרטיס "היום": כל מה שצריך עכשיו במקום אחד -----
+function todayRowHTML_(g){
+  var t=groupSlot(g), rq=todayReq(g), mineG=!subOnly(g), chip='', canAtt=true;
+  if(!mineG) chip='<span class="cchip ok">🔄 אתה מחליף את '+esc(cleanInst(rq&&rq.requester||g.instructor))+'</span>';
+  else if(rq && rq.status==="בוטל"){ chip='<span class="cchip bad">📅 הפעילות נדחתה'+(rq.reason?' · '+esc(rq.reason):'')+'</span>'; canAtt=false; }
+  else if(rq && rq.status==="הושלם" && rq.chosen && !matchName(rq.chosen, state.who)){ chip='<span class="cchip ok">🔄 '+esc(cleanInst(rq.chosen))+' מחליף אותך</span>'; canAtt=false; }
+  else if(rq && /^(ממתין|פתוח)$/.test(rq.status)) chip='<span class="cchip warn">🔄 מחכה למחליף</span>';
+  else if(rq && rq.status==="ביטול ממתין") chip='<span class="cchip warn">📅 בקשת דחייה ממתינה</span>';
+  return '<div class="tdrow'+(canAtt?'':' tdoff')+'"><div class="tdnm"><b>'+esc(cleanInst(g.instructor))+'</b><span>'+esc(BRN[g.branch]||g.branch)+(t?' · \u2066'+t.start+'–'+t.end+'\u2069':'')+'</span>'+(chip?'<div class="cchips">'+chip+'</div>':'')+'</div>'+
+    (canAtt ? '<button class="tdatt" data-hatt="'+giOf(g)+'">📋 נוכחות</button>' : '')+'</div>';
+}
+function todayHubHTML(groups, mine, todayName, todayG, subG){
+  var t=new Date(), rows=todayG.concat(subG);
+  var h='<div class="tday"><div class="tdh2"><span>📍 היום</span><small>יום '+esc(todayName)+' '+t.getDate()+'/'+(t.getMonth()+1)+'</small></div>';
+  h += '<div id="subui"></div>';   // (טל) בקשות לאישור / הצעות החלפה — ראשונות בכרטיס
+  h += myBdayHTML(groups);
+  if(rows.length) h += '<div class="tdgrp">'+rows.map(todayRowHTML_).join('')+'</div>';
+  if(state.isCoord) h += clubLineHTML_(groups, todayName);
+  else if(!rows.length){
+    var nx=mine.filter(function(g){ return !subOnly(g); }).map(nextDateOf).filter(Boolean).sort(function(a,b){ return a.dt-b.dt; })[0];
+    h += '<div class="tdnone">אין לך פעילות היום'+(nx?' · הבאה: יום '+esc(HDAY[nx.dt.getDay()])+' '+nx.dt.getDate()+'/'+(nx.dt.getMonth()+1):'')+'</div>';
+  }
+  return h+'</div>';
+}
+// (רכז) שורה אחת על המועדון היום; "מי עובד ›" פותח את היום ביומן (עם כל הכפתורים)
+function clubLineHTML_(groups, todayName){
+  var day=todayName, list=groups.filter(function(g){ return g.day===day; }), isToday=true, ds=todayDmy();
+  if(!list.length){
+    var i0=DORD.indexOf(todayName); isToday=false;
+    for(var k=1;k<7 && !list.length;k++){ day=DORD[(i0+k)%7]; list=groups.filter(function(g){ return g.day===day; }); }
+    if(!list.length) return '';
+    var nd=list.map(nextDateOf).filter(Boolean).sort(function(a,b){ return a.dt-b.dt; })[0]; ds=nd?nd.date:"";
+  }
+  var done=isToday ? list.filter(function(g){ return g.students.some(function(s){ return s.attendance && s.attendance[ds]; }); }).length : 0;
+  var rq=(state.reqs||[]).filter(function(r){ return r.date===ds && /^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(r.status); });
+  var ic=(rq.some(function(r){ return !/ביטול|בוטל/.test(r.status); })?' 🔄':'')+(rq.some(function(r){ return /ביטול|בוטל/.test(r.status); })?' 📅':'');
+  var txt = isToday ? 'במועדון היום: <b>'+list.length+'</b> קבוצות · נוכחות <b dir="ltr">'+done+'/'+list.length+'</b>'+(done<list.length?' <span class="warn">· '+(list.length-done)+' לא מולאו</span>':'')
+                    : 'היום אין פעילות · הקרוב: יום <b>'+esc(day)+'</b> · '+list.length+' קבוצות';
+  return '<div class="tdclub"><span>'+txt+ic+'</span>'+(ds?'<button class="linkbtn" id="td_who" data-ds="'+esc(ds)+'">מי עובד ›</button>':'')+'</div>';
+}
+function calShowDay_(ds){
+  if(!ds) return;
+  hstate.hhClosed=false; hstate.calMonth=monthOf(ds); hstate.calSel=ds; hstate.calOpen=-1;
+  renderHomeHours();
+  var d=document.querySelector("#hh_cal .hcalR") || $("hh_cal"); if(d) d.scrollIntoView({behavior:"smooth", block:"start"});
+}
 // (רון) יום הולדת לחניך מהקבוצות שלי — כרטיס בולט בראש המסך (לא מקופל): היום בגדול, הקרובים בשורה קטנה.
 // ימי הולדת בקבוצות של אחרים — רק בפס המקופל של הרכז (צריך לדעת, לא דחוף).
 function myBdayHTML(groups){
   if(!bdayOn()) return '';
-  var mineG = state.isCoord ? myOwnGroups() : groups, list=[], seen={};
+  var mineG = state.isCoord ? myOwnGroups() : groups, out=[], seen={};
   mineG.forEach(function(g){ if(subOnly(g)) return; (g.students||[]).forEach(function(st){ var b=bdayInfo(st.dob), k=norm(st.name);
-    if(b && b.days<=7 && !seen[k]){ seen[k]=1; list.push({name:norm(st.name), b:b, g:g}); } }); });
-  if(!list.length) return '';
-  list.sort(function(a,c){ return a.b.days-c.b.days; });
-  var now=list.filter(function(x){ return x.b.days===0; }), soon=list.filter(function(x){ return x.b.days>0; });
-  var h='<div class="bdmine'+(now.length?' now':'')+'">';
-  now.forEach(function(x){ h+='<div class="bdnow">🎂 היום יום הולדת ל<b>'+esc(x.name)+'</b>'+(x.b.age?' · '+x.b.age:'')+'</div>'+
-    '<div class="bdg">הקבוצה שלך ביום '+esc(x.g.day)+(x.g.branch==="jaffa"?' · יפו':'')+'</div>'; });
-  if(soon.length) h+='<div class="bdsoon">'+(now.length?'בקרוב: ':'🎂 ימי הולדת בקבוצות שלך: ')+
-    soon.map(function(x){ return '<b>'+esc(x.name.split(" ")[0])+'</b>'+(x.b.age?' ('+x.b.age+')':'')+' '+esc(bdayWhen(x.b)); }).join(' · ')+'</div>';
-  return h+'</div>';
+    if(b && b.days===0 && !seen[k]){ seen[k]=1; out.push('<div class="tdbd">🎂 היום יום הולדת ל<b>'+esc(norm(st.name))+'</b>'+(b.age?' · '+b.age:'')+'<small>הקבוצה שלך ביום '+esc(g.day)+'</small></div>'); } }); });
+  return out.join('');   // (טל) שקט: רק של היום, שורה אחת בכרטיס "היום". הקרובים — בפס ימי ההולדת ובשורת הקבוצה
 }
 function bdayWeekHTML(groups){
   if(!bdayOn() || !state.isCoord) return '';
   var list=[], seen={};
   (state.staff||[]).forEach(function(r){ var b=bdayInfo(r.dob); if(b&&b.days<=7) list.push({who:cleanInst(r.inst), sub:'מדריך/ה', b:b, staff:1}); });
   groups.forEach(function(g){ (g.students||[]).forEach(function(st){ var b=bdayInfo(st.dob); var k=norm(st.name);
-    if(b&&b.days<=7&&!seen[k]){ seen[k]=1; if(!isMineG(g)) list.push({who:st.name, sub:cleanInst(g.instructor)+' · '+g.day+' · '+(BRN[g.branch]||g.branch), b:b}); } }); });   // שלי — בכרטיס למעלה
+    if(b&&b.days<=7&&!seen[k]){ seen[k]=1; if(!isMineG(g) || b.days>0) list.push({who:st.name, sub:cleanInst(g.instructor)+' · '+g.day+' · '+(BRN[g.branch]||g.branch), b:b}); } }); });   // שלי — בכרטיס למעלה
   if(!list.length) return '';
   list.sort(function(a,c){ return a.b.days-c.b.days || (c.staff||0)-(a.staff||0); });
   var open=!!state.bdOpen, today=list.filter(function(x){ return x.b.days===0; }).length;
-  var bar='<button class="clubbar" id="bdbar" aria-expanded="'+open+'"><span class="cbl" style="color:#f472b6">🎂 ימי הולדת השבוע · שאר הקבוצות</span><span class="cbs">'+list.length+(today?' · '+today+' היום':'')+'</span><span class="cbc">'+(open?'▴':'▾')+'</span></button>';
+  var bar='<button class="clubbar" id="bdbar" aria-expanded="'+open+'"><span class="cbl" style="color:#f472b6">🎂 ימי הולדת השבוע</span><span class="cbs">'+list.length+(today?' · '+today+' היום':'')+'</span><span class="cbc">'+(open?'▴':'▾')+'</span></button>';
   var body=open ? '<div class="clubbody">'+list.map(function(x){ return '<div class="bdi"><b>'+(x.staff?'⭐ ':'')+esc(x.who)+(x.b.age?' · '+x.b.age:'')+'</b><span>'+esc(x.sub)+'</span><em>'+esc(bdayWhen(x.b))+'</em></div>'; }).join('')+'</div>' : '';
   return '<div class="clubwrap">'+bar+body+'</div>';
 }
@@ -1351,38 +1443,78 @@ function wpOpenState(){
   if(state.wpOpen===undefined){ try{ var v=localStorage.getItem("att_wp_open"); state.wpOpen = v===null ? window.matchMedia("(min-width:900px)").matches : v==="1"; }catch(e){ state.wpOpen=false; } }
   return state.wpOpen;
 }
+function dmy_(d){ return d.getDate()+"/"+(d.getMonth()+1)+"/"+String(d.getFullYear()).slice(2); }
+// (טל) שבוע עם תאריכים: מדפדפים קדימה/אחורה, ורואים החלפות (🔄) ודחיות (📅). לחיצה על קבוצה → נוכחות / החלפה / דחייה לאותו תאריך
+function wpWeekStart_(){ var d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-d.getDay()+7*(state.wpWeek||0)); return d; }
+function wpReq_(g, ds){ var act=subAct(g); return (state.reqs||[]).filter(function(r){ return r.act===act && r.date===ds && /^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(r.status); })[0]; }
 function workPlanHTML(){
   if(!state.isCoord) return '';
   loadGInfo();
-  var all=state.all||state.groups||[], todayName=DAYS[new Date().getDay()], open=wpOpenState();
+  var all=state.all||state.groups||[], open=wpOpenState(), tdy=todayDmy();
   var days=DORD.filter(function(d){ return all.some(function(g){ return g.day===d; }); });
   var kids=all.reduce(function(n,g){ return n+g.students.length; },0);
   var bar='<button class="clubbar" id="wpbar" aria-expanded="'+open+'"><span class="cbl" style="color:var(--navy)">🗓 סידור עבודה</span><span class="cbs">'+all.length+' קבוצות · '+kids+' חניכים</span><span class="cbc">'+(open?'▴':'▾')+'</span></button>';
   if(!open || !days.length) return '<div class="clubwrap">'+bar+'</div>';
+  var ws=wpWeekStart_(), we=new Date(ws); we.setDate(ws.getDate()+6);
+  var dsOf=function(d){ var x=new Date(ws); x.setDate(ws.getDate()+DORD.indexOf(d)); return dmy_(x); };
+  var wk=state.wpWeek||0, sel=state.wpSel||null;
+  var nav='<div class="wpwk"><button class="nav" id="wp_prev" aria-label="שבוע קודם">‹</button><div class="wpwkt"><b>'+ws.getDate()+'/'+(ws.getMonth()+1)+' – '+we.getDate()+'/'+(we.getMonth()+1)+'</b><small>'+(wk===0?'השבוע':wk===1?'שבוע הבא':wk===-1?'שבוע שעבר':'')+'</small></div>'+
+    (wk!==0?'<button class="linkbtn" id="wp_now">להיום</button>':'')+'<button class="nav" id="wp_next" aria-label="שבוע הבא">›</button></div>';
   var ord=function(a,b){ return slotMin(a)-slotMin(b) || (a.branch==="jaffa"?1:0)-(b.branch==="jaffa"?1:0) || cleanInst(a.instructor).localeCompare(cleanInst(b.instructor),"he"); };
   var T='<div class="wgwrap"><table class="wgt" style="min-width:'+(76+days.length*132)+'px"><colgroup><col style="width:76px">'+days.map(function(){ return '<col>'; }).join('')+'</colgroup>'+
-    '<thead><tr><th class="wgrh"></th>'+days.map(function(d){ var n=all.filter(function(g){ return g.day===d; }).length; return '<th'+(d===todayName?' class="tdy"':'')+'>'+esc(d)+'<small>'+(d===todayName?'היום · ':'')+n+' קבוצות</small></th>'; }).join('')+'</tr></thead><tbody>';
+    '<thead><tr><th class="wgrh"></th>'+days.map(function(d){ var ds=dsOf(d), x=toDate_(ds); return '<th'+(ds===tdy?' class="tdy"':'')+'>'+esc(d)+'<small>'+x.getDate()+'/'+(x.getMonth()+1)+(ds===tdy?' · היום':'')+'</small></th>'; }).join('')+'</tr></thead><tbody>';
   [["am","☀️ בוקר"],["pm","🌤 צהריים"],["","❓ לא נקבע"]].forEach(function(sl){
     var byD=days.map(function(d){ return all.filter(function(g){ return g.day===d && slotKind(groupSlot(g))===sl[0]; }).sort(ord); });
     if(!byD.some(function(l){ return l.length; })) return;
     var tm={}; byD.forEach(function(l){ l.forEach(function(g){ var t=groupSlot(g); if(t) tm[t.start+"–"+t.end]=1; }); }); tm=Object.keys(tm);
     var one=tm.length===1 ? tm[0] : "";
     T+='<tr><th class="wgrh">'+sl[1]+(one?'<small>⁦'+esc(one)+'⁩</small>':'')+'</th>'+byD.map(function(l,i){
-      return '<td'+(days[i]===todayName?' class="tdy"':'')+'>'+(l.length ? l.map(function(g){
-        var nm=cleanInst(g.instructor), t=groupSlot(g), typ=groupType(g), ages=groupAges(g);
-        return '<div class="wgc'+(isMineG(g)?' me':'')+'"><b>'+(nm==="קבוצה"?'<span class="no">בלי מדריך</span>':esc(nm))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+'</b>'+
+      var ds=dsOf(days[i]);
+      return '<td'+(ds===tdy?' class="tdy"':'')+'>'+(l.length ? l.map(function(g){
+        var gi=giOf(g), nm=cleanInst(g.instructor), t=groupSlot(g), typ=groupType(g), ages=groupAges(g), rq=wpReq_(g, ds);
+        var noDate=!(g.dateCols||[]).some(function(c){ return c.date===ds; }), post=rq && /^(ביטול ממתין|בוטל)$/.test(rq.status), sub=rq && !post;
+        var mark = post ? '<i class="wgi post" title="'+(rq.status==="בוטל"?'נדחתה':'בקשת דחייה')+'">📅</i>' : sub ? '<i class="wgi sub" title="החלפה">🔄</i>' : '';
+        var subLine = sub && rq.chosen ? '<span class="wgsub">'+esc(cleanInst(rq.chosen))+' מחליף</span>' : sub ? '<span class="wgsub">מחפשים מחליף</span>' : post ? '<span class="wgsub">'+(rq.status==="בוטל"?'נדחתה':'בקשת דחייה')+(rq.reason?' · '+esc(rq.reason):'')+'</span>' : '';
+        var on = sel && sel.gi===gi && sel.ds===ds;
+        return '<div class="wgc'+(isMineG(g)?' me':'')+(post&&rq.status==="בוטל"?' off':'')+(noDate?' nod':'')+(on?' on':'')+'"'+(gi>-1?' data-wgi="'+gi+'" data-wds="'+esc(ds)+'" role="button" tabindex="0"':'')+'>'+mark+
+          '<b>'+(nm==="קבוצה"?'<span class="no">בלי מדריך</span>':esc(nm))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+'</b>'+subLine+
           (typ?'<span>'+esc(typ)+'</span>':'')+
           '<span>'+(ages?'גיל ⁦'+esc(ages)+'⁩ · ':'')+g.students.length+' חניכים'+(t&&!one?' · ⁦'+esc(t.start)+'–'+esc(t.end)+'⁩':'')+'</span></div>';
       }).join('') : '<span class="no">—</span>')+'</td>';
     }).join('')+'</tr>';
   });
   T+='</tbody></table></div>';
-  return '<div class="clubwrap wgbox">'+bar+'<div class="wgbody">'+T+'<div class="wglg">גוללים הצידה לשאר הימים · הקבוצות שלך מסומנות · לחיצה על יום ביומן למטה פותחת את הקבוצות שלו עם הכפתורים</div></div></div>';
+  // הקבוצה שנבחרה: כפתורים לאותו תאריך
+  var A='';
+  if(sel){
+    var g=state.groups[sel.gi], x=toDate_(sel.ds), today0=new Date(); today0.setHours(0,0,0,0);
+    if(g){ var rq=wpReq_(g, sel.ds), canReq=x>=today0;
+      A='<div class="arow wpact"><div class="nm"><b>'+esc(cleanInst(g.instructor))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+'</b><span>יום '+esc(HDAY[x.getDay()])+' '+x.getDate()+'/'+(x.getMonth()+1)+' · '+esc(groupInfoLine(g))+'</span>'+(rq?'<div class="cchips">'+reqChip_(rq)+'</div>':'')+'</div>'+
+        '<button class="wax" id="wp_x" aria-label="סגור">✕</button>'+
+        '<div class="dacts"><button class="ab att" data-watt="'+sel.gi+'">📋 נוכחות</button>'+(canReq?'<button class="ab sub" data-wsub="'+sel.gi+'">🔄 החלפה</button><button class="ab post" data-wpost="'+sel.gi+'">📅 דחייה</button>':'')+'<button class="ab inf" data-winst="'+sel.gi+'">✏️ פרטים</button></div></div>';
+    }
+  }
+  return '<div class="clubwrap wgbox">'+bar+'<div class="wgbody">'+nav+T+(A||'<div class="wglg">לחיצה על קבוצה — נוכחות / החלפה / דחייה לאותו תאריך · בטלפון גוללים הצידה</div>')+'</div></div>';
 }
 function bindWorkPlan(){
   if($("wpbar")) $("wpbar").onclick=function(){ state.wpOpen=!wpOpenState(); try{ localStorage.setItem("att_wp_open", state.wpOpen?"1":"0"); }catch(e){} renderWorkPlanInline(); };
+  var go=function(n){ state.wpWeek=n; state.wpSel=null; renderWorkPlanInline(); };
+  if($("wp_prev")) $("wp_prev").onclick=function(){ go((state.wpWeek||0)-1); };
+  if($("wp_next")) $("wp_next").onclick=function(){ go((state.wpWeek||0)+1); };
+  if($("wp_now")) $("wp_now").onclick=function(){ go(0); };
+  if($("wp_x")) $("wp_x").onclick=function(){ state.wpSel=null; renderWorkPlanInline(); };
+  document.querySelectorAll("#wpinline [data-wgi]").forEach(function(c){ c.onclick=function(){
+    var gi=+c.dataset.wgi, ds=c.dataset.wds, s0=state.wpSel;
+    state.wpSel = (s0 && s0.gi===gi && s0.ds===ds) ? null : {gi:gi, ds:ds}; renderWorkPlanInline();
+    var a=document.querySelector("#wpinline .wpact"); if(a) a.scrollIntoView({behavior:"smooth", block:"nearest"});
+  }; });
+  var ds=(state.wpSel||{}).ds;
+  document.querySelectorAll("#wpinline [data-watt]").forEach(function(b){ b.onclick=function(){ openAttOn_(+b.dataset.watt, ds); }; });
+  document.querySelectorAll("#wpinline [data-wsub]").forEach(function(b){ b.onclick=function(){ openReqOn_("sub", +b.dataset.wsub, ds, b); }; });
+  document.querySelectorAll("#wpinline [data-wpost]").forEach(function(b){ b.onclick=function(){ openReqOn_("post", +b.dataset.wpost, ds, b); }; });
+  document.querySelectorAll("#wpinline [data-winst]").forEach(function(b){ b.onclick=function(){ if(subUnder_(b)) setInstOpen(state.groups[+b.dataset.winst]); }; });
 }
-function renderWorkPlanInline(){ var w=$("wpinline"); if(!w) return; w.innerHTML=workPlanHTML(); bindWorkPlan(); }
+function renderWorkPlanInline(){ var w=$("wpinline"); if(!w) return; rescueSub_(w); w.innerHTML=workPlanHTML(); bindWorkPlan(); }
 // שורה במסך סידור העבודה — מידע בלבד (הקבוצות שלי מסומנות)
 function wpRow(g){
   var t=groupSlot(g), nm=cleanInst(g.instructor), sub=[BRN[g.branch]||g.branch]; if(t) sub.push("⁦"+t.start+"–"+t.end+"⁩");
@@ -2253,9 +2385,23 @@ function staffPhone(name){
 function waWhen(act, date, start, end){ var p=String(act||"").split(" · ");
   return (p[1] ? "יום "+p[1]+" " : "")+(date||"")+(start ? " "+start+(end ? "–"+end : "") : "")+(p[2] ? " ("+p[2]+")" : ""); }
 function waOwner(act, requester){ var p=String(act||"").split(" · "); return waFirst(p.length>1 ? p[0] : requester); }
-function waReqText(kind, act, date, reason){ return "היי "+waFirst(WA_COORD)+", ביקשתי באפליקציה "+(kind==="cancel" ? "לדחות את הפעילות" : "החלפה")+" ב"+waWhen(act, date)+(reason ? " (סיבה: "+reason+")" : "")+". אפשר לאשר במרכז מדריכים."; }
-function waOfferText(to, r){ return "היי "+waFirst(to)+", יש החלפה פתוחה בשבילך: הקבוצה של "+waOwner(r.act, r.requester)+", "+waWhen(r.act, r.date, r.start, r.end)+". מתאים לך? אפשר לקחת באפליקציה, במרכז מדריכים."; }
-function waTakeText(r){ return "היי "+waFirst(r.requester)+", לקחתי את ההחלפה שלך ב"+waWhen(r.act, r.date)+". נרשם באפליקציה."; }
+// (טל) הודעות קלילות, בנקודות — לא שורה אחת ארוכה
+function waLines_(act, date, start, end){
+  var p=String(act||"").split(" · "), d=String(date||"").replace(/\/\d+$/,""), br=p[2]==="ת״א" ? "תל אביב" : (p[2]||""), t=start ? start+(end ? "–"+end : "") : "";
+  var out=["• "+(p[1] ? "יום "+p[1]+" " : "")+d]; if(t||br) out.push("• "+[t,br].filter(Boolean).join(" · "));
+  return out;
+}
+function waReqText(kind, act, date, reason, start, end){
+  return ["היי "+waFirst(WA_COORD)+" 👋", kind==="cancel" ? "ביקשתי באפליקציה לדחות פעילות:" : "ביקשתי באפליקציה החלפה:"]
+    .concat(waLines_(act, date, start, end), reason ? ["• סיבה: "+reason] : [], ["", "אפשר לאשר במרכז מדריכים 🙏"]).join("\n");
+}
+function waOfferText(to, r){
+  return ["היי "+waFirst(to)+" 👋", "יש החלפה פתוחה בשבילך:", "• הקבוצה של "+waOwner(r.act, r.requester)]
+    .concat(waLines_(r.act, r.date, r.start, r.end), ["", "מתאים לך? אפשר לקחת באפליקציה, במרכז מדריכים 🙏"]).join("\n");
+}
+function waTakeText(r){
+  return ["היי "+waFirst(r.requester)+" 👋", "לקחתי את ההחלפה שלך:"].concat(waLines_(r.act, r.date, r.start, r.end), ["", "זה כבר רשום באפליקציה ✓"]).join("\n");
+}
 function waOffer(items){ items=(items||[]).filter(function(it){ return it && it.to && norm(it.to)!==norm(state.who); }); state.waOffer = items.length ? {t:Date.now(), items:items} : null; }
 function waLink(to, text){ return "https://wa.me/"+staffPhone(to)+"?text="+encodeURIComponent(text); }
 function waOfferHTML(){
@@ -2379,7 +2525,7 @@ function renderSubUI(){
   // רק התראות (הצעות / אישורים). הכפתורים "החלפה" ו"דחייה" נמצאים ליד כל קבוצה ברשימה.
   var h='';
   if(offers.length) h += '<div class="rem tap" id="sb_offers">🔔 '+offers.length+' הצעת החלפה פתוחה עבורך — לחצו</div>';
-  if((state.isCoord || hoursAdmin()) && pend.length) h += '<div class="rem tap" id="sb_appr">📥 '+pend.length+' בקשות החלפה / דחייה לאישור — לחצו</div>';
+  if((state.isCoord || hoursAdmin()) && pend.length) h += '<div class="rem tap urgent" id="sb_appr">📥 '+(pend.length===1 ? 'בקשת החלפה / דחייה אחת מחכה' : pend.length+' בקשות החלפה / דחייה מחכות')+' לאישור שלך — לחצו</div>';   // (טל) רכז: למעלה ובאדום
   box.innerHTML=h;
   function toTop(){ var sp=$("subpanel"); if(sp && box.nextSibling!==sp) box.parentNode.insertBefore(sp, box.nextSibling); }
   if($("sb_offers")) $("sb_offers").onclick=function(){ toTop(); attOffers(); };
@@ -2486,7 +2632,7 @@ function attReqSubmit(g){
     return res;
   }).then(function(res){
     if(res&&res.ok){ var rq={act:subAct(g), date:date, requester:owner, start:hr.start||"", end:hr.end||""};
-      waOffer(coord ? (res.approved ? proposed.map(function(n){ return {to:n, text:waOfferText(n, rq)}; }) : []) : [{to:WA_COORD, text:waReqText("sub", rq.act, date)}]);
+      waOffer(coord ? (res.approved ? proposed.map(function(n){ return {to:n, text:waOfferText(n, rq)}; }) : []) : [{to:WA_COORD, text:waReqText("sub", rq.act, date, "", rq.start, rq.end)}]);
       afterSub(coord ? (res.approved ? "ההחלפה נפתחה למחליפים ✓" : "הבקשה נשלחה, אבל האישור לא נשמר — אשרו אותה מרשימת הבקשות") : "בקשת ההחלפה נשלחה ✓ הרכז יקבל אותה לאישור."); }
     else if($("ar_send")){ btn.disabled=false; btn.textContent="שלח בקשה"; $("ar_err").textContent="לא נשלח: "+((res&&res.error)||"נסו שוב"); }
   }).catch(function(){ if($("ar_send")){ $("ar_send").disabled=false; $("ar_send").textContent="שלח בקשה"; } if($("ar_err")) $("ar_err").textContent="אין חיבור"; });
@@ -2498,16 +2644,16 @@ function attCancelSubmit(g){
   if(!owner){ toast("בחרו של מי הקבוצה"); return; }
   if(!confirm(coord ? "לדחות את הפעילות של "+cleanInst(owner)+" בתאריך "+date+"? השעות של התאריך יירדו." : "לבקש לדחות את הפעילות בתאריך "+date+"?")) return;
   var btn=$("ar_kill"); btn.disabled=true; btn.textContent="שולח…";
-  var month=monthOf(date);
+  var month=monthOf(date), hrx={};
   api({action:"hoursRead", month:month}).then(function(j){
-    var hr=pickJob_((j&&j.rows)||[], date, subAct(g), owner) || defaultTimes(g) || {};
+    var hr=pickJob_((j&&j.rows)||[], date, subAct(g), owner) || defaultTimes(g) || {}; hrx=hr;
     return post({action:"subReqCancel", requester:owner, month:month, date:date, act:subAct(g), start:hr.start||"", end:hr.end||"", total:hr.total||"", reason:reason});
   }).then(function(res){
     if(res&&res.ok&&res.id) addReq({id:res.id, requester:owner, act:subAct(g), date:date, status:"ביטול ממתין", proposed:[], accepted:[], reason:reason});
     if(res&&res.ok&&coord&&res.id) return post({action:"subReqCancelApprove", id:res.id}).then(function(a){ if(a&&a.ok) setReq(res.id, {status:"בוטל"}); return {ok:true, approved:a&&a.ok}; });
     return res;
   }).then(function(res){
-    if(res&&res.ok){ if(!coord) waOffer([{to:WA_COORD, text:waReqText("cancel", subAct(g), date, reason)}]);
+    if(res&&res.ok){ if(!coord) waOffer([{to:WA_COORD, text:waReqText("cancel", subAct(g), date, reason, toHHMM(hrx.start), toHHMM(hrx.end))}]);
       afterSub(coord ? (res.approved ? "הפעילות נדחתה ✓ השעות של התאריך ירדו" : "הבקשה נשלחה, אבל האישור לא נשמר — אשרו אותה מרשימת הבקשות") : "בקשת הדחייה נשלחה לרכז ✓"); }
     else if($("ar_kill")){ btn.disabled=false; btn.textContent="שלח בקשת דחייה"; toast("לא נשלח: "+((res&&res.error)||"")); }
   }).catch(function(){ if($("ar_kill")){ btn.disabled=false; btn.textContent="שלח בקשת דחייה"; } toast("אין חיבור"); });
