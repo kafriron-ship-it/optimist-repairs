@@ -454,6 +454,7 @@ body.hoursonly #wpov{background:var(--bg)}
 .pickl{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 6px}
 .pickl label{position:relative;display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--chip);color:var(--ink);font:700 .88rem 'Assistant',sans-serif;cursor:pointer;user-select:none;-webkit-user-select:none;transition:background .15s,border-color .15s}
 .pickl input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.pickl label[hidden]{display:none}
 .pickl label.on,.pickl label:has(input:checked){background:color-mix(in srgb,var(--navy) 20%,var(--surface));border-color:var(--navy)}
 .pickl label.on::before,.pickl label:has(input:checked)::before{content:"✓";font-weight:900;color:var(--navy)}
 .pickl label:has(input:focus-visible){outline:2px solid var(--flag);outline-offset:2px}
@@ -910,7 +911,7 @@ function calWhoHTML_(ds){
   return H+'</div>';
 }
 function calDayRow_(g, ds, past, canReq){
-  var gi=giOf(g), t=groupSlot(g), act=subAct(g), nm=cleanInst(g.instructor);
+  var gi=giOf(g), t=groupSlot(g), act=subAct(g), nm=instLabel(g);
   var rq=(state.reqs||[]).filter(function(r){ return r.act===act && r.date===ds && /^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(r.status); })[0];
   var hasDate=(g.dateCols||[]).some(function(d){ return d.date===ds; });
   var marked=hasDate ? g.students.filter(function(s){ return s.attendance && s.attendance[ds]; }).length : 0;
@@ -1382,7 +1383,7 @@ function renderSchedule(){
         var one = tm.length===1 ? tm[0] : "";
         h+='<tr class="wps"><td colspan="4">'+sl[1]+(one?'<span>⁦'+esc(one)+'⁩</span>':'')+'</td></tr>';
         rows.forEach(function(g,k){
-          var t=groupSlot(g), nm=cleanInst(g.instructor), ages=groupAges(g), typ=groupType(g);
+          var t=groupSlot(g), nm=instLabel(g), ages=groupAges(g), typ=groupType(g);
           h+='<tr class="'+(isMineG(g)?'me':(k%2?'z':''))+'"><td><b>'+(nm==="קבוצה"?'<span class="no">בלי מדריך</span>':esc(nm))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+'</b>'+
             (t&&!one?'<small>⁦'+esc(t.start)+'–'+esc(t.end)+'⁩</small>':'')+'</td>'+
             '<td class="c">'+(ages?'⁦'+esc(ages)+'⁩':'<span class="no">—</span>')+'</td>'+
@@ -1456,7 +1457,7 @@ function workPlanHTML(){
     T+='<tr><th class="wgrh">'+sl[1]+(one?'<small>⁦'+esc(one)+'⁩</small>':'')+'</th>'+byD.map(function(l,i){
       var ds=dsOf(days[i]);
       return '<td'+(ds===tdy?' class="tdy"':'')+'>'+(l.length ? l.map(function(g){
-        var gi=giOf(g), nm=cleanInst(g.instructor), t=groupSlot(g), typ=groupType(g), ages=groupAges(g), rq=wpReq_(g, ds);
+        var gi=giOf(g), nm=instLabel(g), t=groupSlot(g), typ=groupType(g), ages=groupAges(g), rq=wpReq_(g, ds);
         var noDate=!(g.dateCols||[]).some(function(c){ return c.date===ds; }), post=rq && /^(ביטול ממתין|בוטל)$/.test(rq.status), sub=rq && !post;
         var mark = post ? '<i class="wgi post" title="'+(rq.status==="בוטל"?'נדחתה':'בקשת דחייה')+'">📅</i>' : sub ? '<i class="wgi sub" title="החלפה">🔄</i>' : '';
         var subLine = sub && rq.chosen ? '<span class="wgsub">'+esc(cleanInst(rq.chosen))+' מחליף</span>' : sub ? '<span class="wgsub">מחפשים מחליף</span>' : post ? '<span class="wgsub">'+(rq.status==="בוטל"?'נדחתה':'בקשת דחייה')+(rq.reason?' · '+esc(rq.reason):'')+'</span>' : '';
@@ -1474,7 +1475,7 @@ function workPlanHTML(){
   if(sel){
     var g=state.groups[sel.gi], x=toDate_(sel.ds), today0=new Date(); today0.setHours(0,0,0,0);
     if(g){ var rq=wpReq_(g, sel.ds), canReq=state.isCoord || x>=today0;
-      A='<div class="arow wpact"><div class="nm"><b>'+esc(cleanInst(g.instructor))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+'</b><span>יום '+esc(HDAY[x.getDay()])+' '+x.getDate()+'/'+(x.getMonth()+1)+' · '+esc(groupInfoLine(g))+'</span>'+(rq?'<div class="cchips">'+reqChip_(rq, true)+'</div>':'')+'</div>'+
+      A='<div class="arow wpact"><div class="nm"><b>'+esc(instLabel(g))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+'</b><span>יום '+esc(HDAY[x.getDay()])+' '+x.getDate()+'/'+(x.getMonth()+1)+' · '+esc(groupInfoLine(g))+'</span>'+(rq?'<div class="cchips">'+reqChip_(rq, true)+'</div>':'')+'</div>'+
         '<button class="wax" id="wp_x" aria-label="סגור">✕</button>'+
         '<div class="dacts"><button class="ab att" data-watt="'+sel.gi+'">📋 נוכחות</button>'+(canReq?'<button class="ab sub" data-wsub="'+sel.gi+'">🔄 החלפה</button><button class="ab post" data-wpost="'+sel.gi+'">📅 דחייה</button>':'')+'<button class="ab inf" data-winst="'+sel.gi+'">✏️ פרטים</button></div></div>';
     }
@@ -1516,7 +1517,7 @@ function renderWorkPlanInline(){ var w=$("wpinline"); if(!w) return; rescueSub_(
 (function(){ try{ var mq=matchMedia("(max-width:899px)"), f=function(){ renderWorkPlanInline(); }; if(mq.addEventListener) mq.addEventListener("change", f); else mq.addListener(f); }catch(e){} })();   // טלפון ↔ מחשב: יומן ↔ טבלה
 // שורה במסך סידור העבודה — מידע בלבד (הקבוצות שלי מסומנות)
 function wpRow(g){
-  var t=groupSlot(g), nm=cleanInst(g.instructor), sub=[BRN[g.branch]||g.branch]; if(t) sub.push("⁦"+t.start+"–"+t.end+"⁩");
+  var t=groupSlot(g), nm=instLabel(g), sub=[BRN[g.branch]||g.branch]; if(t) sub.push("⁦"+t.start+"–"+t.end+"⁩");
   return '<div class="arow'+(isMineG(g)?' wpme':'')+'"><div class="nm"><b>'+(nm==="קבוצה"?'❓ בלי מדריך':esc(nm))+(g.branch==="jaffa"?' <span class="wpbr">יפו</span>':'')+(isMineG(g)?' <span class="tchip today">שלך</span>':'')+'</b><span>'+esc(sub.join(" · "))+'</span><span class="hinfo">'+esc(groupInfoLine(g))+'</span></div></div>';
 }
 function renderStudents(){
@@ -2427,17 +2428,21 @@ function reqErr(j){
 // (רכז) פרטי הקבוצה: מדריך (מתעדכן גם בגיליון הנוכחות) + מתי (בוקר/צהריים → השעות של המדריך נכנסות לבד כל חודש) + אפיון
 function setInstOpen(g){
   var p=$("subpanel"); if(!p||!g) return;
-  var own=ownerOf(g), cur=groupSlot(g), curK=slotKind(cur), typ=groupType(g);
+  var own=ownerOf(g), cur=groupSlot(g), curK=slotKind(cur), typ=groupType(g), coNow=coInsts(g);
   state.siSlot=curK;
   var H='<div class="card" style="padding:12px"><div class="sumh" style="margin:0 0 8px">✏️ פרטי הקבוצה</div>'+
     '<div style="color:var(--muted);font-size:.82rem;margin-bottom:10px">'+esc(g.day)+' · '+esc(BRN[g.branch]||g.branch)+' · כרגע רשום: <b>'+esc(g.instructor||"(בלי שם)")+'</b> · '+g.students.length+' חניכים</div>'+
     '<label class="silbl">מדריך</label>'+
     '<select id="si_name" class="asin" style="margin-bottom:10px">'+(own?'':'<option value="">בחרו מדריך…</option>')+
       subInstList().map(function(n){ return '<option value="'+esc(n)+'"'+(norm(n)===norm(own)?' selected':'')+'>'+esc(cleanInst(n))+'</option>'; }).join('')+'</select>'+
+    // (טל) כמה מדריכים לאותה קבוצה
+    '<label class="silbl">מדריכים נוספים <span style="font-weight:600">(לא חובה)</span></label>'+
+    '<div id="si_co" class="pickl" style="margin:2px 0 10px">'+subInstList().map(function(n){ var on=coNow.indexOf(n)>-1;
+      return '<label'+(on?' class="on"':'')+(norm(n)===norm(own)?' hidden':'')+'><input type="checkbox" value="'+esc(n)+'"'+(on?' checked':'')+'>'+esc(cleanInst(n))+'</label>'; }).join('')+'</div>'+
     '<label class="silbl">מתי הפעילות?</label>'+
     '<div class="sislot"><button type="button" class="asin" data-sis="am">☀️ בוקר <span dir="ltr">10–14</span></button><button type="button" class="asin" data-sis="pm">🌤 צהריים <span dir="ltr">14–18</span></button></div>'+
     (state.ginfoOk ? '<label class="silbl">אפיון <span style="font-weight:600">(לא חובה)</span></label><input id="si_type" class="asin" maxlength="60" list="si_types" placeholder="למשל: אופטימיסט מתחילים" value="'+esc(typ)+'" style="margin-bottom:10px"><datalist id="si_types">'+TYPE_SUGG.map(function(o){ return '<option value="'+esc(o)+'">'; }).join('')+'</datalist>' : '')+
-    '<div style="color:var(--muted);font-size:.78rem;margin-bottom:8px">המדריך יתעדכן גם בגיליון הנוכחות. בוקר/צהריים — השעות של המדריך לקבוצה הזו נכנסות לבד, כל חודש.</div>'+
+    '<div style="color:var(--muted);font-size:.78rem;margin-bottom:8px">המדריכים יתעדכנו גם בגיליון הנוכחות, וכולם יראו את הקבוצה. בוקר/צהריים — השעות של כל מדריך בקבוצה נכנסות לבד, כל חודש.</div>'+
     '<div id="si_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em"></div>'+
     '<div style="display:flex;gap:8px"><button id="si_save" class="asin pri">שמור</button><button id="si_cancel" class="asin" style="flex:0 0 76px">סגור</button></div></div>';
   p.innerHTML=H; p.scrollIntoView({behavior:"smooth",block:"center"});
@@ -2445,33 +2450,60 @@ function setInstOpen(g){
   paintSlot();
   p.querySelectorAll("[data-sis]").forEach(function(b){ b.onclick=function(){ state.siSlot=b.dataset.sis; paintSlot(); }; });
   $("si_cancel").onclick=function(){ p.innerHTML=""; };
+  // המדריך הראשי לא מופיע גם ב"נוספים"
+  $("si_name").onchange=function(){ var m=norm(this.value); p.querySelectorAll("#si_co label").forEach(function(l){ var c=l.querySelector("input"), me=norm(c.value)===m; l.hidden=me; if(me){ c.checked=false; l.classList.remove("on"); } }); };
   $("si_save").onclick=function(){
-    var name=norm($("si_name").value), err=$("si_err"); if(!name){ err.textContent="בחרו מדריך"; return; }
+    var main=norm($("si_name").value), err=$("si_err"); if(!main){ err.textContent="בחרו מדריך"; return; }
     if(g.head==null){ err.textContent="צריך עדכון שרת - נסו שוב מאוחר יותר"; return; }
+    var co=[].slice.call(p.querySelectorAll("#si_co input:checked")).map(function(c){ return norm(c.value); }).filter(function(n){ return n && n!==main; });
+    var coOld=coNow.map(norm), name=[main].concat(co).join(" + ");
+    var coAdd=co.filter(function(n){ return coOld.indexOf(n)<0; }), coDel=coOld.filter(function(n){ return co.indexOf(n)<0; }), coKeep=co.filter(function(n){ return coOld.indexOf(n)>-1; });
     var slot=state.siSlot||"", type=$("si_type") ? norm($("si_type").value) : typ;
-    var nameCh = norm(name)!==norm(own);
+    var mainCh = main!==norm(own), nameCh = mainCh || coAdd.length>0 || coDel.length>0;
     var oldFixed = cur && cur.fixed;
-    var slotCh = !!slot && (nameCh || !oldFixed || slot!==curK);
+    var slotCh = !!slot && (mainCh || !oldFixed || slot!==curK);
     var typeCh = !!$("si_type") && type!==typ;
     if(!nameCh && !slotCh && !typeCh){ p.innerHTML=""; return; }
     var btn=this; btn.disabled=true; btn.textContent="שומר…";
     var d=dowOf(g.day), month=monthKey(new Date()), added=null, done=[];
     var ok=function(j){ if(!j||!j.ok) throw new Error((j&&j.error)||""); return j; };
+    var inOrder=function(list, fn){ return list.reduce(function(pr,x){ return pr.then(function(){ return fn(x); }); }, Promise.resolve()); };
+    // הפעילות הקבועה של כל מדריך נוסף לקבוצה הזו — לפי השם הנוכחי של הקבוצה (לפני השינוי)
+    var gaOld=allOf(g), coFixedOld={};
+    coOld.forEach(function(n){ var a=norm(schedActFor(gaOld, n)); coFixedOld[n]=(hstate.sched||[]).filter(function(r){ return norm(r.inst)===n && String(r.dow)===String(d) && norm(r.act)===a; })[0]||null; });
     var chain=Promise.resolve();
     if(nameCh) chain=chain.then(function(){
       return post({action:"setGroupInst", branch:g.branch, day:g.day, head:g.head, old:g.instructor||"", name:name}).then(ok).then(function(){
         g.instructor=name; var ga=allOf(g); if(ga!==g) ga.instructor=name;
-        try{ localStorage.removeItem("att_cache"); }catch(e){} done.push("המדריך: "+cleanInst(name)); });
+        try{ localStorage.removeItem("att_cache"); }catch(e){}
+        if(mainCh) done.push("המדריך: "+cleanInst(main));
+        if(coAdd.length||coDel.length) done.push(co.length ? "נוספים: "+co.map(function(n){ return n.split(" ")[0]; }).join(", ") : "בלי מדריכים נוספים");
+      });
+    });
+    // מדריך נוסף שהוסר — הפעילות הקבועה שלו לקבוצה נמחקת (השעות שכבר נכנסו נשארות)
+    if(coDel.length) chain=chain.then(function(){
+      return inOrder(coDel.filter(function(n){ return coFixedOld[n]; }), function(n){ return post({action:"schedSet", inst:n, dow:d, multi:1, orig:{act:coFixedOld[n].act}, act:"", start:"", end:""}).then(ok); });
     });
     if(slotCh) chain=chain.then(function(){
-      var t=slot==="am"?SLOT_AM:SLOT_PM, act=schedActFor(allOf(g), name), q=Promise.resolve();
+      var t=slot==="am"?SLOT_AM:SLOT_PM, act=schedActFor(allOf(g), main), q=Promise.resolve();
       // מדריך אחר לוקח את הקבוצה — הפעילות הקבועה של הקודם נמחקת (השעות שכבר נכנסו לו נשארות)
-      if(oldFixed && nameCh) q=post({action:"schedSet", inst:oldFixed.inst, dow:d, multi:1, orig:{act:oldFixed.act}, act:"", start:"", end:""}).then(ok);
-      var body={action:"schedSet", inst:name, dow:d, act:act, start:t.start, end:t.end, multi:1};
-      if(oldFixed && !nameCh) body.orig={act:oldFixed.act};
+      if(oldFixed && mainCh) q=post({action:"schedSet", inst:oldFixed.inst, dow:d, multi:1, orig:{act:oldFixed.act}, act:"", start:"", end:""}).then(ok);
+      var body={action:"schedSet", inst:main, dow:d, act:act, start:t.start, end:t.end, multi:1};
+      if(oldFixed && !mainCh) body.orig={act:oldFixed.act};
       return q.then(function(){ return post(body); }).then(ok)
-        .then(function(){ return post({action:"schedFill", inst:name, month:month, act:act}); }).then(ok)
-        .then(function(j2){ added=j2.added||0; done.push(slot==="am"?"בוקר":"צהריים"); });
+        .then(function(){ return post({action:"schedFill", inst:main, month:month, act:act}); }).then(ok)
+        .then(function(j2){ added=(added||0)+(j2.added||0); done.push(slot==="am"?"בוקר":"צהריים"); });
+    });
+    // מדריך נוסף — אותן שעות כמו הקבוצה, ונכנסות לו לבד כל חודש
+    var coSet=slot ? coAdd.concat(slotCh ? coKeep : []) : [];
+    if(coSet.length) chain=chain.then(function(){
+      var t=slot==="am"?SLOT_AM:SLOT_PM;
+      return inOrder(coSet, function(n){
+        var act=schedActFor(allOf(g), n), f=coFixedOld[n], body={action:"schedSet", inst:n, dow:d, act:act, start:t.start, end:t.end, multi:1};
+        if(f) body.orig={act:f.act};
+        return post(body).then(ok).then(function(){ return post({action:"schedFill", inst:n, month:month, act:act}); }).then(ok)
+          .then(function(j2){ added=(added||0)+(j2.added||0); });
+      });
     });
     if(typeCh) chain=chain.then(function(){
       return post({action:"groupInfoSet", branch:g.branch, day:g.day, head:g.head, inst:name, type:type}).then(ok).then(function(){
@@ -2495,11 +2527,22 @@ function setInstOpen(g){
 }
 // המדריך שהקבוצה שייכת לו (שם מלא מרשימת הצוות), או "" אם לא ברור
 function ownerOf(g){
-  var hit=HSTAFF.filter(function(n){ return String(g.instructor||"").indexOf(n)>-1; })[0];
-  if(!hit){ var toks=String(g.instructor||"").split(/[\s+\-,·]+/).map(canonWord);
-    var fm=HSTAFF.filter(function(n){ return toks.indexOf(n.split(" ")[0])>-1; }); if(fm.length===1) hit=fm[0]; }
-  return hit||"";
+  var s=String(g.instructor||""), p=s.indexOf("+");
+  function find(t){ var hit=HSTAFF.filter(function(n){ return t.indexOf(n)>-1; })[0];
+    if(!hit){ var toks=t.split(/[\s+\-,·]+/).map(canonWord);
+      var fm=HSTAFF.filter(function(n){ return toks.indexOf(n.split(" ")[0])>-1; }); if(fm.length===1) hit=fm[0]; }
+    return hit||""; }
+  return (p>-1 && find(s.slice(0,p))) || find(s);   // (טל) "A + B" — הראשי הוא A
 }
+// (טל) כמה מדריכים לקבוצה: "הקבוצה של A + B + C" — A הראשי, השאר מדריכים נוספים (מרשימת הצוות)
+function coInsts(g){
+  var s=String((g&&g.instructor)||""), p=s.indexOf("+"); if(p<0) return [];
+  var rest=s.slice(p+1), own=norm(ownerOf(g)), toks=rest.split(/[\s+\-,·]+/).map(canonWord);
+  return HSTAFF.filter(function(n){ return norm(n)!==own && (rest.indexOf(n)>-1 || toks.indexOf(n.split(" ")[0])>-1); });
+}
+function instsOf(g){ var o=ownerOf(g); return (o?[o]:[]).concat(coInsts(g)); }
+// שם לתצוגה: "ג׳וני גולן + מעין"
+function instLabel(g){ var nm=cleanInst(g.instructor), co=coInsts(g); return co.length ? nm+" + "+co.map(function(n){ return n.split(" ")[0]; }).join(" + ") : nm; }
 // תאריכים של הקבוצה שכבר יש להם בקשת החלפה/דחייה פעילה (מכל אחד)
 function takenDates(g){
   var act=subAct(g), t={};
@@ -2596,7 +2639,7 @@ function busyInsts(g, date, own, rows, sched, ref){
       var pat=sameDow(ref, k), sc=(sched||[]).filter(function(r){ return norm(r.inst)===k && String(r.dow)===String(dow) && teach(r.act); });
       if(pat.length) pat.forEach(hit);
       else if(sc.length) sc.forEach(hit);
-      else (state.all||[]).forEach(function(x){ if(why || x===g || x.day!==dayName || norm(ownerOf(x))!==k) return; var t=defaultTimes(x); if(t) hit({start:t.start, end:t.end, act:subAct(x)}); else why=subAct(x); });   // (רון) יש לו קבוצה באותו יום ולא ידוע מתי — כנראה באותן שעות, לא מציעים
+      else (state.all||[]).forEach(function(x){ if(why || x===g || x.day!==dayName || instsOf(x).map(norm).indexOf(k)<0) return; var t=defaultTimes(x); if(t) hit({start:t.start, end:t.end, act:subAct(x)}); else why=subAct(x); });   // (רון) יש לו קבוצה באותו יום ולא ידוע מתי — כנראה באותן שעות, לא מציעים
     }
     if(why) out[k]=why; });
   return out;
