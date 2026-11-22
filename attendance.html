@@ -2465,6 +2465,14 @@ function waOfferText(to, r){
 function waTakeText(r){
   return ["היי "+waFirst(r.requester)+" 👋", "לקחתי את ההחלפה שלך:"].concat(waLines_(r.act, r.date, r.start, r.end), ["", "זה כבר רשום באפליקציה ✓"]).join("\n");
 }
+// (טל) אחרי שהרכז מאשר / דוחה בקשה — הודעה מוכנה למדריך שביקש
+function waDecisionText(r, ok, subs){
+  var post=r.status==="ביטול ממתין"||r.status==="בוטל"||r.kind==="cancel", what=post ? "הדחייה" : "ההחלפה";
+  var head = ok ? (post ? "בקשת הדחייה שלך אושרה ✓" : "בקשת ההחלפה שלך אושרה ✓") : "בקשת "+what+" שלך לא אושרה:";
+  var tail = ok ? (post ? ["", "השעות של היום הזה ירדו באפליקציה"] : (subs&&subs.length ? ["", "שלחתי הצעה ל"+subs.map(waFirst).join(", ")+" — כשמישהו לוקח, זה יופיע באפליקציה"] : []))
+               : ["", "אפשר לדבר איתי על זה 🙏"];
+  return ["היי "+waFirst(r.requester)+" 👋", head].concat(waLines_(r.act, r.date, r.start, r.end), tail).join("\n");
+}
 function waOffer(items){ items=(items||[]).filter(function(it){ return it && it.to && norm(it.to)!==norm(state.who); }); state.waOffer = items.length ? {t:Date.now(), items:items} : null; }
 function waLink(to, text){ return "https://wa.me/"+staffPhone(to)+"?text="+encodeURIComponent(text); }
 function waOfferHTML(){
@@ -2831,13 +2839,13 @@ function attApprovals(){
   document.querySelectorAll(".apx_cok").forEach(function(b){ b.onclick=function(){
     if(!confirm("לאשר את הדחייה? השעות של המדריך לתאריך הזה יירדו.")) return;
     b.disabled=true; b.textContent="מאשר…";
-    post({action:"subReqCancelApprove", id:b.dataset.id}).then(function(j){ if(j&&j.ok){ setReq(b.dataset.id, {status:"בוטל"}); afterSub("הדחייה אושרה ✓"); } else { b.disabled=false; b.textContent="אשר דחייה"; toast("לא בוצע: "+reqErr(j)); } }).catch(function(){ b.disabled=false; b.textContent="אשר דחייה"; toast("אין חיבור"); });
+    post({action:"subReqCancelApprove", id:b.dataset.id}).then(function(j){ if(j&&j.ok){ var r0=reqById(b.dataset.id); if(r0) waOffer([{to:r0.requester, text:waDecisionText(r0, true)}]); setReq(b.dataset.id, {status:"בוטל"}); afterSub("הדחייה אושרה ✓"); } else { b.disabled=false; b.textContent="אשר דחייה"; toast("לא בוצע: "+reqErr(j)); } }).catch(function(){ b.disabled=false; b.textContent="אשר דחייה"; toast("אין חיבור"); });
   }; });
 }
 function attApprove(id, approved, btn){
   if(!approved.length){ toast("בחרו לפחות מדריך אחד לאשר"); return; }
   btn.disabled=true; btn.textContent="מאשר…";
-  post({action:"subReqApprove", id:id, approved:approved}).then(function(j){ if(j&&j.ok){ setReq(id, {status:"פתוח", accepted:approved}); var r=reqById(id); if(r) waOffer(approved.map(function(n){ return {to:n, text:waOfferText(n, r)}; })); afterSub("אושר ✓ ההצעה נפתחה למחליפים."); } else { btn.disabled=false; btn.textContent="אשר ופתח"; toast("לא בוצע: "+reqErr(j)); } }).catch(function(){ btn.disabled=false; btn.textContent="אשר ופתח"; toast("אין חיבור"); });
+  post({action:"subReqApprove", id:id, approved:approved}).then(function(j){ if(j&&j.ok){ setReq(id, {status:"פתוח", accepted:approved}); var r=reqById(id); if(r) waOffer([{to:r.requester, text:waDecisionText(r, true, approved)}].concat(approved.map(function(n){ return {to:n, text:waOfferText(n, r)}; }))); afterSub("אושר ✓ ההצעה נפתחה למחליפים."); } else { btn.disabled=false; btn.textContent="אשר ופתח"; toast("לא בוצע: "+reqErr(j)); } }).catch(function(){ btn.disabled=false; btn.textContent="אשר ופתח"; toast("אין חיבור"); });
 }
 document.addEventListener("change", function(e){ var c=e.target; if(c && c.closest && c.closest(".pickl")) c.closest("label").classList.toggle("on", c.checked); });
 document.addEventListener("click", function(e){
@@ -2857,7 +2865,7 @@ function subUndo(r, btn){
     else { btn.disabled=false; btn.textContent="✕ ביטול"; toast("לא בוצע: "+((j&&j.error)||"")); }
   }).catch(function(){ btn.disabled=false; btn.textContent="✕ ביטול"; toast("אין חיבור"); });
 }
-function attReject(id){ if(!confirm("לדחות את הבקשה?")) return; post({action:"subReqReject", id:id}).then(function(j){ if(j&&j.ok){ setReq(id, {status:"נדחה"}); afterSub("הבקשה נדחתה."); } else toast("לא בוצע: "+reqErr(j)); }).catch(function(){ toast("אין חיבור"); }); }
+function attReject(id){ if(!confirm("לדחות את הבקשה?")) return; post({action:"subReqReject", id:id}).then(function(j){ if(j&&j.ok){ var r0=reqById(id); if(r0) waOffer([{to:r0.requester, text:waDecisionText(r0, false)}]); setReq(id, {status:"נדחה"}); afterSub("הבקשה נדחתה."); } else toast("לא בוצע: "+reqErr(j)); }).catch(function(){ toast("אין חיבור"); }); }
 // ----- שיוך שעות קבועות לקבוצה (רכז) → יום-קבוע + מילוי אוטומטי חודשי -----
 function dowOf(name){ for(var k in DAYS){ if(DAYS[k]===name) return +k; } return -1; }
 // כל פעילות = 4 שעות: בוקר 10:00–14:00, צהריים 14:00–18:00. חנ"ב תמיד בוקר; הקבוצות של רון — צהריים.
