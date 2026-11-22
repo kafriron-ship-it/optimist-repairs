@@ -1210,7 +1210,7 @@ function render(){
   if(state.isCoord) h += '<div style="margin:0 2px 10px"><button id="assignbtn" class="ghostbtn">🔗 שייך שעות קבועות למדריך</button></div><div id="asgpanel"></div>';
   h += '<div style="margin:0 2px 10px"><button id="allp" class="ghostbtn">✓ סמן את כולם נוכחים</button></div>';
   h += '<div id="stlist"></div>';
-  if(state.isCoord){   // הוספת חניך — רכזים בלבד
+  if(state.isCoord || !subOnly(cur)){   // הוספת חניך — רכזים, ו(טל) גם מדריך בקבוצה שלו (לא בקבוצה שהוא רק מחליף בה היום)
     h += '<div style="margin:12px 2px 0"><button id="addst" class="ghostbtn">➕ הוסף חניך</button></div>'+
       '<div id="addform" hidden style="margin-top:10px;display:flex;flex-direction:column;gap:8px">'+
         '<input id="as_name" class="asin" placeholder="שם החניך (חובה)">'+
