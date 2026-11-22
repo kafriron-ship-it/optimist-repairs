@@ -353,6 +353,9 @@ button.asin.dng{background:var(--stop);color:#fff;border-color:var(--stop)}
 .seg button+button{border-inline-start:1.5px solid var(--line)}
 .seg .ok{background:var(--ok);color:#06231a}
 .seg .no{background:var(--stop);color:#2a0b07}
+.wa{flex:none;display:flex;align-items:center;justify-content:center;width:38px;height:34px;border-radius:10px;border:1.5px solid #25a35a;background:none;color:#25a35a;padding:0;cursor:pointer}
+.wag{display:flex;align-items:center;gap:8px;margin:-4px 2px 10px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;font-size:.85rem;font-weight:700}
+.wag span{flex:1}.wag button{flex:none;min-width:58px;padding:7px 10px;border-radius:9px;border:1.5px solid #25a35a;background:none;color:#25a35a;font:700 .85rem 'Assistant'}
 .msg{text-align:center;color:var(--muted);padding:30px 10px;font-size:.92rem}
 .spin{display:inline-block;width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--navy);border-radius:50%;animation:sp .8s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -1547,7 +1550,8 @@ function renderStudents(){
       '<div class="seg">'+
         '<button data-mark="v" data-row="'+s.row+'" class="'+(v==="v"?"ok":"")+'">✓</button>'+
         '<button data-mark="x" data-row="'+s.row+'" class="'+(v==="x"?"no":"")+'">✗</button>'+
-      '</div></div>'+
+      '</div>'+(v==="x" && waPhone_(s.phone) ? '<button class="wa" data-wa="'+idx+'" aria-label="הודעה להורה בוואטסאפ" title="הודעה להורה בוואטסאפ">'+WA_ICON+'</button>' : '')+'</div>'+
+      (state.waAsk===s.row ? '<div class="wag"><span>'+esc(s.name)+' — בן או בת?</span><button data-wag="בן" data-wi="'+idx+'">בן</button><button data-wag="בת" data-wi="'+idx+'">בת</button></div>' : '')+
       (ask ? '<div class="reasonbox"><input id="reason_in" class="asin" placeholder="סיבה להיעדרות (למשל: חולה / הודיעו מראש)"><div style="display:flex;gap:8px;margin-top:6px"><button id="reason_save" class="asin pri">שמור סיבה</button><button id="reason_skip" class="asin" style="flex:0 0 76px">דלג</button></div></div>' : '');
   }).join("");
   $("stlist").innerHTML = html;
@@ -1575,6 +1579,29 @@ function renderStudents(){
   mqStatus();
   document.querySelectorAll("#stlist [data-mark]").forEach(function(b){ b.onclick=function(){ mark(cur, date, b); }; });
   document.querySelectorAll("#stlist [data-card]").forEach(function(b){ b.onclick=function(){ openCard(cur.students[+b.dataset.card], cur); }; });
+  document.querySelectorAll("#stlist [data-wa]").forEach(function(b){ b.onclick=function(){ var st=cur.students[+b.dataset.wa], g=waGender_(st, cur);
+    if(g){ state.waAsk=null; waOpen_(st, g); } else { state.waAsk = state.waAsk===st.row ? null : st.row; renderStudents(); } }; });
+  document.querySelectorAll("#stlist [data-wag]").forEach(function(b){ b.onclick=function(){ var st=cur.students[+b.dataset.wi], g=b.dataset.wag;
+    try{ var m=JSON.parse(localStorage.getItem("att_gender")||"{}"); m[waKey_(st,cur)]=g; localStorage.setItem("att_gender", JSON.stringify(m)); }catch(e){}
+    state.waAsk=null; renderStudents(); waOpen_(st, g); }; });
+}
+// (טל) ילד לא הגיע → הודעה להורה בוואטסאפ, בלשון הנכונה. המין מהגיליון; אם חסר — שואלים פעם אחת וזוכרים בטלפון
+var WA_ICON='<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.4z"/><path d="M9 8.6c0 3.4 2.9 6.4 6.4 6.4l1.2-1.6-2.2-1-1 .9c-1-.5-1.9-1.4-2.4-2.4l.9-1-1-2.2z"/></svg>';
+function waPhone_(p){
+  var first=String(p||"").split(/[\/,]| או /)[0], d=first.replace(/\D/g,"");   // כמה מספרים → הראשון
+  if(/^9725\d{8}$/.test(d)) return d;
+  if(/^05\d{8}$/.test(d)) return "972"+d.slice(1);
+  if(/^5\d{8}$/.test(d)) return "972"+d;
+  return "";
+}
+function waKey_(st, cur){ return cur.branch+"|"+cur.day+"|"+norm(st.name); }
+function waGender_(st, cur){
+  var g=norm(st.gender); if(g==="בן"||g==="בת") return g;
+  try{ return (JSON.parse(localStorage.getItem("att_gender")||"{}"))[waKey_(st,cur)]||""; }catch(e){ return ""; }
+}
+function waOpen_(st, g){
+  var txt="היי, ראיתי ש"+norm(st.name)+" לא "+(g==="בת"?"הגיעה":"הגיע")+" היום, הכל בסדר?";
+  window.open("https://wa.me/"+waPhone_(st.phone)+"?text="+encodeURIComponent(txt), "_blank", "noopener");
 }
 
 function mark(cur, date, btn){
