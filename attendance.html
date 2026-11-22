@@ -934,13 +934,25 @@ function calWhoHTML_(ds){
   var dt=toDate_(ds), dn=DAYS[dt.getDay()], today0=new Date(); today0.setHours(0,0,0,0);
   var list=(state.groups||[]).filter(function(g){ return g.day===dn; });
   var H='<div class="dwho"><div class="dwh">מי עובד ביום הזה'+(list.length?' · '+list.length+' קבוצות':'')+'</div>';
-  if(!list.length) return H+'<div style="color:var(--muted)">אין קבוצות ביום '+esc(dn)+'</div></div>';
+  var oth=calOtherReqs_(ds, list);   // (טל) החלפה / דחייה ביום הזה שלא שייכת לאף קבוצה (למשל "ריכוז") — כדי שהסימן ביומן לא יהיה "ריק"
+  if(!list.length) return H+'<div style="color:var(--muted)">אין קבוצות ביום '+esc(dn)+'</div>'+oth+'</div>';
   [["am","☀️ בוקר"],["pm","🌤 צהריים"],["","❓ עוד לא נקבע מתי"]].forEach(function(s){
     var rows=list.filter(function(g){ return slotKind(groupSlot(g))===s[0]; }).sort(function(a,b){ return slotMin(a)-slotMin(b) || (a.branch==="jaffa"?1:0)-(b.branch==="jaffa"?1:0) || cleanInst(a.instructor).localeCompare(cleanInst(b.instructor),"he"); });
     if(!rows.length) return;
     H+='<div class="dws">'+s[1]+'</div><div class="abox">'+rows.map(function(g){ return calDayRow_(g, ds, dt<=today0, state.isCoord || dt>=today0); }).join('')+'</div>';
   });
-  return H+'</div>';
+  return H+oth+'</div>';
+}
+function calOtherReqs_(ds, list){
+  var acts=list.map(subAct), all=!!state.isCoord;
+  var rs=(state.reqs||[]).filter(function(r){ return r.date===ds && acts.indexOf(r.act)<0 && /^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(r.status) &&
+    (all || matchName(r.requester||"", state.who) || (r.chosen && matchName(r.chosen, state.who))); });
+  if(!rs.length) return '';
+  return '<div class="dws">🔄 עוד החלפות / דחיות ביום הזה</div><div class="abox">'+rs.map(function(r){
+    var who=cleanInst(r.requester||"")+(r.chosen?' ← '+cleanInst(r.chosen):'');
+    return '<div class="arow"><div class="nm"><b>'+esc(norm(r.act)||"פעילות")+'</b><span>'+esc(who)+(r.start&&r.end?' · ⁦'+esc(toHHMM(r.start))+'–'+esc(toHHMM(r.end))+'⁩':'')+'</span>'+
+      '<div class="cchips">'+reqChip_(r, true)+'</div></div></div>';
+  }).join('')+'</div>';
 }
 function calDayRow_(g, ds, past, canReq){
   var gi=giOf(g), t=groupSlot(g), act=subAct(g), nm=instLabel(g);
