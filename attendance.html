@@ -893,7 +893,8 @@ function renderHoursCal(){
 function calMyDay_(ds){
   var dt=toDate_(ds), dn=DAYS[dt.getDay()], today0=new Date(); today0.setHours(0,0,0,0);
   var canReq=state.isCoord || dt>=today0, any=false;
-  var rows=groupsOfInst(state.who).filter(function(g){ return g.day===dn && giOf(g)>-1; }).map(function(g){
+  var myG=groupsOfInst(state.who).filter(function(g){ return g.day===dn && giOf(g)>-1; });
+  var rows=myG.map(function(g){
     var gi=giOf(g), t=groupSlot(g), act=subAct(g);
     var rq=(state.reqs||[]).filter(function(r){ return r.act===act && r.date===ds && /^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(r.status); })[0];
     if(!canReq && !rq) return '';
@@ -902,7 +903,20 @@ function calMyDay_(ds){
       '<span>'+esc(groupInfoLine(g))+'</span>'+(rq?'<div class="cchips">'+reqChip_(rq, true)+'</div>':'')+'</div>'+
       (canReq&&!rq?'<div class="abtns"><button class="ab sub" data-msub="'+gi+'">🔄 החלפה</button><button class="ab post" data-mpost="'+gi+'">📅 דחייה</button></div>':'')+'</div>';
   }).join('');
-  return any ? '<div class="dws" style="margin-top:4px">⛵ הקבוצות שלי ביום הזה</div><div class="abox">'+rows+'</div>' : '';
+  // (רון) גם עבודה שלא שייכת לקבוצה (למשל "ריכוז" של רכז) — החלפה / דחייה לפי השעות של היום הזה
+  var me=norm(state.who), mk=monthOf(ds), hrs=calRows_(mk); hrs=(hrs&&hrs.filter)?hrs:[];
+  hstate.calJobs=[];
+  var jobsHtml = hrs.filter(function(r){ return norm(r.inst)===me && r.date===ds && norm(r.act) && !myG.some(function(g){ var a=norm(r.act); return a===norm(schedActFor(g, me)) || a.indexOf(norm(schedAct(g)))===0; }); }).map(function(r){
+    var act=norm(r.act), s0=toHHMM(r.start), e0=toHHMM(r.end);
+    var rq=(state.reqs||[]).filter(function(q){ return norm(q.act)===act && q.date===ds && /^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(q.status); })[0];
+    if(!canReq && !rq) return '';
+    any=true;
+    var k=hstate.calJobs.push({__act:act, __job:(s0&&e0?{start:s0, end:e0}:null), instructor:state.who, day:dn, branch:"", dateCols:[{date:ds}], students:[]})-1;
+    return '<div class="arow"><div class="nm"><b>'+esc(act)+(s0&&e0?' · <span dir="ltr" style="white-space:nowrap">'+esc(s0)+'–'+esc(e0)+'</span>':'')+'</b>'+
+      (rq?'<div class="cchips">'+reqChip_(rq, true)+'</div>':'')+'</div>'+
+      (canReq&&!rq?'<div class="abtns"><button class="ab sub" data-jsub="'+k+'">🔄 החלפה</button><button class="ab post" data-jpost="'+k+'">📅 דחייה</button></div>':'')+'</div>';
+  }).join('');
+  return any ? '<div class="dws" style="margin-top:4px">⛵ '+(jobsHtml?'העבודה שלי ביום הזה':'הקבוצות שלי ביום הזה')+'</div><div class="abox">'+rows+jobsHtml+'</div>' : '';
 }
 // (טל) סימן ביומן לפי מה שקורה ביום: 🔄 החלפה, 📅 דחייה. ב"השעות שלי" — רק שלי (ביקשתי / מחליף). בסידור העבודה (all) — רכז רואה של כולם
 function calReqIcons_(all){
@@ -1000,6 +1014,11 @@ function calBind_(el, mk, by){
   el.querySelectorAll("[data-dpost]").forEach(function(b){ b.onclick=function(){ openReqOn_("post", +b.dataset.dpost, hstate.calSel, b); }; });
   el.querySelectorAll("[data-msub]").forEach(function(b){ b.onclick=function(){ openReqOn_("sub", +b.dataset.msub, hstate.calSel, b, true); }; });
   el.querySelectorAll("[data-mpost]").forEach(function(b){ b.onclick=function(){ openReqOn_("post", +b.dataset.mpost, hstate.calSel, b, true); }; });
+  el.querySelectorAll("[data-jsub],[data-jpost]").forEach(function(b){ b.onclick=function(){
+    var sub=b.hasAttribute("data-jsub"), g=(hstate.calJobs||[])[+(sub?b.dataset.jsub:b.dataset.jpost)], ds=hstate.calSel; if(!g || !subUnder_(b)) return;
+    state.reqWantDs=ds; if(sub) attReqOpen(g, false); else attPostOpen(g, false);
+    var s=$("ar_date"); if(s){ s.value=ds; if(sub) arRefresh(g, false); }
+  }; });
   el.querySelectorAll("[data-dinst]").forEach(function(b){ b.onclick=function(){ if(subUnder_(b)) setInstOpen(state.groups[+b.dataset.dinst]); }; });
 }
 // פותח את טופס "הוסף עבודה" על היום שנבחר ביומן (ואם כבר רשום — ממלא את מה שרשום, לשינוי)
@@ -2422,7 +2441,7 @@ function subTodayGroups(){
   return (state.all||[]).filter(function(g){ return acts[subAct(g)] && subOnly(g); });
 }
 function giOf(g){ for(var i=0;i<state.groups.length;i++){ var x=state.groups[i]; if(norm(x.instructor)===norm(g.instructor) && x.day===g.day && x.branch===g.branch) return i; } return -1; }
-function subAct(g){ return cleanInst(g.instructor)+" · "+g.day+" · "+(BRN[g.branch]||g.branch); }
+function subAct(g){ if(g&&g.__act) return g.__act; return cleanInst(g.instructor)+" · "+g.day+" · "+(BRN[g.branch]||g.branch); }   // __act = עבודה שאינה קבוצה (למשל "ריכוז")
 // סטטוס החלפה של פעילות (לתאריכים שעוד לא עברו) — לצביעת הלוח
 function nextReqOf_(g){   // הבקשה הקרובה של הקבוצה (מהיום והלאה)
   var act=subAct(g), today=new Date(); today.setHours(0,0,0,0);
@@ -2891,6 +2910,7 @@ var GROUP_SLOTS = [
   // {day:"רביעי", branch:"ta", name:"מיה", slot:"pm"},
 ];
 function defaultTimes(g){
+  if(g && g.__act) return g.__job || null;   // עבודה שאינה קבוצה — השעות מהיום עצמו
   var gs=GROUP_SLOTS.filter(function(x){ return g && x.day===g.day && x.branch===g.branch && (!x.name || String(g.instructor||"").indexOf(x.name)>-1); })[0];
   if(gs) return gs.slot==="am" ? SLOT_AM : SLOT_PM;
   if(isChanav(g)) return SLOT_AM;
