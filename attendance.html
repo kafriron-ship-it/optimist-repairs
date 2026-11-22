@@ -553,6 +553,7 @@ function fmtToday(d){ return d.getDate()+"/"+(d.getMonth()+1)+"/"+String(d.getFu
 function boot(){
   if(!API){ $("main").innerHTML = '<div class="msg">כדי להשתמש במסך הנוכחות צריך לפתוח אותו דרך הקישור שקיבלת מהרכז.</div>'; return; }
   if(!state.who || nameWords(state.who).length < 2){ openGate(); return; }   // שם מלא חובה
+  try{ if(!stTok_() && localStorage.getItem("att_open")==="0"){ needCode_({ok:false, error:"auth"}); return; } }catch(e){}   // אין קוד — לא מציגים כלום (גם לא מהמטמון)
   if(HOURS_MODE){ startHoursOnly(); return; }
   load();
 }
@@ -574,9 +575,20 @@ function saveName(){
   $("gate").hidden = true; if(HOURS_MODE) startHoursOnly(); else load();
 }
 
+// (רון) קוד מדריכים: כל בקשה נשלחת עם הטוקן. "auth" מהשרת = הקוד הוחלף / לא הוזן → מוחקים את המידע השמור ומבקשים קוד
+function stTok_(){ try{ return localStorage.getItem("att_tok")||""; }catch(e){ return ""; } }
+function needCode_(j){
+  if(!(j && j.ok===false && j.error==="auth")) return j;
+  try{ ["att_tok","att_ok","att_cache","att_hcache","att_roster"].forEach(function(k){ localStorage.removeItem(k); }); localStorage.setItem("att_open","0"); }catch(e){}
+  var emb = window.parent!==window;
+  try{ if(emb) window.parent.postMessage({type:"needCode"}, location.origin); }catch(e){}
+  setTimeout(function(){ $("main").innerHTML = '<div class="msg">צריך להזין את קוד המדריכים'+(emb?'.':' — נכנסים דרך האפליקציה.')+'</div>'; }, 0);
+  return j;
+}
 function api(params){
-  var u = API + "?" + Object.keys(params).map(function(k){ return k+"="+encodeURIComponent(params[k]); }).join("&");
-  return fetch(u).then(function(r){ return r.json(); });
+  var p = {}; Object.keys(params).forEach(function(k){ p[k]=params[k]; }); var t=stTok_(); if(t) p.tok=t;
+  var u = API + "?" + Object.keys(p).map(function(k){ return k+"="+encodeURIComponent(p[k]); }).join("&");
+  return fetch(u).then(function(r){ return r.json(); }).then(needCode_);
 }
 // השרת מטפל בבקשה אחת בכל פעם (נעילה). אם היה עסוק — שום דבר לא נכתב, אז בטוח לשלוח שוב לבד.
 // ניתוק רשת: שולחים שוב רק פעולות שאפשר לחזור עליהן בלי כפילות (קביעת ערך, לא הוספת שורה).
@@ -585,7 +597,9 @@ function sleep_(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
 function srvBusy_(j){ return !!(j && !j.ok && /lock|נעיל|too many|simultaneous|בו-זמני/i.test(String(j.error||""))); }
 function post(body, n){
   n = n||0;
+  var t=stTok_(); if(t) body.tok=t;
   return fetch(API, {method:"POST", body:JSON.stringify(body)}).then(function(r){ return r.json(); }).then(function(j){
+    needCode_(j);
     if(srvBusy_(j) && n<3) return sleep_(1200*(n+1)).then(function(){ return post(body, n+1); });
     return j;
   }, function(err){

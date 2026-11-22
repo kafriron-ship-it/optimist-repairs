@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#2161ad">
-<meta name="build" content="20261121-0007">
+<meta name="build" content="20261122-1706">
 <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <title>תקלות סירות</title>
 <script src="icons.js?v=1"></script>
@@ -147,7 +147,7 @@ section{display:flex;flex-direction:column;gap:18px;padding-top:20px}
 .branches button[aria-pressed="true"]{background:var(--navy);color:var(--bg)}
 .branches.need{border-color:var(--stop);box-shadow:0 0 0 3px color-mix(in srgb,var(--stop) 30%,transparent)}
 input.need{border-color:var(--stop)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--stop) 30%,transparent)}
-.pick #nameSave{background:var(--flag);color:var(--flag-ink);border:0}
+.pick #nameSave,.pick #newCodeSave{background:var(--flag);color:var(--flag-ink);border:0}
 .namebtn{background:rgba(255,255,255,.16);color:inherit;border:0;border-radius:999px;font:600 .8rem var(--body);padding:2px 10px;margin-inline-start:8px;cursor:pointer}
 .needmsg{color:var(--stop);font-weight:700;font-size:.9rem;margin-top:6px}
 .bfilter{margin:0}
@@ -247,7 +247,7 @@ mark{background:none;color:var(--navy);font-weight:800}
 .itag{font-weight:600;font-size:.8rem;color:var(--muted);margin-inline-start:6px}
 .chip.reported{border-style:dashed;color:var(--muted);background:var(--chip);cursor:default}
 .chip.reported::after{content:" · כבר דווח";font-weight:400;font-size:.85em}
-input[type=text],input[type=search],textarea{width:100%;box-sizing:border-box;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:1rem var(--body)}
+input[type=text],input[type=search],input[type=password],textarea{width:100%;box-sizing:border-box;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:1rem var(--body)}
 textarea{min-height:64px;resize:vertical}
 .toggle{display:flex;align-items:center;gap:10px;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;font-weight:600}
 .toggle input{width:22px;height:22px;accent-color:var(--stop)}
@@ -404,6 +404,7 @@ textarea{min-height:64px;resize:vertical}
     <div class="navx" role="presentation">
       <button type="button" id="mnName" hidden title="שינוי שם"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="mnNameT"></span><span aria-hidden="true" style="opacity:.6">✎</span></button>
       <button type="button" id="mnShare"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98"/></svg><span>שליחת האפליקציה</span></button>
+      <button type="button" id="mnCode" hidden><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4"/><path d="m10.4 12.6 9.1-9.1M16.5 6.5l2.5 2.5M14.3 8.7l1.8 1.8"/></svg><span>קוד מדריכים</span></button>
       <button type="button" id="mnTheme"><span id="mnThemeI" aria-hidden="true"></span><span id="mnThemeT"></span></button>
     </div>
   </nav>
@@ -570,7 +571,17 @@ textarea{min-height:64px;resize:vertical}
   <input id="nameFirst" type="text" maxlength="20" placeholder="שם פרטי" autocomplete="given-name" enterkeyhint="next">
   <input id="nameLast" type="text" maxlength="20" placeholder="שם משפחה" autocomplete="family-name" enterkeyhint="done" style="margin-top:8px">
   <div class="needmsg" id="needName" hidden>צריך שם פרטי ושם משפחה</div>
+  <div id="codeWrap" hidden><input id="staffCode" type="password" maxlength="20" placeholder="קוד מדריכים (מקבלים מהרכז)" autocomplete="off" enterkeyhint="done"><div class="needmsg" id="codeErr" hidden></div></div>
   <button type="button" class="primary" id="nameSave" style="padding:14px">שמור</button>
+</div></div>
+<div class="pick" id="codePick" hidden role="dialog" aria-modal="true" aria-labelledby="codeTitle"><div>
+  <h2 id="codeTitle">קוד מדריכים</h2>
+  <p class="inote" style="margin:0" id="codeNow"></p>
+  <p class="inote" style="margin:0">קוד אחד לכל המדריכים והרכזים. אחרי החלפה, כל מי שבפנים יתבקש להזין את הקוד החדש.</p>
+  <input id="newCode" type="text" maxlength="20" placeholder="קוד חדש (4 תווים לפחות)" autocomplete="off" enterkeyhint="done">
+  <div class="needmsg" id="newCodeErr" hidden></div>
+  <button type="button" class="primary" id="newCodeSave" style="padding:14px">החלפת הקוד</button>
+  <button type="button" class="ghost" id="newCodeCancel">ביטול</button>
 </div></div>
 <div class="pick lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="תמונה של התקלה"><div><img id="lbImg" alt="תמונה של התקלה"><div class="status" id="lbMsg"></div><button type="button" class="ghost" id="lbClose">סגור</button></div></div>
 <div class="snack" id="snack" role="status" hidden><span id="snackMsg"></span><button type="button" id="snackUndo">בטל</button></div>
@@ -786,14 +797,56 @@ function attWords(s){ return String(s||"").replace(/\s+/g," ").trim().split(" ")
 function attIsCoord(who){ var b=attWords(who); return ATT_COORDS.some(function(c){ return attWords(c).every(function(w){ return b.indexOf(w)>-1; }); }); }
 function attMatchName(instr, who){ var a=attWords(instr), b=attWords(who); if(b.length<2 || !a.length) return false; return a.indexOf(b[0])>-1 || b.every(function(w){return a.indexOf(w)>-1;}) || a.every(function(w){return b.indexOf(w)>-1;}); }
 function attRosterMatch(who){ try{ var c=JSON.parse(localStorage.getItem("att_roster")||"null"); return !!(c&&c.names&&c.names.some(function(n){ return attMatchName(n,who); })); }catch(e){ return false; } }
+/* ---------- (רון) קוד מדריכים: קוד אחד לכל הצוות ----------
+   הקוד עצמו נבדק ונשמר רק בשרת. בטלפון נשמר רק טוקן (att_tok). רכז מחליף קוד → הטוקן הישן מת → כולם מתבקשים להזין את החדש.
+   שדה הקוד מופיע רק כשהשם דומה לשם של מדריך (גם עם שגיאת כתיב), כדי שילדים לא יראו אותו בכלל. */
+// שמות הצוות — רק כדי להחליט אם להציג את שדה הקוד (מדריך חדש? להוסיף כאן וגם ל-HSTAFF במסך השעות)
+var STAFF_HINT=["רון כפרי","ג׳וני גולן","מעין גלעד","ליאל עזרן","יעל שטייגמן","גלי מלכא","מיה סניפר","מיה זהבי","יסמין קרסנובסקי","איתמר ברייר","גאיה בן סימון","מירב לבנוני","ארז איתן","עידו חן","טל הררי","ירדן סדן","אסרא","אלמא","לילו"];
+var CODE_ADMINS=ATT_COORDS.concat(["רון כפרי"]);   // מי יכול להחליף את הקוד
+function stGet(k){ try{ return localStorage.getItem(k)||""; }catch(e){ return ""; } }
+function stTok(){ return stGet("att_tok"); }
+function staffOK(){ return !!stTok() || stGet("att_open")!=="0"; }   // יש טוקן, או שעוד לא נקבע קוד
+function stFold(s){ return String(s||"").toLowerCase().replace(/[׳'"״`.\-]/g,"").replace(/ך/g,"כ").replace(/ם/g,"מ").replace(/ן/g,"נ").replace(/ף/g,"פ").replace(/ץ/g,"צ").replace(/\s+/g," ").trim(); }
+function stLev(a,b){ var d=[],i,j; for(j=0;j<=b.length;j++) d[j]=j; for(i=1;i<=a.length;i++){ var p=d[0]; d[0]=i; for(j=1;j<=b.length;j++){ var t=d[j]; d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]===b[j-1]?0:1)); p=t; } } return d[b.length]; }
+function stNear(a,b){ if(!a||!b) return false; return stLev(a,b) <= (Math.max(a.length,b.length)>=5 ? 2 : 1); }
+function looksStaff(name){
+  var w=attWords(name).map(stFold); if(w.length<2) return false;
+  return STAFF_HINT.some(function(s){ var p=attWords(s).map(stFold);
+    if(p.length===1) return stNear(w[0],p[0]);                         // ידוע רק שם פרטי
+    return stNear(w[0],p[0]) && stNear(w.slice(1).join(" "), p.slice(1).join(" ")); });
+}
+function isCodeAdmin(who){ var b=attWords(who); return b.length>1 && CODE_ADMINS.some(function(c){ return attWords(c).every(function(w){ return b.indexOf(w)>-1; }); }); }
+function stPost(body){ var api=stGet("att_api"); if(!api) return Promise.reject(new Error("no api")); return fetch(api,{method:"POST",body:JSON.stringify(body)}).then(function(r){ return r.json(); }); }
+function curWho(){ return ($("who").value||stGet("who")).replace(/\s+/g," ").trim(); }
+function stDrop(){ try{ ["att_tok","att_ok","att_cache","att_hcache","att_roster"].forEach(function(k){ localStorage.removeItem(k); }); localStorage.setItem("att_open","0"); }catch(e){} }   // טוקן לא בתוקף — גם המידע השמור על החניכים נמחק מהטלפון
+function stRefresh(){ updateAttTab(); updateStatsTab(); updateHoursTab(); updCodeMenu(); ["attFrame","hoursFrame"].forEach(function(id){ var f=$(id); if(f) f.dataset.who=""; }); }   // המסכים המוטמעים ייטענו מחדש
+function updCodeMenu(){ try{ $("mnCode").hidden = !(staffOK() && isCodeAdmin(curWho())); }catch(e){} }
+// בכל פתיחה (רק למי שנראה כמו איש צוות): האם הטוקן עדיין בתוקף
+function stCheck(){
+  var who=curWho(), had=stTok(), was=stGet("att_open"), api=stGet("att_api");
+  if(!api || !(had || looksStaff(who) || attIsCoord(who))) return;
+  fetch(api+"?action=chk&tok="+encodeURIComponent(had)+"&_="+Date.now()).then(function(r){ return r.json(); }).then(function(j){
+    if(!j || !j.ok) return;
+    if(j.open){ try{ localStorage.setItem("att_open","1"); }catch(e){} stRefresh(); return; }
+    try{ localStorage.setItem("att_open","0"); }catch(e){}
+    if(!j.valid){ stDrop(); stRefresh(); if((had || was!=="0") && looksStaff(who) && $("namePick").hidden) askName(true); }
+    else stRefresh();
+  }).catch(function(){});
+}
+// המסך המוטמע קיבל "אין הרשאה" מהשרת (הקוד הוחלף)
+window.addEventListener("message", function(e){
+  if(e.origin!==location.origin || !e.data || e.data.type!=="needCode") return;
+  var had=!!stTok(); stDrop(); stRefresh();
+  if(had && $("namePick").hidden) askName(true);
+});
 // מושך את רשימת המדריכים פעם ב-12 שעות כדי להחליט אם להציג את התאב למדריך רגיל (רכז לא צריך)
 function ensureRoster(){
   try{
     var who=($("who").value||localStorage.getItem("who")||"").replace(/\s+/g," ").trim();
-    if(attWords(who).length<2 || attIsCoord(who) || attRosterMatch(who)) return;
+    if(attWords(who).length<2 || attIsCoord(who) || attRosterMatch(who) || !staffOK()) return;
     var c=JSON.parse(localStorage.getItem("att_roster")||"null"); if(c&&c.t&&(Date.now()-c.t)<432e5) return;  // קאש 12 שעות
     var api=localStorage.getItem("att_api"); if(!api) return;
-    fetch(api+"?action=rosterAll").then(function(r){return r.json();}).then(function(j){
+    fetch(api+"?action=rosterAll&tok="+encodeURIComponent(stTok())).then(function(r){return r.json();}).then(function(j){
       if(j&&j.ok&&j.groups){ try{ localStorage.setItem("att_roster",JSON.stringify({t:Date.now(),names:j.groups.map(function(g){return g.instructor;})})); }catch(e){} updateAttTab(); }
     }).catch(function(){});
   }catch(e){}
@@ -803,6 +856,7 @@ function attTabAllowed(){
   try{
     var who = ($("who").value || localStorage.getItem("who") || "").replace(/\s+/g," ").trim();
     if(attWords(who).length < 2) return false;                         // שם מלא חובה
+    if(!staffOK()) return false;                                       // (רון) בלי קוד מדריכים — אין נוכחות
     if(attIsCoord(who)) return true;                                   // רכזים (שם מלא)
     if(attRosterMatch(who)) return true;                               // מדריך שקיים ברשימת הקבוצות
     return (localStorage.getItem("att_ok") || "") === who;             // גיבוי: אומת בתוך מסך הנוכחות
@@ -810,16 +864,16 @@ function attTabAllowed(){
 }
 function updateAttTab(){ try{ $("tab-att").hidden = hoursLaunched() || !attTabAllowed(); if($("tab-att").hidden && location.hash==="#att") showTab(hoursLaunched()?"hours":"report"); updateHoursTab(); maybeHome(); }catch(e){} }
 // טאב "נתונים" (סטטיסטיקות) — רק לרכזים
-function statsTabAllowed(){ try{ var who=($("who").value||localStorage.getItem("who")||"").replace(/\s+/g," ").trim(); return attIsCoord(who); }catch(e){ return false; } }
+function statsTabAllowed(){ try{ var who=($("who").value||localStorage.getItem("who")||"").replace(/\s+/g," ").trim(); return attIsCoord(who) && staffOK(); }catch(e){ return false; } }
 function updateStatsTab(){ try{ $("tab-stats").hidden = !statsTabAllowed(); if($("tab-stats").hidden && location.hash==="#stats") showTab("report"); }catch(e){} }
 // טאב "שעות" — רק למי שברשימת ההיתר (כמו במסך השעות)
 var HOURS_WHO=["רון כפרי","טל הררי"];
 // השקה: מ-1/12/2026 (חצות, לפי השעון בטלפון) מסך השעות נפתח לכל המדריכים והרכזים, ו"לוח פעילות" נסגר — הכול עובר למסך השעות
 var HOURS_LAUNCH=new Date(2026,11,1).getTime();
 function hoursLaunched(){ return Date.now() >= HOURS_LAUNCH; }
-function hoursTabAllowed(){ try{ if(hoursLaunched() && attTabAllowed()) return true; var who=($("who").value||localStorage.getItem("who")||"").replace(/\s+/g," ").trim(); return HOURS_WHO.some(function(c){ return attWords(c).every(function(w){ return attWords(who).indexOf(w)>-1; }); }); }catch(e){ return false; } }
+function hoursTabAllowed(){ try{ if(!staffOK()) return false; if(hoursLaunched() && attTabAllowed()) return true; var who=($("who").value||localStorage.getItem("who")||"").replace(/\s+/g," ").trim(); return HOURS_WHO.some(function(c){ return attWords(c).every(function(w){ return attWords(who).indexOf(w)>-1; }); }); }catch(e){ return false; } }
 function updateHoursTab(){ try{ $("tab-hours").hidden = !hoursTabAllowed(); if($("tab-hours").hidden && location.hash==="#hours") showTab("report"); }catch(e){} }
-updateAttTab(); updateStatsTab(); updateHoursTab(); ensureRoster();
+updateAttTab(); updateStatsTab(); updateHoursTab(); ensureRoster(); updCodeMenu(); stCheck();
 window.addEventListener("hashchange",()=>showTab(location.hash.slice(1)));
 showTab(location.hash.slice(1));
 
@@ -1048,21 +1102,60 @@ $("fixer").value = store.get("who") || "";
 function navW_(){ try{ const n=document.querySelector("nav"); if(n) document.documentElement.style.setProperty("--navw", n.offsetWidth+"px"); }catch(e){} }
 window.addEventListener("resize", navW_); window.addEventListener("load", navW_); try{ new ResizeObserver(navW_).observe(document.querySelector("nav")); }catch(e){} if(document.fonts && document.fonts.ready) document.fonts.ready.then(navW_);
 function showName(){ const n = $("who").value.trim(); if($("mnName")){ $("mnName").hidden=!n; $("mnNameT").textContent=n; navW_(); } $("nameBtn").hidden = !n; $("nameBtn").textContent = n ? n + " ✎" : ""; $("nameBtn").setAttribute("aria-label", "שינוי שם: " + n); }
-function askName(){ const p=($("who").value||"").split(" ").filter(Boolean); $("nameFirst").value=p[0]||""; $("nameLast").value=p.slice(1).join(" "); $("needName").hidden=true; $("nameFirst").classList.remove("need"); $("nameLast").classList.remove("need"); $("namePick").hidden=false; setTimeout(()=>$("nameFirst").focus(), 50); }
+// need=true: הקוד הוחלף / עוד לא הוזן — פותחים עם שדה הקוד והודעה
+function askName(need){ need = need===true; const p=($("who").value||"").split(" ").filter(Boolean); $("nameFirst").value=p[0]||""; $("nameLast").value=p.slice(1).join(" "); $("needName").hidden=true; $("nameFirst").classList.remove("need"); $("nameLast").classList.remove("need");
+  $("staffCode").value=""; $("codeErr").hidden=!need; $("codeErr").textContent = need ? "צריך להזין את קוד המדריכים (מקבלים מהרכז)" : ""; codeFieldUpd();
+  $("namePick").hidden=false; setTimeout(()=>(need && !$("codeWrap").hidden ? $("staffCode") : $("nameFirst")).focus(), 50); }
+// (רון) שדה הקוד מופיע רק כשהשם דומה לשם של מדריך, ורק אם אין כבר קוד תקף בטלפון
+function codeFieldUpd(){ const n=$("nameFirst").value.trim()+" "+$("nameLast").value.trim(); $("codeWrap").hidden = !(!stTok() && stGet("att_open")!=="1" && looksStaff(n)); }
+["nameFirst","nameLast"].forEach(id=>$(id).addEventListener("input", codeFieldUpd));
 function saveName(){ const f=$("nameFirst").value.trim().replace(/\s+/g," "), l=$("nameLast").value.trim().replace(/\s+/g," ");
   if(!f || !l){ $("nameFirst").classList.toggle("need",!f); $("nameLast").classList.toggle("need",!l); $("needName").hidden=false; return; }
-  const n=f+" "+l;
-  $("who").value = n; $("fixer").value = n; store.set("who", n); $("namePick").hidden = true; showName(); updateAttTab(); updateStatsTab(); updateHoursTab(); ensureRoster();
+  const n=f+" "+l, code=$("staffCode").value.trim(), btn=$("nameSave");
+  if($("codeWrap").hidden || !code){ finishName(n, false); return; }   // בלי קוד — נשמר רק השם (בלי נוכחות / מרכז מדריכים)
+  btn.disabled=true; btn.textContent="בודק…"; $("codeErr").hidden=true;
+  stPost({action:"auth", code:code}).then(j=>{
+    btn.disabled=false; btn.textContent="שמור";
+    if(j && j.ok){ try{ if(j.tok){ localStorage.setItem("att_tok", j.tok); localStorage.setItem("att_open","0"); } else if(j.open) localStorage.setItem("att_open","1"); }catch(e){} finishName(n, true); return; }
+    $("codeErr").textContent = (j && j.error==="badcode") ? "הקוד לא נכון" : "לא הצלחנו לבדוק את הקוד. נסו שוב"; $("codeErr").hidden=false; $("staffCode").select();
+  }).catch(()=>{ btn.disabled=false; btn.textContent="שמור"; $("codeErr").textContent="אין חיבור. נסו שוב"; $("codeErr").hidden=false; });
+}
+function finishName(n, gotCode){
+  $("who").value = n; $("fixer").value = n; store.set("who", n); $("namePick").hidden = true; showName();
+  if(gotCode) stRefresh(); else { updateAttTab(); updateStatsTab(); updateHoursTab(); updCodeMenu(); }
+  ensureRoster();
+  if(gotCode){ const h=homeTab(); if(h!=="report" && location.hash!=="#"+h){ location.hash=h; return; } }   // נכנס עם קוד — ישר למסך שלו
   // אם מסך הנוכחות/מרכז המדריכים פתוח עכשיו — טוענים אותו מחדש עם השם החדש
   if(!$("view-att").hidden) loadFrame("attFrame", "attendance.html?embed=1");
   if(!$("view-hours").hidden) loadFrame("hoursFrame", "attendance.html?embed=1&hours=1"); }
 $("nameSave").addEventListener("click", saveName);
 $("nameFirst").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); $("nameLast").focus(); } });
 $("nameLast").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); saveName(); } });
-$("nameBtn").addEventListener("click", askName);
+$("staffCode").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); saveName(); } });
+$("nameBtn").addEventListener("click", ()=>askName());
 // (רון) שם ושיתוף — מהתפריט בצד
 $("mnName").addEventListener("click", ()=>{ document.documentElement.classList.remove("sideopen"); askName(); });
 $("mnShare").addEventListener("click", ()=>{ document.documentElement.classList.remove("sideopen"); $("shareBtn").click(); });
+// (רון) רכז: החלפת קוד המדריכים
+$("mnCode").addEventListener("click", ()=>{ document.documentElement.classList.remove("sideopen");
+  $("newCode").value=""; $("newCodeErr").hidden=true; $("codeNow").textContent = stGet("att_open")==="1" ? "עוד לא נקבע קוד — כרגע כל מי שכתב שם של מדריך נכנס." : "";
+  $("codePick").hidden=false; setTimeout(()=>$("newCode").focus(), 50);
+  if(stTok()){ const api=stGet("att_api"); fetch(api+"?action=codeGet&tok="+encodeURIComponent(stTok())).then(r=>r.json()).then(j=>{ if(j&&j.ok&&j.code) $("codeNow").textContent="הקוד הנוכחי: "+j.code; }).catch(()=>{}); }
+});
+$("newCodeCancel").addEventListener("click", ()=>{ $("codePick").hidden=true; });
+function saveNewCode(){
+  const nc=$("newCode").value.trim(), btn=$("newCodeSave"), err=m=>{ $("newCodeErr").textContent=m; $("newCodeErr").hidden=false; };
+  if(nc.length<4){ err("קוד של 4 תווים לפחות"); return; }
+  btn.disabled=true; btn.textContent="מחליף…"; $("newCodeErr").hidden=true;
+  stPost({action:"setCode", who:curWho(), tok:stTok(), newCode:nc}).then(j=>{
+    btn.disabled=false; btn.textContent="החלפת הקוד";
+    if(j && j.ok && j.tok){ try{ localStorage.setItem("att_tok", j.tok); localStorage.setItem("att_open","0"); }catch(e){} $("codePick").hidden=true; stRefresh(); snack("הקוד הוחלף ✓ — עכשיו לשלוח אותו למדריכים"); return; }
+    if(j && j.error==="auth"){ $("codePick").hidden=true; stDrop(); stRefresh(); askName(true); return; }
+    err((j && j.error) || "לא הוחלף. נסו שוב");
+  }).catch(()=>{ btn.disabled=false; btn.textContent="החלפת הקוד"; err("אין חיבור. נסו שוב"); });
+}
+$("newCodeSave").addEventListener("click", saveNewCode);
+$("newCode").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); saveNewCode(); } });
 showName(); if($("who").value.trim().split(" ").filter(Boolean).length < 2) askName();   // שם מלא חובה — גם למי ששמר רק שם פרטי
 // the send button stays clickable; pressing it with something missing says what is missing
 const hasBoat = () => !!$("boat").value.trim();
