@@ -884,10 +884,25 @@ function renderHoursCal(){
       (sl.length ? sl.map(function(r,i){ var s=toHHMM(r.start), e=toHHMM(r.end); return '<div class="hcjob"><span>'+esc(norm(r.act)||"עבודה")+(s&&e?' · <span dir="ltr" style="white-space:nowrap">'+esc(s)+'–'+esc(e)+'</span>':'')+' · <b>'+esc(r2(hn(r)))+' שע׳</b></span><button class="linkbtn" data-ce="'+i+'">✏️ שנה</button></div>'; }).join('')+
                    (sl.length>1 ? '<div style="color:var(--muted);font-weight:700">סה״כ ביום: '+r2(sl.reduce(function(t,r){ return t+hn(r); },0))+' שע׳</div>' : '')
                  : '<div style="color:var(--muted)">לא רשומות שעות ביום הזה</div>')+
-      '<button class="ghostbtn" id="hc_add" style="justify-content:center">'+(sl.length?'➕ הוסף עוד עבודה ביום הזה':'➕ הוסף עבודה ביום הזה')+'</button></div>';
+      '<button class="ghostbtn" id="hc_add" style="justify-content:center">'+(sl.length?'➕ הוסף עוד עבודה ביום הזה':'➕ הוסף עבודה ביום הזה')+'</button>'+calMyDay_(sel)+'</div>';
   }
   el.innerHTML='<div class="hcal2'+(D?' two':'')+'">'+H+'</div>'+(D?'<div class="hcalR">'+D+'</div>':'')+'</div>';   // (מחשב) היומן משמאל, היום שנבחר מימין
   calBind_(el, mk, by);
+}
+// (טל) לחיצה על יום ב"השעות שלי" → הקבוצות שלי באותו יום, עם החלפה / דחייה לתאריך הזה (ואם כבר יש בקשה — הסטטוס + ✕ בטל)
+function calMyDay_(ds){
+  var dt=toDate_(ds), dn=DAYS[dt.getDay()], today0=new Date(); today0.setHours(0,0,0,0);
+  var canReq=state.isCoord || dt>=today0, any=false;
+  var rows=groupsOfInst(state.who).filter(function(g){ return g.day===dn && giOf(g)>-1; }).map(function(g){
+    var gi=giOf(g), t=groupSlot(g), act=subAct(g);
+    var rq=(state.reqs||[]).filter(function(r){ return r.act===act && r.date===ds && /^(ממתין|פתוח|אושר|הושלם|ביטול ממתין|בוטל)$/.test(r.status); })[0];
+    if(!canReq && !rq) return '';
+    any=true;
+    return '<div class="arow"><div class="nm"><b>'+esc(BRN[g.branch]||g.branch)+(t?' · <span dir="ltr" style="white-space:nowrap">'+esc(t.start)+'–'+esc(t.end)+'</span>':'')+'</b>'+
+      '<span>'+esc(groupInfoLine(g))+'</span>'+(rq?'<div class="cchips">'+reqChip_(rq, true)+'</div>':'')+'</div>'+
+      (canReq&&!rq?'<div class="abtns"><button class="ab sub" data-msub="'+gi+'">🔄 החלפה</button><button class="ab post" data-mpost="'+gi+'">📅 דחייה</button></div>':'')+'</div>';
+  }).join('');
+  return any ? '<div class="dws" style="margin-top:4px">⛵ הקבוצות שלי ביום הזה</div><div class="abox">'+rows+'</div>' : '';
 }
 // (טל) סימן ביומן לפי מה שקורה ביום: 🔄 החלפה, 📅 דחייה. ב"השעות שלי" — רק שלי (ביקשתי / מחליף). בסידור העבודה (all) — רכז רואה של כולם
 function calReqIcons_(all){
@@ -950,13 +965,13 @@ function openAttOn_(gi, ds){
   state.gi=gi; if(i>-1){ state.di=i; state.diFor=gi; } else state.diFor=-1;
   state.view="att"; render(); window.scrollTo(0,0);
 }
-function openReqOn_(kind, gi, ds, b){
+function openReqOn_(kind, gi, ds, b, mine){
   var g=state.groups[gi]; if(!g || !subUnder_(b)) return;
   state.reqWantDs=ds;   // (טל) רכז יכול גם על תאריך שעבר — הטופס יכלול אותו
-  if(kind==="sub") attReqOpen(g, true); else attPostOpen(g, true);
+  if(kind==="sub") attReqOpen(g, !mine); else attPostOpen(g, !mine);   // mine = הקבוצה שלי (מ"השעות שלי") — בלי "של מי הקבוצה"
   var s=$("ar_date"); if(!s) return;
   var o=[].filter.call(s.options, function(x){ return x.value===ds && !x.disabled; })[0];
-  if(o){ s.value=ds; if(kind==="sub") arRefresh(g, true); }
+  if(o){ s.value=ds; if(kind==="sub") arRefresh(g, !mine); }
 }
 function calBind_(el, mk, by){
   $("hc_prev").onclick=function(){ calGo_(-1); };
@@ -971,6 +986,8 @@ function calBind_(el, mk, by){
   el.querySelectorAll("[data-datt]").forEach(function(b){ b.onclick=function(){ openAttOn_(+b.dataset.datt, hstate.calSel); }; });
   el.querySelectorAll("[data-dsub]").forEach(function(b){ b.onclick=function(){ openReqOn_("sub", +b.dataset.dsub, hstate.calSel, b); }; });
   el.querySelectorAll("[data-dpost]").forEach(function(b){ b.onclick=function(){ openReqOn_("post", +b.dataset.dpost, hstate.calSel, b); }; });
+  el.querySelectorAll("[data-msub]").forEach(function(b){ b.onclick=function(){ openReqOn_("sub", +b.dataset.msub, hstate.calSel, b, true); }; });
+  el.querySelectorAll("[data-mpost]").forEach(function(b){ b.onclick=function(){ openReqOn_("post", +b.dataset.mpost, hstate.calSel, b, true); }; });
   el.querySelectorAll("[data-dinst]").forEach(function(b){ b.onclick=function(){ if(subUnder_(b)) setInstOpen(state.groups[+b.dataset.dinst]); }; });
 }
 // פותח את טופס "הוסף עבודה" על היום שנבחר ביומן (ואם כבר רשום — ממלא את מה שרשום, לשינוי)
@@ -2595,7 +2612,7 @@ function subFormTop(g, forOther, label){
   var today=new Date(); today.setHours(0,0,0,0);
   var dates=(g.dateCols||[]).map(function(d){return d.date;}).filter(function(d){ try{ return toDate_(d)>=today; }catch(e){ return false; } });
   var want=state.reqWantDs; state.reqWantDs="";
-  if(state.isCoord && want && dates.indexOf(want)<0) dates.push(want);   // (טל) רכז: גם תאריך שעבר (תיעוד החלפה / דחייה שכבר קרתה)
+  if(want && dates.indexOf(want)<0 && (state.isCoord || toDate_(want)>=today)) dates.push(want);   // (טל) רכז: גם תאריך שעבר (תיעוד החלפה / דחייה שכבר קרתה). מדריך: יום עתידי שנלחץ ביומן
   dates.sort(function(a,b){ return toDate_(a)-toDate_(b); });
   var taken=takenDates(g), free=dates.filter(function(d){ return !taken[d]; });
   if(!dates.length) return {err:'אין תאריכי פעילות קרובים לקבוצה הזו.'};
