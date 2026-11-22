@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#2161ad">
-<meta name="build" content="20261122-2219">
+<meta name="build" content="20261122-2234">
 <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <title>תקלות סירות</title>
 <script src="icons.js?v=1"></script>
@@ -588,7 +588,7 @@ textarea{min-height:64px;resize:vertical}
   <h2 id="codeTitle">קוד מדריכים</h2>
   <p class="inote" style="margin:0" id="codeNow"></p>
   <p class="inote" style="margin:0">קוד אחד לכל המדריכים והרכזים. אחרי החלפה, כל מי שבפנים יתבקש להזין את הקוד החדש.</p>
-  <input id="newCode" type="text" maxlength="20" placeholder="קוד חדש (4 תווים לפחות)" autocomplete="off" enterkeyhint="done">
+  <input id="newCode" type="text" maxlength="20" placeholder="קוד חדש (6+ תווים, אותיות ומספרים)" autocomplete="off" enterkeyhint="done">
   <div class="needmsg" id="newCodeErr" hidden></div>
   <button type="button" class="primary" id="newCodeSave" style="padding:14px">החלפת הקוד</button>
   <button type="button" class="ghost" id="newCodeCancel">ביטול</button>
@@ -1056,7 +1056,7 @@ $("reqSend").addEventListener("click", ()=>{
 $("pinGo").addEventListener("click", async ()=>{
   const p = $("pinIn").value.trim(); if(!p) return;
   try{ await api("checkPin",{pin:p}); pin = p; store.set("pin", p); $("pinIn").value=""; $("reqPanel").hidden = true; renderAdmin(); toast("מצב עריכה פעיל"); }
-  catch(e){ toast("קוד לא נכון",true); }
+  catch(e){ toast(e.message==="pin_locked" ? "יותר מדי ניסיונות. נסו שוב בעוד 15 דקות" : "קוד לא נכון",true); }
 });
 $("pinOut").addEventListener("click", ()=>{ pin=""; store.set("pin",""); $("editPanel").hidden=true; renderAdmin(); });
 $("reqList").addEventListener("click", async e=>{
@@ -1081,7 +1081,7 @@ $("saveParts").addEventListener("click", ()=>{
   partsByType[type]=next; groups=next; renderChips(); $("editPanel").hidden=true; toast("רשימת החלקים עודכנה");
   api("setParts",{type, groups:next, pin}).catch(e=>{
     partsByType[type]=prevByType; if(curType===type) groups=prevGroups; renderChips();
-    toast(e.message==="pin" ? "קוד העריכה לא תקף" : "השמירה נכשלה, שוחזר",true);
+    toast(e.message==="pin" ? "קוד העריכה לא תקף" : e.message==="pin_locked" ? "יותר מדי ניסיונות. נסו שוב בעוד 15 דקות" : "השמירה נכשלה, שוחזר",true);
   });
 });
 $("partGroups").addEventListener("click",e=>{
@@ -1127,7 +1127,7 @@ function saveName(){ const f=$("nameFirst").value.trim().replace(/\s+/g," "), l=
   stPost({action:"auth", code:code}).then(j=>{
     btn.disabled=false; btn.textContent="שמור";
     if(j && j.ok){ try{ if(j.tok){ localStorage.setItem("att_tok", j.tok); localStorage.setItem("att_open","0"); } else if(j.open) localStorage.setItem("att_open","1"); }catch(e){} finishName(n, true); return; }
-    $("codeErr").textContent = (j && j.error==="badcode") ? "הקוד לא נכון" : "לא הצלחנו לבדוק את הקוד. נסו שוב"; $("codeErr").hidden=false; $("staffCode").select();
+    $("codeErr").textContent = (j && j.error==="badcode") ? "הקוד לא נכון" : (j && j.error==="locked") ? "יותר מדי ניסיונות שגויים. נסו שוב בעוד 15 דקות" : "לא הצלחנו לבדוק את הקוד. נסו שוב"; $("codeErr").hidden=false; $("staffCode").select();
   }).catch(()=>{ btn.disabled=false; btn.textContent="שמור"; $("codeErr").textContent="אין חיבור. נסו שוב"; $("codeErr").hidden=false; });
 }
 function finishName(n, gotCode){
@@ -1155,7 +1155,7 @@ $("mnCode").addEventListener("click", ()=>{ document.documentElement.classList.r
 $("newCodeCancel").addEventListener("click", ()=>{ $("codePick").hidden=true; });
 function saveNewCode(){
   const nc=$("newCode").value.trim(), btn=$("newCodeSave"), err=m=>{ $("newCodeErr").textContent=m; $("newCodeErr").hidden=false; };
-  if(nc.length<4){ err("קוד של 4 תווים לפחות"); return; }
+  if(!(nc.length>=6 && /[0-9]/.test(nc) && /[^0-9\s]/.test(nc))){ err("קוד של 6 תווים לפחות, עם אותיות וגם מספרים"); return; }   // כמו בשרת
   btn.disabled=true; btn.textContent="מחליף…"; $("newCodeErr").hidden=true;
   stPost({action:"setCode", who:curWho(), tok:stTok(), newCode:nc}).then(j=>{
     btn.disabled=false; btn.textContent="החלפת הקוד";
