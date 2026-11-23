@@ -1652,7 +1652,8 @@ setTimeout(()=>{
 $("installBtn").addEventListener("click", async ()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch(e){} deferredPrompt=null; $("install").hidden=true; });
 $("installX").addEventListener("click", ()=>{ store.set("installX", String(Date.now())); $("install").hidden=true; });
 window.addEventListener("appinstalled", ()=>{ $("install").hidden=true; });
-// (טל) סינל: בפתיחה הראשונה של יום עבודה, מדריך/רכז (עם קוד מדריכים) מתבקש קודם להחתים שעון ב-HARMONY SMART.
+// (טל) סינל: ביום עבודה, מדריך/רכז (עם קוד מדריכים) מתבקש להחתים שעון ב-HARMONY SMART.
+// (רון) בכל כניסה לאפליקציה, עד שלוחצים "כן, החתמתי" — ואז לא מזכירים יותר באותו יום.
 // אתר לא יכול לפתוח את סינל ישירות (אין לה קישור כמו לוואטסאפ) — הכפתור פותח את הדף שלה בחנות, ושם לוחצים "פתיחה". ילדים (בלי קוד) לא רואים אותו.
 var SINEL_AND = "intent://#Intent;package=harmony.smart.co.il.synel;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end";   // נפתחת חנות Play עם "פתיחה"
 var SINEL_IOS = "https://apps.apple.com/app/id1487604051";
@@ -1696,7 +1697,6 @@ function sinelCheck(){
     $("sinelPick").hidden=false;
   });
 }
-$("sinelGo").addEventListener("click", function(){ setTimeout(sinelDone, 400); });   // הקישור עצמו פותח את החנות
 $("sinelSkip").addEventListener("click", function(){ sinelStep_(true); });   // קודם "בטוח?"
 $("sinelYes").addEventListener("click", sinelDone);
 $("sinelNo").addEventListener("click", function(){ sinelStep_(false); });
