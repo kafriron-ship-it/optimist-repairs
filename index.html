@@ -408,6 +408,8 @@ textarea{min-height:64px;resize:vertical}
 @keyframes rise{from{transform:translateY(16px);opacity:0}}
 @keyframes leave{to{opacity:0;transform:translateX(-24px)}}
 .pick{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.pick a.sinelgo{display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;font:800 1.05rem var(--body);border-radius:12px;background:var(--flag);color:var(--flag-ink);text-decoration:none}
+.pick .sinelic{width:40px;height:40px;color:var(--flag)}
 .pick>div{border-radius:20px;padding:22px;box-shadow:0 20px 50px rgba(10,20,40,.25)}
 #splash{position:fixed;inset:0;z-index:100;background:#2161ad;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff;font:400 1.4rem var(--display)}
 #splash img{width:96px;height:96px;border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
@@ -609,6 +611,13 @@ textarea{min-height:64px;resize:vertical}
   <div class="needmsg" id="needName" hidden>צריך שם פרטי ושם משפחה</div>
   <div id="codeWrap" hidden><input id="staffCode" type="password" maxlength="20" placeholder="קוד מדריכים (מקבלים מהרכז)" autocomplete="off" enterkeyhint="done"><div class="needmsg" id="codeErr" hidden></div></div>
   <button type="button" class="primary" id="nameSave" style="padding:14px">שמור</button>
+</div></div>
+<div class="pick" id="sinelPick" hidden role="dialog" aria-modal="true" aria-labelledby="sinelTitle"><div>
+  <svg class="sinelic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6M12 2v3"/></svg>
+  <h2 id="sinelTitle">קודם מחתימים שעון</h2>
+  <p class="inote" style="margin:0">פותחים את סינל (HARMONY SMART), מחתימים כניסה וחוזרים לכאן. פעם אחת ביום.</p>
+  <a class="sinelgo" id="sinelGo" href="#">פתח את סינל</a>
+  <button type="button" id="sinelSkip">כבר החתמתי · כניסה</button>
 </div></div>
 <div class="pick" id="codePick" hidden role="dialog" aria-modal="true" aria-labelledby="codeTitle"><div>
   <h2 id="codeTitle">קוד מדריכים</h2>
@@ -1630,6 +1639,28 @@ setTimeout(()=>{
 $("installBtn").addEventListener("click", async ()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch(e){} deferredPrompt=null; $("install").hidden=true; });
 $("installX").addEventListener("click", ()=>{ store.set("installX", String(Date.now())); $("install").hidden=true; });
 window.addEventListener("appinstalled", ()=>{ $("install").hidden=true; });
+// (טל) סינל: בפתיחה הראשונה של היום, מדריך/רכז (עם קוד מדריכים) מתבקש קודם להחתים שעון ב-HARMONY SMART.
+// דפדפן לא מרשה לפתוח אפליקציה אחרת בלי לחיצה — לכן חלון עם כפתור. ילדים (בלי קוד) לא רואים אותו.
+var SINEL_AND = "intent://#Intent;package=harmony.smart.co.il.synel;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end";   // אם לא נפתח ישר — נפתחת חנות Play עם "פתיחה"
+var SINEL_IOS = "https://apps.apple.com/app/id1487604051";
+function sinelDay_(){ var d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
+function sinelDue(){
+  try{
+    var who=curWho(); if(!stTok() || !(looksStaff(who) || attIsCoord(who))) return false;
+    if(localStorage.getItem("sinel_day")===sinelDay_()) return false;
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent||"");   // רק בטלפון
+  }catch(e){ return false; }
+}
+function sinelDone(){ try{ localStorage.setItem("sinel_day", sinelDay_()); }catch(e){} $("sinelPick").hidden=true; }
+function sinelCheck(){
+  if(!sinelDue() || !$("namePick").hidden || !$("sinelPick").hidden) return;
+  $("sinelGo").href = /iPhone|iPad|iPod/i.test(navigator.userAgent||"") ? SINEL_IOS : SINEL_AND;
+  $("sinelPick").hidden=false;
+}
+$("sinelGo").addEventListener("click", function(){ setTimeout(sinelDone, 400); });   // הקישור עצמו פותח את סינל
+$("sinelSkip").addEventListener("click", sinelDone);
+setTimeout(sinelCheck, 900);
+document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="visible") setTimeout(sinelCheck, 600); });   // יום חדש כשהאפליקציה הייתה ברקע
 if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 
 renderTypes();
