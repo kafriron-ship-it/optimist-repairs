@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#2161ad">
-<meta name="build" content="20261123-1223">
+<meta name="build" content="20261123-1229">
 <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <title>תקלות סירות</title>
 <script src="icons.js?v=1"></script>
@@ -1656,7 +1656,10 @@ function sinelDue(){
     return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent||"");   // רק בטלפון
   }catch(e){ return false; }
 }
-function sinelDone(){ try{ localStorage.setItem("sinel_day", sinelDay_()); }catch(e){} $("sinelPick").hidden=true; }
+function sinelDone(){ try{ localStorage.setItem("sinel_day", sinelDay_()); sessionStorage.removeItem("sinel_force"); }catch(e){} $("sinelPick").hidden=true; }
+// (רון) בדיקה: קישור עם ?sinel=1 מקפיץ את החלון מיד (גם בלי יום עבודה). נשמר עד לחיצה, גם אם הדף מתרענן לגרסה חדשה.
+try{ if(/[?&]sinel=1/.test(location.search)) sessionStorage.setItem("sinel_force","1"); }catch(e){}
+function sinelForce_(){ try{ return sessionStorage.getItem("sinel_force")==="1"; }catch(e){ return false; } }
 // (רון) רק בימים שיש לי עבודה: שורה שלי עם התאריך של היום בגיליון השעות (פעילות קבועה, החלפה שלקחתי, ריכוז...).
 // פעילות שנדחתה יורדת מהשעות — אז גם אין תזכורת. אין חיבור / לא ידוע → לא מציקים.
 function sinelWork_(){
@@ -1673,6 +1676,7 @@ function sinelWork_(){
   }).catch(function(){ return false; });
 }
 function sinelCheck(){
+  if(sinelForce_() && $("namePick").hidden){ $("sinelGo").href = /iPhone|iPad|iPod/i.test(navigator.userAgent||"") ? SINEL_IOS : SINEL_AND; $("sinelPick").hidden=false; return; }
   if(!sinelDue() || !$("namePick").hidden || !$("sinelPick").hidden || sinelCheck.busy) return;
   sinelCheck.busy=true;
   sinelWork_().then(function(work){
