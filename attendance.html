@@ -538,7 +538,7 @@ function cleanInst(s){
   if(k==="יונתן גולן" || k==="גוני" || k==="גוני גולן") return "ג׳וני גולן";
   if(k.indexOf("ארז איתן")===0) return "ארז איתן";   // "אייל"/"אליה" הם עוזרים — לא חלק מהשם
   // שמות משפחה (מטל) — השלמה למדריכים שרשומים בשם פרטי בלבד
-  var LN = {"מעין":"מעין גלעד","מעיין":"מעין גלעד","גלי":"גלי מלכא","מיה":"מיה סניפר","יסמין":"יסמין קרסנובסקי","איתמר":"איתמר ברייר","גאיה":"גאיה בן סימון","גיאה":"גאיה בן סימון","מירב":"מירב לבנוני","עידו":"עידו חן","עידן":"עידו חן"};
+  var LN = {"מעין":"מעין גלעד","מעיין":"מעין גלעד","גלי":"גלי מלכא","מיה":"מיה זהבי","יסמין":"יסמין קרסנובסקי","איתמר":"איתמר ברייר","גאיה":"גאיה בן סימון","גיאה":"גאיה בן סימון","מירב":"מירב לבנוני","עידו":"עידו חן","עידן":"עידו חן"};
   if(LN[k]) return LN[k];
   return t;
 }
@@ -1870,7 +1870,10 @@ var HOURS_WHO = ["רון כפרי","טל הררי"];   // משתמשים שרו�
 function hoursOK(){ try{ return HOURS_ON || HOURS_WHO.indexOf(norm(state.who))>-1; }catch(e){ return HOURS_ON; } }
 // (טל/רון) שעות של כולם, סיכום, ייצוא ואישור בקשות — רק לרכזים. HOURS_WHO נותן רק גישה מוקדמת למסך, לא הרשאות רכז ("אני לא רכז")
 function hoursAdmin(){ return !!state.isCoord; }
-var HSTAFF = ["רון כפרי","ג׳וני גולן","מעין גלעד","ליאל עזרן","יעל שטייגמן","גלי מלכא","מיה סניפר","יסמין קרסנובסקי","איתמר ברייר","גאיה בן סימון","מירב לבנוני","ארז איתן","עידו חן","טל הררי"];
+var HSTAFF = ["רון כפרי","ג׳וני גולן","מעין גלעד","ליאל עזרן","יעל שטייגמן","גלי מלכא","מיה זהבי","יסמין קרסנובסקי","איתמר ברייר","גאיה בן סימון","מירב לבנוני","ארז איתן","עידו חן","טל הררי"]
+// (טל) מדריך חדש: רכז מוסיף בסידור העבודה → מופיע מיד בכל הרשימות בטלפון שלו, ונשלחת בקשה לרון להוסיף אותו אצל כולם
+function hstaffAdd_(n){ n=norm(n); if(n && HSTAFF.map(norm).indexOf(n)<0) HSTAFF.push(n); }
+try{ JSON.parse(localStorage.getItem("att_newstaff")||"[]").forEach(hstaffAdd_); }catch(e){};
 var HMON = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
 var hstate = { inst:"", month:"", rows:[], sched:[], reqs:[] };
 function pad2(n){ return (n<10?"0":"")+n; }
@@ -2531,7 +2534,8 @@ function setInstOpen(g){
     '<div style="color:var(--muted);font-size:.82rem;margin-bottom:10px">'+esc(g.day)+' · '+esc(BRN[g.branch]||g.branch)+' · כרגע רשום: <b>'+esc(g.instructor||"(בלי שם)")+'</b> · '+g.students.length+' חניכים</div>'+
     '<label class="silbl">מדריך</label>'+
     '<select id="si_name" class="asin" style="margin-bottom:10px">'+(own?'':'<option value="">בחרו מדריך…</option>')+
-      subInstList().map(function(n){ return '<option value="'+esc(n)+'"'+(norm(n)===norm(own)?' selected':'')+'>'+esc(cleanInst(n))+'</option>'; }).join('')+'</select>'+
+      subInstList().map(function(n){ return '<option value="'+esc(n)+'"'+(norm(n)===norm(own)?' selected':'')+'>'+esc(cleanInst(n))+'</option>'; }).join('')+'<option value="__new">➕ מדריך חדש…</option></select>'+
+    '<div id="si_newrow" hidden style="display:flex;gap:8px;margin:-4px 0 10px"><input id="si_new" class="asin" maxlength="40" placeholder="שם פרטי ושם משפחה" style="flex:1"><button type="button" id="si_newok" class="asin pri" style="flex:0 0 70px">הוסף</button></div>'+
     // (טל) כמה מדריכים לאותה קבוצה
     '<label class="silbl">מדריכים נוספים <span style="font-weight:600">(לא חובה)</span></label>'+
     '<div id="si_co" class="pickl" style="margin:2px 0 10px">'+subInstList().map(function(n){ var on=coNow.indexOf(n)>-1;
@@ -2548,9 +2552,23 @@ function setInstOpen(g){
   p.querySelectorAll("[data-sis]").forEach(function(b){ b.onclick=function(){ state.siSlot=b.dataset.sis; paintSlot(); }; });
   $("si_cancel").onclick=function(){ p.innerHTML=""; };
   // המדריך הראשי לא מופיע גם ב"נוספים"
-  $("si_name").onchange=function(){ var m=norm(this.value); p.querySelectorAll("#si_co label").forEach(function(l){ var c=l.querySelector("input"), me=norm(c.value)===m; l.hidden=me; if(me){ c.checked=false; l.classList.remove("on"); } }); };
+  $("si_name").onchange=function(){
+    var nr=$("si_newrow"); nr.hidden = this.value!=="__new"; nr.style.display = nr.hidden ? "none" : "flex";
+    if(this.value==="__new"){ $("si_new").focus(); return; }
+    var m=norm(this.value); p.querySelectorAll("#si_co label").forEach(function(l){ var c=l.querySelector("input"), me=norm(c.value)===m; l.hidden=me; if(me){ c.checked=false; l.classList.remove("on"); } }); };
+  $("si_newrow").style.display="none";
+  $("si_newok").onclick=function(){   // (טל) מדריך חדש — נכנס לרשימה ונבחר
+    var n=norm($("si_new").value).replace(/[^\u0590-\u05FFa-zA-Z׳'" \-]/g,"").trim(), err=$("si_err");
+    if(n.split(" ").length<2){ err.textContent="צריך שם פרטי ושם משפחה"; return; }
+    hstaffAdd_(n);
+    try{ var L=JSON.parse(localStorage.getItem("att_newstaff")||"[]"); if(L.map(norm).indexOf(n)<0){ L.push(n); localStorage.setItem("att_newstaff", JSON.stringify(L)); } }catch(e){}
+    try{ if(window.parent!==window) window.parent.postMessage({type:"newStaff", name:n}, location.origin); }catch(e){}
+    var sel=$("si_name"), o=document.createElement("option"); o.value=n; o.textContent=n; sel.insertBefore(o, sel.querySelector('option[value="__new"]'));
+    sel.value=n; err.textContent=""; sel.onchange();
+    toast("✓ "+n+" נוסף/ה לרשימה");
+  };
   $("si_save").onclick=function(){
-    var main=norm($("si_name").value), err=$("si_err"); if(!main){ err.textContent="בחרו מדריך"; return; }
+    var main=norm($("si_name").value), err=$("si_err"); if(!main || main==="__new"){ err.textContent="בחרו מדריך"; return; }
     if(g.head==null){ err.textContent="צריך עדכון שרת - נסו שוב מאוחר יותר"; return; }
     var co=[].slice.call(p.querySelectorAll("#si_co input:checked")).map(function(c){ return norm(c.value); }).filter(function(n){ return n && n!==main; });
     var coOld=coNow.map(norm), name=[main].concat(co).join(" + ");
