@@ -618,7 +618,7 @@ textarea{min-height:64px;resize:vertical}
 <div class="pick" id="sinelPick" hidden role="dialog" aria-modal="true" aria-labelledby="sinelTitle"><div>
   <svg class="sinelic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6M12 2v3"/></svg>
   <h2 id="sinelTitle">קודם מחתימים שעון</h2>
-  <p class="inote" style="margin:0">פותחים את סינל (HARMONY SMART), מחתימים כניסה וחוזרים לכאן. פעם אחת ביום.</p>
+  <p class="inote" style="margin:0">יש לך עבודה היום. פותחים את סינל (HARMONY SMART), מחתימים כניסה וחוזרים לכאן.</p>
   <a class="sinelgo" id="sinelGo" href="#">פתח את סינל</a>
   <button type="button" id="sinelSkip">כבר החתמתי · כניסה</button>
 </div></div>
@@ -1644,7 +1644,7 @@ setTimeout(()=>{
 $("installBtn").addEventListener("click", async ()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch(e){} deferredPrompt=null; $("install").hidden=true; });
 $("installX").addEventListener("click", ()=>{ store.set("installX", String(Date.now())); $("install").hidden=true; });
 window.addEventListener("appinstalled", ()=>{ $("install").hidden=true; });
-// (טל) סינל: בפתיחה הראשונה של היום, מדריך/רכז (עם קוד מדריכים) מתבקש קודם להחתים שעון ב-HARMONY SMART.
+// (טל) סינל: בפתיחה הראשונה של יום עבודה, מדריך/רכז (עם קוד מדריכים) מתבקש קודם להחתים שעון ב-HARMONY SMART.
 // דפדפן לא מרשה לפתוח אפליקציה אחרת בלי לחיצה — לכן חלון עם כפתור. ילדים (בלי קוד) לא רואים אותו.
 var SINEL_AND = "intent://#Intent;package=harmony.smart.co.il.synel;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end";   // אם לא נפתח ישר — נפתחת חנות Play עם "פתיחה"
 var SINEL_IOS = "https://apps.apple.com/app/id1487604051";
@@ -1657,10 +1657,30 @@ function sinelDue(){
   }catch(e){ return false; }
 }
 function sinelDone(){ try{ localStorage.setItem("sinel_day", sinelDay_()); }catch(e){} $("sinelPick").hidden=true; }
+// (רון) רק בימים שיש לי עבודה: שורה שלי עם התאריך של היום בגיליון השעות (פעילות קבועה, החלפה שלקחתי, ריכוז...).
+// פעילות שנדחתה יורדת מהשעות — אז גם אין תזכורת. אין חיבור / לא ידוע → לא מציקים.
+function sinelWork_(){
+  var who=curWho(), day=sinelDay_(), api=stGet("att_api");
+  try{ var c=JSON.parse(localStorage.getItem("sinel_work")||"null");
+    if(c && c.day===day && c.who===who && (c.work || Date.now()-c.t < 2*36e5)) return Promise.resolve(c.work); }catch(e){}   // "אין עבודה" נבדק שוב אחרי שעתיים
+  if(!api) return Promise.resolve(false);
+  var d=new Date(), ds=d.getDate()+"/"+(d.getMonth()+1)+"/"+String(d.getFullYear()).slice(2), mk=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2), me=stFold(who);
+  return fetch(api+"?action=hoursRead&month="+mk+"&tok="+encodeURIComponent(stTok())).then(function(r){ return r.json(); }).then(function(j){
+    if(!(j && j.ok)) return false;
+    var work=(j.rows||[]).some(function(r){ return r.date===ds && stFold(r.inst)===me; });
+    try{ localStorage.setItem("sinel_work", JSON.stringify({day:day, who:who, work:work, t:Date.now()})); }catch(e){}
+    return work;
+  }).catch(function(){ return false; });
+}
 function sinelCheck(){
-  if(!sinelDue() || !$("namePick").hidden || !$("sinelPick").hidden) return;
-  $("sinelGo").href = /iPhone|iPad|iPod/i.test(navigator.userAgent||"") ? SINEL_IOS : SINEL_AND;
-  $("sinelPick").hidden=false;
+  if(!sinelDue() || !$("namePick").hidden || !$("sinelPick").hidden || sinelCheck.busy) return;
+  sinelCheck.busy=true;
+  sinelWork_().then(function(work){
+    sinelCheck.busy=false;
+    if(!work || !sinelDue() || !$("namePick").hidden) return;
+    $("sinelGo").href = /iPhone|iPad|iPod/i.test(navigator.userAgent||"") ? SINEL_IOS : SINEL_AND;
+    $("sinelPick").hidden=false;
+  });
 }
 $("sinelGo").addEventListener("click", function(){ setTimeout(sinelDone, 400); });   // הקישור עצמו פותח את סינל
 $("sinelSkip").addEventListener("click", sinelDone);
