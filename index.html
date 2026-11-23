@@ -173,7 +173,7 @@ section{display:flex;flex-direction:column;gap:18px;padding-top:20px}
 .branches button[aria-pressed="true"]{background:var(--navy);color:var(--bg)}
 .branches.need{border-color:var(--stop);box-shadow:0 0 0 3px color-mix(in srgb,var(--stop) 30%,transparent)}
 input.need{border-color:var(--stop)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--stop) 30%,transparent)}
-.pick #nameSave,.pick #newCodeSave,.pick #sinelSkip{background:var(--flag);color:var(--flag-ink);border:0}
+.pick #nameSave,.pick #newCodeSave{background:var(--flag);color:var(--flag-ink);border:0}
 .namebtn{background:rgba(255,255,255,.16);color:inherit;border:0;border-radius:999px;font:600 .8rem var(--body);padding:2px 10px;margin-inline-start:8px;cursor:pointer}
 .needmsg{color:var(--stop);font-weight:700;font-size:.9rem;margin-top:6px}
 .bfilter{margin:0}
@@ -412,7 +412,7 @@ textarea{min-height:64px;resize:vertical}
 @keyframes leave{to{opacity:0;transform:translateX(-24px)}}
 .pick{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
 .pick .sinelic{width:40px;height:40px;color:var(--flag)}
-.pick a.sinelgo{display:block;text-align:center;padding:14px;font:700 1rem var(--body);border-radius:12px;border:2px dashed var(--flag);color:inherit;text-decoration:none}
+.pick a.sinelgo{display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;font:800 1.05rem var(--body);border-radius:12px;background:var(--flag);color:var(--flag-ink);text-decoration:none}
 .pick>div{border-radius:20px;padding:22px;box-shadow:0 20px 50px rgba(10,20,40,.25)}
 #splash{position:fixed;inset:0;z-index:100;background:#2161ad;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff;font:400 1.4rem var(--display)}
 #splash img{width:96px;height:96px;border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
@@ -619,8 +619,9 @@ textarea{min-height:64px;resize:vertical}
   <svg class="sinelic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6M12 2v3"/></svg>
   <h2 id="sinelTitle">קודם מחתימים שעון</h2>
   <p class="inote" style="margin:0">יש לך עבודה היום. פותחים בטלפון את סינל (<span dir="ltr" style="white-space:nowrap">HARMONY SMART</span>) ומחתימים כניסה.</p>
-  <a class="sinelgo" id="sinelGo" href="#" hidden>בדיקה: פתח את סינל</a>
-  <button type="button" id="sinelSkip">החתמתי ✓ · כניסה</button>
+  <a class="sinelgo" id="sinelGo" href="#">פתח את סינל</a>
+  <p class="inote" style="margin:-4px 0 0;text-align:center">נפתח בחנות — שם לוחצים "פתיחה"</p>
+  <button type="button" id="sinelSkip">כבר החתמתי · כניסה</button>
 </div></div>
 <div class="pick" id="codePick" hidden role="dialog" aria-modal="true" aria-labelledby="codeTitle"><div>
   <h2 id="codeTitle">קוד מדריכים</h2>
@@ -1645,7 +1646,10 @@ $("installBtn").addEventListener("click", async ()=>{ if(!deferredPrompt) return
 $("installX").addEventListener("click", ()=>{ store.set("installX", String(Date.now())); $("install").hidden=true; });
 window.addEventListener("appinstalled", ()=>{ $("install").hidden=true; });
 // (טל) סינל: בפתיחה הראשונה של יום עבודה, מדריך/רכז (עם קוד מדריכים) מתבקש קודם להחתים שעון ב-HARMONY SMART.
-// תזכורת בלבד: אתר לא יכול לפתוח את אפליקציית סינל (היא לא מגדירה קישור), אז אין כפתור פתיחה. ילדים (בלי קוד) לא רואים אותו.
+// אתר לא יכול לפתוח את סינל ישירות (אין לה קישור כמו לוואטסאפ) — הכפתור פותח את הדף שלה בחנות, ושם לוחצים "פתיחה". ילדים (בלי קוד) לא רואים אותו.
+var SINEL_AND = "intent://#Intent;package=harmony.smart.co.il.synel;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end";   // נפתחת חנות Play עם "פתיחה"
+var SINEL_IOS = "https://apps.apple.com/app/id1487604051";
+function sinelHref_(){ $("sinelGo").href = /iPhone|iPad|iPod/i.test(navigator.userAgent||"") ? SINEL_IOS : SINEL_AND; }
 function sinelDay_(){ var d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
 function sinelDue(){
   try{
@@ -1674,19 +1678,17 @@ function sinelWork_(){
   }).catch(function(){ return false; });
 }
 function sinelCheck(){
-  if(sinelForce_() && $("namePick").hidden){
-    // (טל) בדיקה בלבד (?sinel=1, אנדרואיד): לבקש מחנות Play להפעיל את סינל, כמו שוואטסאפ נפתח מקישור
-    if(/Android/i.test(navigator.userAgent||"")){ $("sinelGo").href="market://launch?id=harmony.smart.co.il.synel"; $("sinelGo").hidden=false; }
-    $("sinelPick").hidden=false; return;
-  }
+  if(sinelForce_() && $("namePick").hidden){ sinelHref_(); $("sinelPick").hidden=false; return; }
   if(!sinelDue() || !$("namePick").hidden || !$("sinelPick").hidden || sinelCheck.busy) return;
   sinelCheck.busy=true;
   sinelWork_().then(function(work){
     sinelCheck.busy=false;
     if(!work || !sinelDue() || !$("namePick").hidden) return;
+    sinelHref_();
     $("sinelPick").hidden=false;
   });
 }
+$("sinelGo").addEventListener("click", function(){ setTimeout(sinelDone, 400); });   // הקישור עצמו פותח את החנות
 $("sinelSkip").addEventListener("click", sinelDone);
 setTimeout(sinelCheck, 900);
 document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="visible") setTimeout(sinelCheck, 600); });   // יום חדש כשהאפליקציה הייתה ברקע
