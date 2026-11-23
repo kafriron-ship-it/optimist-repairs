@@ -669,6 +669,21 @@ function nextDateOf(g){
   (g.dateCols||[]).forEach(function(d){ var dt=toDate_(d.date); if(dt>=t && (!best || dt<best.dt)) best={date:d.date, dt:dt}; });
   return best;
 }
+// (רון) תזכורת נוכחות: פעילות שלי מהשבועיים האחרונים שכבר עברה ולא סומנה בה נוכחות (בלי פעילות שנדחתה / שמישהו אחר החליף בה)
+function missAttList_(mine){
+  var out=[];
+  (mine||[]).forEach(function(g){ if(subOnly(g)) return; var gi=giOf(g); if(gi<0) return; var act=subAct(g);
+    unfilledRecent(g).forEach(function(ds){ if(daysAgo_(ds)<1) return;
+      var skip=(state.reqs||[]).some(function(r){ return r.act===act && r.date===ds && (r.status==="בוטל" || (r.status==="הושלם" && r.chosen && !matchName(r.chosen, state.who))); });
+      if(!skip) out.push({gi:gi, ds:ds, g:g}); });
+  });
+  return out.sort(function(a,b){ return toDate_(b.ds)-toDate_(a.ds); });
+}
+function missAttHTML(mine){
+  var L=missAttList_(mine); if(!L.length) return '';
+  return L.slice(0,3).map(function(x){ return '<div class="rem tap" data-hmiss="'+x.gi+'|'+esc(x.ds)+'">⏰ לא סימנת נוכחות · '+esc(x.g.day)+' '+esc(x.ds.replace(/\/\d+$/,''))+' — לחצו לסימון</div>'; }).join('')+
+    (L.length>3 ? '<div class="hinfo" style="margin:-8px 0 14px">ועוד '+(L.length-3)+' פעילויות שלא סומנו</div>' : '');
+}
 function homeRow(g, k, full){
   var gi=giOf(g), t=groupSlot(g), nd=nextDateOf(g), isToday=nd && daysAgo_(nd.date)===0;
   var miss=unfilledRecent(g).length, cs=groupSubStatus(g), bds=groupBdays(g);
@@ -725,6 +740,7 @@ function renderHome(groups){
   var todayName = DAYS[new Date().getDay()];
   var h = '<div class="who">שלום <b>'+esc(state.who)+'</b></div>';
   h += '<div id="subui"></div>';   // (טל) בקשות לאישור / הצעות החלפה — למעלה
+  h += missAttHTML(mine);   // (רון) תזכורת: פעילות שעברה ולא סומנה בה נוכחות
   if(state.homeMsg && Date.now() < (state.homeMsgT||0)){ toast(state.homeMsg, "ok"); state.homeMsg=""; }
   // ביום שיש קבוצה — היא ראשונה, עם "נוכחות" גדול (מה שעושים הכי הרבה)
   var todayG = mine.filter(function(g){ return g.day===todayName && !subOnly(g); });
@@ -769,6 +785,10 @@ function renderHome(groups){
   if(!mineOwn.length && !state.isCoord) h += '<div class="msg">לא מצאנו קבוצה על השם שלך.</div>';
   $("main").innerHTML = h;
   document.querySelectorAll("[data-hatt]").forEach(function(b){ b.onclick=function(){ var gi=+b.dataset.hatt; if(gi<0) return; state.gi=gi; state.diFor=-1; state.view="att"; render(); window.scrollTo(0,0); }; });
+  document.querySelectorAll("[data-hmiss]").forEach(function(b){ b.onclick=function(){   // נפתח ישר על התאריך שלא סומן
+    var p=b.dataset.hmiss.split("|"), gi=+p[0], g=state.groups[gi]; if(!g) return;
+    var di=(g.dateCols||[]).map(function(d){ return d.date; }).indexOf(p[1]);
+    state.gi=gi; state.view="att"; state.diFor = di>-1 ? gi : -1; state.di = di>-1 ? di : 0; render(); window.scrollTo(0,0); }; });
   document.querySelectorAll("[data-hday]").forEach(function(b){ b.onclick=function(){ state.openDay = state.openDay===b.dataset.hday ? "" : b.dataset.hday; render(); }; });
   function underRow(b){ var sp=$("subpanel"), row=b.closest(".arow"); row.parentNode.insertBefore(sp, row.nextSibling); return sp; }
   document.querySelectorAll("[data-hsub]").forEach(function(b){ b.onclick=function(){ underRow(b); attReqOpen(state.homeG[+b.dataset.hsub]); }; });
