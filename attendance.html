@@ -45,14 +45,16 @@ button{font-family:inherit;cursor:pointer}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 .toast.bad{border-inline-start-color:var(--stop)}
 /* (רון) מעברים חלקים */
-@keyframes vin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes vin{from{opacity:0;transform:translateY(44px)}to{opacity:1;transform:none}}
+@keyframes pup{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}   /* (טל) מסך חדש צף מלמטה */
 @keyframes ovin{from{opacity:0}to{opacity:1}}
 @keyframes boxup{from{opacity:.5;transform:translateY(28px)}to{opacity:1;transform:none}}
 @keyframes boxin{from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:none}}
-.vin{animation:vin .22s ease-out}
+.vin{animation:vin .36s cubic-bezier(.22,.61,.36,1)}
+.vup{animation:pup .3s cubic-bezier(.22,.61,.36,1)}   /* (טל) אפשרות שנפתחת (טופס, רשימה, יום ביומן) עולה מלמטה */
 .ov:not([hidden]){animation:ovin .18s ease-out}
 .ov:not([hidden]) .box{animation:boxup .26s cubic-bezier(.2,.8,.2,1)}
-#hov:not([hidden]) .box,#wpov:not([hidden]) .box{animation:boxin .26s cubic-bezier(.2,.8,.2,1)}
+#hov:not([hidden]) .box,#wpov:not([hidden]) .box{animation:boxup .3s cubic-bezier(.2,.8,.2,1)}   /* (טל) גם הפירוט עולה מלמטה */
 /* (רון) כפתורים אחידים: פינות, גובה, משקל, לחיצה */
 button{transition:transform .12s ease,background-color .15s ease,border-color .15s ease,opacity .15s ease;-webkit-user-select:none;user-select:none}
 button:not(:disabled):active{transform:scale(.97)}
@@ -502,6 +504,25 @@ body.hoursonly #wpov{background:var(--bg)}
   window.addEventListener("unhandledrejection", function(e){ var r=e.reason; if(r instanceof Error && /^(TypeError|ReferenceError|RangeError|SyntaxError)$/.test(r.name) && !/fetch|network|load failed/i.test(r.message)) send(r.name+": "+r.message, "promise"); });
 })();
 // כתובת המחבר אינה בקוד — היא מגיעה פעם אחת דרך הקישור הפרטי (#api=...) ונשמרת במכשיר.
+// (טל) "פתיחת אפשרויות בצורה חלקה": טופס / רשימה / יום ביומן שנפתחים אחרי לחיצה — עולים מלמטה.
+// רק מה שלא היה פתוח רגע לפני הלחיצה, כדי שרענון של המסך לא יקפיץ דברים.
+(function(){
+  var SEL = ".clubbody,.wgbody,.hcdet,#subpanel>.card,#asgpanel>.card,#waoffer,.wpact";
+  var tapT = 0, before = {};
+  function sig(e){ var p=e.previousElementSibling; return e.className+"|"+((e.matches(".clubbody,.wgbody") && p) ? (p.id||p.textContent.slice(0,40)) : e.textContent.slice(0,60)); }
+  document.addEventListener("click", function(){ tapT=Date.now(); before={}; try{ document.querySelectorAll(SEL).forEach(function(e){ before[sig(e)]=1; }); }catch(err){} }, true);
+  function go(){
+    if(!window.MutationObserver || !document.body) return;
+    new MutationObserver(function(ms){
+      if(Date.now()-tapT > 700) return;
+      ms.forEach(function(m){ m.addedNodes.forEach(function(n){ if(n.nodeType!==1) return;
+        var list = n.matches(SEL) ? [n] : []; n.querySelectorAll && n.querySelectorAll(SEL).forEach(function(e){ list.push(e); });
+        list.forEach(function(e){ if(!before[sig(e)]){ before[sig(e)]=1; e.classList.remove("vup"); void e.offsetWidth; e.classList.add("vup"); } });
+      }); });
+    }).observe(document.body, {childList:true, subtree:true});
+  }
+  if(document.body) go(); else document.addEventListener("DOMContentLoaded", go);
+})();
 var API = "";
 try{ API = localStorage.getItem("att_api") || ""; }catch(e){}
 var MQ = { pend:{}, held:{}, busy:false, timer:null, fails:0, many:true, shown:false, okT:null };   // תור שמירת נוכחות (ראו queueMark)
