@@ -400,11 +400,14 @@ textarea{min-height:64px;resize:vertical}
 @media (prefers-reduced-motion:no-preference){
   .primary,.ghost,.chip,.fixbtn,.undo,.recent button,.types button,.branches button,.seg2 button,.pick button{transition:transform .08s,background .15s,border-color .15s}
   .primary:active:not(:disabled),.ghost:active,.chip:active,.fixbtn:active,.undo:active,.recent button:active,.pick button:active{transform:scale(.96)}
-  .pick:not([hidden])>div{animation:pop .22s cubic-bezier(.2,.9,.3,1.2)}
+  .pick:not([hidden])>div{animation:sheetup .3s cubic-bezier(.2,.8,.2,1)}   /* (טל) חלונות צפים מלמטה */
+  .vup{animation:vup .36s cubic-bezier(.22,.61,.36,1)}   /* (טל) מעבר בין מסכים — המסך עולה מלמטה */
   .snack:not([hidden]){animation:rise .22s ease-out}
   .row.leaving{animation:leave .26s ease-in forwards}
 }
 @keyframes pop{from{transform:scale(.92);opacity:0}}
+@keyframes sheetup{from{transform:translateY(48px);opacity:0}}
+@keyframes vup{from{transform:translateY(44px);opacity:0}}
 @keyframes rise{from{transform:translateY(16px);opacity:0}}
 @keyframes leave{to{opacity:0;transform:translateX(-24px)}}
 .pick{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
@@ -753,6 +756,8 @@ function showTab(t){
     if($("curTab")) $("curTab").textContent = nm;
     if(ic && $("menuBtn")){ $("menuBtn").innerHTML = ic.outerHTML + MENU_MINI; $("menuBtn").title = nm+" · תפריט"; $("menuBtn").setAttribute("aria-label", "תפריט · עכשיו: "+nm); } }   // (רון) כפתור התפריט מראה את האייקון של המסך הנוכחי
   ["report","boats","stats","att","hours"].forEach(v=>$("view-"+v).hidden = v!==t);
+  if(showTab.cur && showTab.cur!==t){ const nv=$("view-"+t); nv.classList.remove("vup"); void nv.offsetWidth; nv.classList.add("vup"); }   // (טל) המסך החדש עולה מלמטה
+  showTab.cur = t;
   const ft = t==="att" || t==="hours", root=document.documentElement;   // (רון) גלילה אחת בלבד במסך המוטמע
   if(ft && !root.classList.contains("frametab")) window.scrollTo(0,0);
   root.classList.toggle("frametab", ft);
