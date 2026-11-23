@@ -837,7 +837,7 @@ function attRosterMatch(who){ try{ var c=JSON.parse(localStorage.getItem("att_ro
    הקוד עצמו נבדק ונשמר רק בשרת. בטלפון נשמר רק טוקן (att_tok). רכז מחליף קוד → הטוקן הישן מת → כולם מתבקשים להזין את החדש.
    שדה הקוד מופיע רק כשהשם דומה לשם של מדריך (גם עם שגיאת כתיב), כדי שילדים לא יראו אותו בכלל. */
 // שמות הצוות — רק כדי להחליט אם להציג את שדה הקוד (מדריך חדש? להוסיף כאן וגם ל-HSTAFF במסך השעות)
-var STAFF_HINT=["רון כפרי","ג׳וני גולן","מעין גלעד","ליאל עזרן","יעל שטייגמן","גלי מלכא","מיה סניפר","מיה זהבי","יסמין קרסנובסקי","איתמר ברייר","גאיה בן סימון","מירב לבנוני","ארז איתן","עידו חן","טל הררי","ירדן סדן","אסרא","אלמא","לילו"];
+var STAFF_HINT=["רון כפרי","ג׳וני גולן","מעין גלעד","ליאל עזרן","יעל שטייגמן","גלי מלכא","מיה זהבי","יסמין קרסנובסקי","איתמר ברייר","גאיה בן סימון","מירב לבנוני","ארז איתן","עידו חן","טל הררי","ירדן סדן","אסרא","אלמא","לילו"];
 var CODE_ADMINS=ATT_COORDS.concat(["רון כפרי"]);   // מי יכול להחליף את הקוד
 function stGet(k){ try{ return localStorage.getItem(k)||""; }catch(e){ return ""; } }
 function stTok(){ return stGet("att_tok"); }
@@ -869,6 +869,13 @@ function stCheck(){
     else stRefresh();
   }).catch(function(){});
 }
+// (טל) רכז הוסיף מדריך חדש בסידור העבודה → בקשה לרון להוסיף אותו לרשימת המדריכים (כדי שיוכל להיכנס עם הקוד)
+window.addEventListener("message", function(e){
+  if(e.origin!==location.origin || !e.data || e.data.type!=="newStaff") return;
+  var n=String(e.data.name||"").replace(/\s+/g," ").trim().slice(0,40); if(!n) return;
+  var by=($("who").value||localStorage.getItem("who")||"").trim();
+  api("request",{text:"מדריך חדש: "+n+" — "+by+" הוסיף/ה בסידור העבודה. להוסיף לרשימת המדריכים באפליקציה", by, type:(typeof curType!=="undefined"?curType:""), kind:"app"}).catch(function(){});
+});
 // המסך המוטמע קיבל "אין הרשאה" מהשרת (הקוד הוחלף)
 window.addEventListener("message", function(e){
   if(e.origin!==location.origin || !e.data || e.data.type!=="needCode") return;
