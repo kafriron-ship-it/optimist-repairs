@@ -496,7 +496,7 @@ body.hoursonly #wpov{background:var(--bg)}
 // כתובת המחבר אינה בקוד — היא מגיעה פעם אחת דרך הקישור הפרטי (#api=...) ונשמרת במכשיר.
 var API = "";
 try{ API = localStorage.getItem("att_api") || ""; }catch(e){}
-var MQ = { pend:{}, busy:false, timer:null, fails:0, many:true, shown:false, okT:null };   // תור שמירת נוכחות (ראו queueMark)
+var MQ = { pend:{}, held:{}, busy:false, timer:null, fails:0, many:true, shown:false, okT:null };   // תור שמירת נוכחות (ראו queueMark)
 (function(){
   var m = /[#&?]api=([^&]+)/.exec(location.hash + "&" + location.search);
   if(m){ API = decodeURIComponent(m[1]); try{ localStorage.setItem("att_api", API); }catch(e){} try{ history.replaceState(null,"",location.pathname); }catch(e){} }
@@ -627,14 +627,14 @@ function load(){
   var cached=null;
   try{ var c=JSON.parse(localStorage.getItem("att_cache")||"null"); if(c&&c.groups&&c.groups.length) cached=c.groups; }catch(e){}
   state.touched = false;
-  if(cached){ state.all=cached; mqReapply(); render(); }
+  if(cached){ state.all=cached; mqAdopt(); mqReapply(); render(); }
   else $("main").innerHTML = skel(4);
   api({action:"rosterAll"}).then(function(j){
     if(!j.ok){ if(!cached) $("main").innerHTML = '<div class="msg">שגיאה: '+esc(j.error||"")+'</div>'; return; }
     try{ localStorage.setItem("att_cache", JSON.stringify({t:Date.now(), groups:j.groups||[]})); }catch(e){}
     if(cached && state.touched) return;   // המשתמש כבר סימן — לא לדרוס את המסך הפעיל
     state.all = j.groups || [];
-    mqReapply();
+    mqAdopt(); mqReapply();
     render();
   }).catch(function(){ if(!cached) $("main").innerHTML = '<div class="msg">אין חיבור. נסו שוב.</div>'; });
   if(hoursOK()) loadReqs();   // צבעי החלפות בלוח — רק למי שמסך השעות פתוח לו
@@ -1667,7 +1667,8 @@ function mark(cur, date, btn){
 // ----- שמירת נוכחות בתור: הסימון מופיע מיד, נשלח ברקע בבקשה אחת מרוכזת, ונשלח שוב לבד אם נכשל -----
 // (קודם כל לחיצה הייתה בקשה נפרדת → השרת עבד אחת-אחת → בלחיצות מהירות חלק נכשלו אחרי 20 שנ')
 function queueMark(cur, date, row, value){
-  MQ.pend[cur.branch+"|"+cur.day+"|"+date+"|"+row] = {branch:cur.branch, day:cur.day, date:date, row:row, value:value};
+  var st=(cur.students||[]).filter(function(s){ return s.row===row; })[0];   // השם נשמר כדי לוודא שורה נכונה אם נשלח רק אחרי סגירה
+  MQ.pend[cur.branch+"|"+cur.day+"|"+date+"|"+row] = {branch:cur.branch, day:cur.day, date:date, row:row, value:value, nm:st?norm(st.name):"", at:Date.now()};
   mqSchedule(350);
 }
 function mqSchedule(ms){ clearTimeout(MQ.timer); MQ.timer=setTimeout(mqFlush, ms); mqStatus(); }
@@ -1693,21 +1694,48 @@ function mqFlush(){
       MQ.fails=0;
       bt.items.forEach(function(it){ if(MQ.pend[it.k]===it.p) delete MQ.pend[it.k]; });   // אם סומן שוב בינתיים — נשאר בתור
       if(j.bad && j.bad.length) toast("חלק מהסימונים לא נשמרו (שורה לא תקינה). רעננו את הדף.");
-      if(Object.keys(MQ.pend).length) mqFlush(); else mqStatus();
+      if(Object.keys(MQ.pend).length) mqFlush();
+      else { mqStatus(); if(MQ.restored){ MQ.restored=0; toast("✓ הנוכחות ששמורה בטלפון נשלחה"); } }
     } else mqRetry(j && j.error);
   }).catch(function(){ MQ.busy=false; mqRetry("אין חיבור"); });
 }
 function mqRetry(err){
   MQ.fails++;
-  if(MQ.fails===6) alert("הנוכחות עוד לא נשמרה ("+(err||"שגיאה")+"). ממשיכים לנסות לבד — אל תסגרו את האפליקציה.");
+  if(MQ.fails===6) alert("הנוכחות עוד לא נשלחה ("+(err||"שגיאה")+"). היא שמורה בטלפון ותישלח לבד כשתחזור קליטה — גם אם סוגרים את האפליקציה.");
   mqSchedule(MQ.fails<6 ? 1500*MQ.fails : 15000);
 }
 function mqStatus(){
+  mqSave();
   var el=$("savest"); if(!el) return;
   var n=Object.keys(MQ.pend).length;
-  if(n){ MQ.shown=true; clearTimeout(MQ.okT); el.className="savest "+(MQ.fails?"bad":"busy"); el.textContent = MQ.fails ? "⚠️ מנסה לשמור שוב…" : "⏳ שומר…"; }
+  if(n){ MQ.shown=true; clearTimeout(MQ.okT); el.className="savest "+(MQ.fails?"bad":"busy"); el.textContent = MQ.fails ? "⚠️ ממתין לקליטה" : "⏳ שומר…"; }
   else if(MQ.shown){ MQ.shown=false; el.className="savest ok"; el.textContent="✓ נשמר";
     clearTimeout(MQ.okT); MQ.okT=setTimeout(function(){ var e=$("savest"); if(e && !Object.keys(MQ.pend).length){ e.className="savest"; e.textContent=""; } }, 2500); }
+}
+// (רון) נוכחות בלי קליטה: מה שעוד לא נשלח נשמר גם בטלפון, ונשלח לבד בפתיחה הבאה — גם אם סגרו את האפליקציה
+var MQ_MAXAGE = 3*864e5;   // סימון שלא נשלח תוך 3 ימים — לא שולחים (כדי לא לדרוס תיקון שנעשה בינתיים)
+function mqKey_(){ return "att_pend"+(HOURS_MODE?"_h":""); }   // מפתח נפרד לכל מסך, כדי שלא ימחקו זה לזה
+function mqSave(){
+  try{ var all={}, k; for(k in MQ.held) all[k]=MQ.held[k]; for(k in MQ.pend) all[k]=MQ.pend[k];
+    if(Object.keys(all).length) localStorage.setItem(mqKey_(), JSON.stringify(all)); else localStorage.removeItem(mqKey_()); }catch(e){}
+}
+function mqAdopt(){   // מחזיר לתור סימונים ששמורים בטלפון — רק אם השורה עדיין של אותו חניך
+  if(!MQ.loaded){ MQ.loaded=true;
+    try{ var o=JSON.parse(localStorage.getItem(mqKey_())||"null")||{};
+      Object.keys(o).forEach(function(k){ var p=o[k]; if(p && !MQ.pend[k] && Date.now()-(p.at||0) < MQ_MAXAGE) MQ.held[k]=p; }); }catch(e){}
+  }
+  var n=0;
+  Object.keys(MQ.held).forEach(function(k){ var p=MQ.held[k], ss=[];
+    (state.all||[]).forEach(function(g){ if(g.branch===p.branch && g.day===p.day) ss=ss.concat(g.students||[]); });
+    if(!ss.length) return;   // הגיליון הזה עוד לא נטען — נשאר שמור
+    var s=ss.filter(function(x){ return x.row===p.row; })[0];
+    if(!s || norm(s.name)!==p.nm){ var by=ss.filter(function(x){ return p.nm && norm(x.name)===p.nm; }); s = by.length===1 ? by[0] : null; }   // השורה זזה → לפי השם
+    delete MQ.held[k];
+    if(!s) return;   // החניך לא נמצא — לא כותבים לשורה של מישהו אחר
+    var q={branch:p.branch, day:p.day, date:p.date, row:s.row, value:p.value, nm:p.nm, at:p.at}, k2=q.branch+"|"+q.day+"|"+q.date+"|"+q.row;
+    if(!MQ.pend[k2]){ MQ.pend[k2]=q; n++; }
+  });
+  if(n){ MQ.restored=(MQ.restored||0)+n; mqSchedule(600); } else mqSave();
 }
 // רענון מהשרת לא ימחק סימון שעוד לא נשמר
 function mqReapply(){
