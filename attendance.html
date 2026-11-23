@@ -2504,13 +2504,19 @@ function waDecisionText(r, ok, subs){
                : ["", "אפשר לדבר איתי על זה 🙏"];
   return ["היי "+waFirst(r.requester)+" 👋", head].concat(waLines_(r.act, r.date, r.start, r.end), tail).join("\n");
 }
-function waOffer(items){ items=(items||[]).filter(function(it){ return it && it.to && norm(it.to)!==norm(state.who); }); state.waOffer = items.length ? {t:Date.now(), items:items} : null; }
+// (טל) פעילות נדחתה → הודעה מוכנה לקבוצת ההורים (וואטסאפ נפתח, בוחרים את הקבוצה)
+function waParentsText(act, date, start, end, reason){
+  return ["שלום הורים 👋", "הפעילות נדחתה:"].concat(waLines_(act, date, start, end), reason ? ["• סיבה: "+reason] : [], ["", "נעדכן בהמשך 🙏"]).join("\n");
+}
+function waOffer(items){ items=(items||[]).filter(function(it){ return it && (it.grp || (it.to && norm(it.to)!==norm(state.who))); }); state.waOffer = items.length ? {t:Date.now(), items:items} : null; }
 function waLink(to, text){ return "https://wa.me/"+staffPhone(to)+"?text="+encodeURIComponent(text); }
 function waOfferHTML(){
   var o=state.waOffer; if(!o || Date.now()-o.t > 30*60e3) return '';
   var H='<div class="card" id="waoffer" style="border-color:#25D366;margin-top:10px"><div style="display:flex;align-items:center;gap:8px"><b style="flex:1">💬 לעדכן בוואטסאפ</b><button class="wax" onclick="waDismiss()" aria-label="סגור">✕</button></div>'+
     '<div style="color:var(--muted);font-size:.82rem;margin:2px 0 4px">ההודעה כבר כתובה — פותחים ולוחצים שלח.</div>';
-  o.items.forEach(function(it){ var has=!!staffPhone(it.to);
+  o.items.forEach(function(it){
+    if(it.grp){ H+='<a class="asin wabtn" href="'+esc("https://wa.me/?text="+encodeURIComponent(it.text))+'" target="_blank" rel="noopener">שלח לקבוצת ההורים</a><div style="color:var(--muted);font-size:.75rem;margin-top:2px">וואטסאפ ייפתח — בוחרים את קבוצת ההורים של הקבוצה</div>'; return; }
+    var has=!!staffPhone(it.to);
     H+='<a class="asin wabtn" href="'+esc(waLink(it.to, it.text))+'" target="_blank" rel="noopener">שלח ל'+esc(waFirst(it.to))+'</a>'+(has?'':'<div style="color:var(--muted);font-size:.75rem;margin-top:2px">אין מספר של '+esc(waFirst(it.to))+' — בוחרים אותו בוואטסאפ</div>'); });
   return H+'</div>';
 }
@@ -2822,6 +2828,7 @@ function attCancelSubmit(g){
     return res;
   }).then(function(res){
     if(res&&res.ok){ if(!coord) waOffer([{to:WA_COORD, text:waReqText("cancel", subAct(g), date, reason, toHHMM(hrx.start), toHHMM(hrx.end))}]);
+      else if(res.approved) waOffer([{grp:1, text:waParentsText(subAct(g), date, toHHMM(hrx.start), toHHMM(hrx.end), reason)}]);   // (טל) רכז דחה → להודיע להורים
       afterSub(coord ? (res.approved ? "הפעילות נדחתה ✓ השעות של התאריך ירדו" : "הבקשה נשלחה, אבל האישור לא נשמר — אשרו אותה מרשימת הבקשות") : "בקשת הדחייה נשלחה לרכז ✓"); }
     else if($("ar_kill")){ btn.disabled=false; btn.textContent="שלח בקשת דחייה"; toast("לא נשלח: "+((res&&res.error)||"")); }
   }).catch(function(){ if($("ar_kill")){ btn.disabled=false; btn.textContent="שלח בקשת דחייה"; } toast("אין חיבור"); });
@@ -2870,7 +2877,7 @@ function attApprovals(){
   document.querySelectorAll(".apx_cok").forEach(function(b){ b.onclick=function(){
     if(!confirm("לאשר את הדחייה? השעות של המדריך לתאריך הזה יירדו.")) return;
     b.disabled=true; b.textContent="מאשר…";
-    post({action:"subReqCancelApprove", id:b.dataset.id}).then(function(j){ if(j&&j.ok){ var r0=reqById(b.dataset.id); if(r0) waOffer([{to:r0.requester, text:waDecisionText(r0, true)}]); setReq(b.dataset.id, {status:"בוטל"}); afterSub("הדחייה אושרה ✓"); } else { b.disabled=false; b.textContent="אשר דחייה"; toast("לא בוצע: "+reqErr(j)); } }).catch(function(){ b.disabled=false; b.textContent="אשר דחייה"; toast("אין חיבור"); });
+    post({action:"subReqCancelApprove", id:b.dataset.id}).then(function(j){ if(j&&j.ok){ var r0=reqById(b.dataset.id); if(r0) waOffer([{to:r0.requester, text:waDecisionText(r0, true)}, {grp:1, text:waParentsText(r0.act, r0.date, r0.start, r0.end, r0.reason)}]); setReq(b.dataset.id, {status:"בוטל"}); afterSub("הדחייה אושרה ✓"); } else { b.disabled=false; b.textContent="אשר דחייה"; toast("לא בוצע: "+reqErr(j)); } }).catch(function(){ b.disabled=false; b.textContent="אשר דחייה"; toast("אין חיבור"); });
   }; });
 }
 function attApprove(id, approved, btn){
