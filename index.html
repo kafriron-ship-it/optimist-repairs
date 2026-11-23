@@ -412,6 +412,7 @@ textarea{min-height:64px;resize:vertical}
 @keyframes leave{to{opacity:0;transform:translateX(-24px)}}
 .pick{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
 .pick .sinelic{width:40px;height:40px;color:var(--flag)}
+.pick a.sinelgo{display:block;text-align:center;padding:14px;font:700 1rem var(--body);border-radius:12px;border:2px dashed var(--flag);color:inherit;text-decoration:none}
 .pick>div{border-radius:20px;padding:22px;box-shadow:0 20px 50px rgba(10,20,40,.25)}
 #splash{position:fixed;inset:0;z-index:100;background:#2161ad;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff;font:400 1.4rem var(--display)}
 #splash img{width:96px;height:96px;border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
@@ -618,6 +619,7 @@ textarea{min-height:64px;resize:vertical}
   <svg class="sinelic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6M12 2v3"/></svg>
   <h2 id="sinelTitle">קודם מחתימים שעון</h2>
   <p class="inote" style="margin:0">יש לך עבודה היום. פותחים בטלפון את סינל (<span dir="ltr" style="white-space:nowrap">HARMONY SMART</span>) ומחתימים כניסה.</p>
+  <a class="sinelgo" id="sinelGo" href="#" hidden>בדיקה: פתח את סינל</a>
   <button type="button" id="sinelSkip">החתמתי ✓ · כניסה</button>
 </div></div>
 <div class="pick" id="codePick" hidden role="dialog" aria-modal="true" aria-labelledby="codeTitle"><div>
@@ -1672,7 +1674,11 @@ function sinelWork_(){
   }).catch(function(){ return false; });
 }
 function sinelCheck(){
-  if(sinelForce_() && $("namePick").hidden){ $("sinelPick").hidden=false; return; }
+  if(sinelForce_() && $("namePick").hidden){
+    // (טל) בדיקה בלבד (?sinel=1, אנדרואיד): לבקש מחנות Play להפעיל את סינל, כמו שוואטסאפ נפתח מקישור
+    if(/Android/i.test(navigator.userAgent||"")){ $("sinelGo").href="market://launch?id=harmony.smart.co.il.synel"; $("sinelGo").hidden=false; }
+    $("sinelPick").hidden=false; return;
+  }
   if(!sinelDue() || !$("namePick").hidden || !$("sinelPick").hidden || sinelCheck.busy) return;
   sinelCheck.busy=true;
   sinelWork_().then(function(work){
