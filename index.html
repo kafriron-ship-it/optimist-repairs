@@ -25,6 +25,32 @@ var ORG = (function(){
 var ORG_OK = Object.prototype.hasOwnProperty.call(ORGS, ORG);
 function skey(k){ return ORG === "daniel" ? k : ORG + ":" + k; }
 if(ORG_OK && ORG !== "daniel") document.querySelector('link[rel=manifest]').href = "m/" + ORG + ".json";
+// (רון) דיווח שגיאות אוטומטי: כשמשהו נשבר באפליקציה אצל מישהו — נשלח לרון כמו משוב (💬).
+// כל שגיאה פעם אחת ביום, עד 3 ביום לכל טלפון. בלי מספרי טלפון. גם שגיאות ממסך הנוכחות/השעות (דרך postMessage).
+function errReport(msg, where, src){
+  try{
+    msg = String(msg||"").replace(/\+?\d[\d\s-]{7,}\d/g, "[מספר]").slice(0, 180);
+    if(!msg || /^Script error\.?$/i.test(msg) || /ResizeObserver loop/i.test(msg)) return;
+    var day = new Date().toISOString().slice(0,10), o = {};
+    try{ o = JSON.parse(localStorage.getItem("err_sent")||"{}"); }catch(e){}
+    if(o.day !== day) o = {day:day, n:0, keys:{}};
+    var key = (src||"") + "|" + msg.slice(0, 80);
+    if(o.keys[key] || o.n >= 3) return;
+    o.keys[key] = 1; o.n++;
+    try{ localStorage.setItem("err_sent", JSON.stringify(o)); }catch(e){}
+    setTimeout(function(){ try{
+      if(typeof api !== "function") return;
+      var b = (document.querySelector('meta[name="build"]')||{}).content || "";
+      var by = ""; try{ by = (localStorage.getItem("who")||"").trim(); }catch(e){}
+      api("request", {text:"⚠️ שגיאה אוטומטית ("+(src||"ראשי")+"): "+msg+(where?" · "+where:"")+" · גרסה "+b, by:by,
+        type:(typeof curType!=="undefined"?curType:""), kind:"app"}).catch(function(){});
+    }catch(e){} }, 2500);
+  }catch(e){}
+}
+function errCodeBug_(r){ return r instanceof Error && /^(TypeError|ReferenceError|RangeError|SyntaxError)$/.test(r.name) && !/fetch|network|load failed/i.test(r.message); }   // באג בקוד — לא ניתוק רשת
+window.addEventListener("error", function(e){ if(e.filename && e.filename.indexOf(location.origin)!==0) return; errReport(e.message, String(e.filename||"").split("/").pop().split("?")[0]+":"+(e.lineno||""), "ראשי"); });
+window.addEventListener("unhandledrejection", function(e){ if(errCodeBug_(e.reason)) errReport(e.reason.name+": "+e.reason.message, "promise", "ראשי"); });
+window.addEventListener("message", function(e){ if(e.origin===location.origin && e.data && e.data.type==="appErr") errReport(e.data.msg, e.data.where, e.data.src||"נוכחות/שעות"); });
 </script>
 <link rel="apple-touch-icon" href="icon-v2-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">

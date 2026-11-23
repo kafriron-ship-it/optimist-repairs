@@ -493,6 +493,14 @@ body.hoursonly #wpov{background:var(--bg)}
 <div class="ov" id="wpov" hidden><div class="box" id="wpbox"></div></div>
 
 <script>
+// (רון) שגיאה במסך הזה → נשלחת לאפליקציה הראשית, שמדווחת לרון (רק כשהמסך מוטמע באפליקציה)
+(function(){
+  if(window.parent===window) return;
+  var src = /[?&]hours=1/.test(location.search) ? "שעות" : "נוכחות";
+  function send(m, w){ try{ window.parent.postMessage({type:"appErr", msg:String(m||"").slice(0,200), where:w||"", src:src}, location.origin); }catch(e){} }
+  window.addEventListener("error", function(e){ if(e.filename && e.filename.indexOf(location.origin)!==0) return; send(e.message, String(e.filename||"").split("/").pop().split("?")[0]+":"+(e.lineno||"")); });
+  window.addEventListener("unhandledrejection", function(e){ var r=e.reason; if(r instanceof Error && /^(TypeError|ReferenceError|RangeError|SyntaxError)$/.test(r.name) && !/fetch|network|load failed/i.test(r.message)) send(r.name+": "+r.message, "promise"); });
+})();
 // כתובת המחבר אינה בקוד — היא מגיעה פעם אחת דרך הקישור הפרטי (#api=...) ונשמרת במכשיר.
 var API = "";
 try{ API = localStorage.getItem("att_api") || ""; }catch(e){}
