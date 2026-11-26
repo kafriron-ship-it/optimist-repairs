@@ -1277,7 +1277,7 @@ function render(){
   h += '<div class="gttl"><span class="t">'+esc(cleanInst(cur.instructor))+' · '+esc(cur.day)+'</span><span id="savest" class="savest"></span><span class="pill" id="cnt"></span></div>';
   h += '<div id="submark"></div>';
   if(state.isCoord) h += '<div style="margin:0 2px 10px"><button id="assignbtn" class="ghostbtn">🔗 שייך שעות קבועות למדריך</button></div><div id="asgpanel"></div>';
-  h += '<div style="margin:0 2px 10px"><button id="allp" class="ghostbtn">✓ סמן את כולם נוכחים</button></div>';
+  h += '<div style="margin:0 2px 10px;display:flex;gap:8px;flex-wrap:wrap"><button id="allp" class="ghostbtn">✓ סמן את כולם נוכחים</button><button id="clrm" class="ghostbtn" hidden>✕ נקה סימונים</button></div>';   // (טל) ניקוי מה שסומן בתאריך הזה
   h += '<div id="stlist"></div>';
   if(state.isCoord || !subOnly(cur)){   // הוספת חניך — רכזים, ו(טל) גם מדריך בקבוצה שלו (לא בקבוצה שהוא רק מחליף בה היום)
     h += '<div style="margin:12px 2px 0"><button id="addst" class="ghostbtn">➕ הוסף חניך</button></div>'+
@@ -1295,6 +1295,7 @@ function render(){
   if($("hoursbtn")) $("hoursbtn").onclick = openHours;
   if($("backhome")) $("backhome").onclick = function(){ state.view="home"; render(); window.scrollTo(0,0); };
   if($("allp")) $("allp").onclick = markAllPresent;
+  if($("clrm")) $("clrm").onclick = clearMarks;
   if($("assignbtn")) $("assignbtn").onclick = function(){ openAssign(state.groups[state.gi]); };
   if($("addst")) $("addst").onclick = function(){ var f=$("addform"); f.hidden=!f.hidden; if(!f.hidden) $("as_name").focus(); };
   if($("as_cancel")) $("as_cancel").onclick = function(){ $("addform").hidden=true; };
@@ -1674,6 +1675,7 @@ function renderStudents(){
     if($("subundo")) $("subundo").onclick=function(){ subUndo(x, this); };
   }
   $("cnt").innerHTML = '<b>'+present+'</b> / '+cur.students.length+' נוכחים';
+  if($("clrm")) $("clrm").hidden = !cur.students.some(function(s){ return s.attendance[date]; });   // "נקה" רק כשיש מה לנקות
   mqStatus();
   document.querySelectorAll("#stlist [data-mark]").forEach(function(b){ b.onclick=function(){ mark(cur, date, b); }; });
   document.querySelectorAll("#stlist [data-card]").forEach(function(b){ b.onclick=function(){ openCard(cur.students[+b.dataset.card], cur); }; });
@@ -1809,6 +1811,16 @@ function markAllPresent(){
   state.touched = true;
   renderStudents();
   rows.forEach(function(row){ queueMark(cur, date, row, "v"); });   // נשלח בבקשה אחת
+}
+// (טל) ניקוי כל הסימונים (✓/✗) של התאריך המוצג — אחרי אישור. נשלח בבקשה אחת, כמו "סמן את כולם"
+function clearMarks(){
+  var cur=state.groups[state.gi], date=state.dates[state.di], rows=[];
+  cur.students.forEach(function(s){ if(s.attendance[date]) rows.push(s.row); });
+  if(!rows.length || !confirm("לנקות את כל הסימונים של "+date+"?")) return;
+  cur.students.forEach(function(s){ if(s.attendance[date]) s.attendance[date]=""; });
+  state.touched = true; state.askReason = null;
+  renderStudents();
+  rows.forEach(function(row){ queueMark(cur, date, row, ""); });
 }
 function addStudent(){
   var cur=state.groups[state.gi];
