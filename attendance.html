@@ -1700,7 +1700,7 @@ function waGender_(st, cur){
   try{ return (JSON.parse(localStorage.getItem("att_gender")||"{}"))[waKey_(st,cur)]||""; }catch(e){ return ""; }
 }
 function waOpen_(st, g){
-  var txt="היי, ראיתי ש"+norm(st.name)+" לא "+(g==="בת"?"הגיעה":"הגיע")+" היום, הכל בסדר?";
+  var txt="היי, ראיתי ש"+norm(st.name).split(" ")[0]+" לא "+(g==="בת"?"הגיעה":"הגיע")+" היום, הכל בסדר?";   // (טל) רק השם הפרטי
   window.open("https://wa.me/"+waPhone_(st.phone)+"?text="+encodeURIComponent(txt), "_blank", "noopener");
 }
 
