@@ -323,6 +323,10 @@ button.asin.dng{background:var(--stop);color:#fff;border-color:var(--stop)}
 .tchip{display:inline-block;font:800 .66rem 'Assistant';padding:1px 7px;border-radius:999px;margin-inline-start:4px;vertical-align:middle}
 .tchip.today{background:#12382d;color:var(--ok);border:1px solid #1f6b52}
 .tchip.miss{background:#3a1d1a;color:#ff9b8a;border:1px solid #6b2a22}
+.missln:empty{display:none}
+.missln{margin:-2px 2px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;font:700 .8rem 'Assistant',sans-serif;color:var(--muted)}
+.missln svg{width:15px;height:15px;color:var(--flag);flex:none}
+.missln button{background:none;border:0;padding:0;font:inherit;color:var(--flag);text-decoration:underline;cursor:pointer}
 #subpanel .card{margin:8px}
 .hhome{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:4px}
 .hhome .hh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:800}
@@ -709,6 +713,13 @@ function missAttList_(mine){
   });
   return out.sort(function(a,b){ return toDate_(b.ds)-toDate_(a.ds); });
 }
+function missGroupHTML_(g, shown){
+  if(!g || subOnly(g)) return '';
+  var L=missAttList_([g]).map(function(x){ return x.ds; }).filter(function(ds){ return ds!==shown; }).reverse();
+  if(!L.length) return '';
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>לא סומנה נוכחות: '+
+    L.map(function(ds){ return '<button data-mgo="'+esc(ds)+'">'+esc(ds.replace(/\/\d+$/,''))+'</button>'; }).join(' · ');
+}
 function missAttHTML(mine){
   var L=missAttList_(mine); if(!L.length) return '';
   return L.slice(0,3).map(function(x){ return '<div class="rem tap" data-hmiss="'+x.gi+'|'+esc(x.ds)+'">⏰ לא סימנת נוכחות · '+esc(x.g.day)+' '+esc(x.ds.replace(/\/\d+$/,''))+' — לחצו לסימון</div>'; }).join('')+
@@ -770,7 +781,7 @@ function renderHome(groups){
   var todayName = DAYS[new Date().getDay()];
   var h = '<div class="who">שלום <b>'+esc(state.who)+'</b></div>';
   h += '<div id="subui"></div>';   // (טל) בקשות לאישור / הצעות החלפה — למעלה
-  h += missAttHTML(mine);   // (רון) תזכורת: פעילות שעברה ולא סומנה בה נוכחות
+  // (טל) בלי פס "לא סימנת נוכחות" במסך הבית (מציק) — רק שורה קטנה בתוך הקבוצה (missGroupHTML_)
   if(state.homeMsg && Date.now() < (state.homeMsgT||0)){ toast(state.homeMsg, "ok"); state.homeMsg=""; }
   // ביום שיש קבוצה — היא ראשונה, עם "נוכחות" גדול (מה שעושים הכי הרבה)
   var todayG = mine.filter(function(g){ return g.day===todayName && !subOnly(g); });
@@ -1275,7 +1286,7 @@ function render(){
   h += '<div class="datebar"><button class="nav" data-dd="-1">‹</button><div class="dctr"><b id="dlabel"></b><span id="dstat" class="dstat"></span></div><button class="nav" data-dd="1">›</button></div>';
   h += '<div class="todayrow"><button id="todaybtn" class="todaybtn">📍 לפעילות הקרובה</button></div>';
   h += '<div class="gttl"><span class="t">'+esc(cleanInst(cur.instructor))+' · '+esc(cur.day)+'</span><span id="savest" class="savest"></span><span class="pill" id="cnt"></span></div>';
-  h += '<div id="submark"></div>';
+  h += '<div id="submark"></div><div id="missln" class="missln"></div>';
   if(state.isCoord) h += '<div style="margin:0 2px 10px"><button id="assignbtn" class="ghostbtn">🔗 שייך שעות קבועות למדריך</button></div><div id="asgpanel"></div>';
   h += '<div style="margin:0 2px 10px;display:flex;gap:8px;flex-wrap:wrap"><button id="allp" class="ghostbtn">✓ סמן את כולם נוכחים</button><button id="clrm" class="ghostbtn" hidden>✕ נקה סימונים</button></div>';   // (טל) ניקוי מה שסומן בתאריך הזה
   h += '<div id="stlist"></div>';
@@ -1675,6 +1686,8 @@ function renderStudents(){
     if($("subundo")) $("subundo").onclick=function(){ subUndo(x, this); };
   }
   $("cnt").innerHTML = '<b>'+present+'</b> / '+cur.students.length+' נוכחים';
+  if($("missln")){ $("missln").innerHTML = missGroupHTML_(cur, date);   // (טל) בקטנה: פעילויות קודמות שלא סומנו
+    $("missln").querySelectorAll("[data-mgo]").forEach(function(b){ b.onclick=function(){ var i=state.dates.indexOf(b.dataset.mgo); if(i>-1){ state.di=i; updateDateUI(); renderStudents(); } }; }); }
   if($("clrm")) $("clrm").hidden = !cur.students.some(function(s){ return s.attendance[date]; });   // "נקה" רק כשיש מה לנקות
   mqStatus();
   document.querySelectorAll("#stlist [data-mark]").forEach(function(b){ b.onclick=function(){ mark(cur, date, b); }; });
