@@ -50,11 +50,11 @@ button{font-family:inherit;cursor:pointer}
 @keyframes ovin{from{opacity:0}to{opacity:1}}
 @keyframes boxup{from{opacity:.5;transform:translateY(28px)}to{opacity:1;transform:none}}
 @keyframes boxin{from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:none}}
-.vin{animation:vin .36s cubic-bezier(.22,.61,.36,1)}
-.vup{animation:pup .3s cubic-bezier(.22,.61,.36,1)}   /* (טל) אפשרות שנפתחת (טופס, רשימה, יום ביומן) עולה מלמטה */
+.vin{animation:vin .6s cubic-bezier(.33,1,.68,1)}
+.vup{animation:pup .55s cubic-bezier(.33,1,.68,1)}   /* (טל) אפשרות שנפתחת (טופס, רשימה, יום ביומן) עולה מלמטה */
 .ov:not([hidden]){animation:ovin .18s ease-out}
-.ov:not([hidden]) .box{animation:boxup .26s cubic-bezier(.2,.8,.2,1)}
-#hov:not([hidden]) .box,#wpov:not([hidden]) .box{animation:boxup .3s cubic-bezier(.2,.8,.2,1)}   /* (טל) גם הפירוט עולה מלמטה */
+.ov:not([hidden]) .box{animation:boxup .45s cubic-bezier(.33,1,.68,1)}
+#hov:not([hidden]) .box,#wpov:not([hidden]) .box{animation:boxup .55s cubic-bezier(.33,1,.68,1)}   /* (טל) גם הפירוט עולה מלמטה */
 /* (רון) כפתורים אחידים: פינות, גובה, משקל, לחיצה */
 button{transition:transform .12s ease,background-color .15s ease,border-color .15s ease,opacity .15s ease;-webkit-user-select:none;user-select:none}
 button:not(:disabled):active{transform:scale(.97)}
