@@ -511,10 +511,10 @@ body.hoursonly #wpov{background:var(--bg)}
 // (טל) "פתיחת אפשרויות בצורה חלקה": טופס / רשימה / יום ביומן שנפתחים אחרי לחיצה — עולים מלמטה.
 // רק מה שלא היה פתוח רגע לפני הלחיצה, כדי שרענון של המסך לא יקפיץ דברים.
 (function(){
-  var SEL = ".clubbody,.wgbody,.hcdet,#subpanel>.card,#asgpanel>.card,#waoffer,.wpact";
+  var SEL = ".clubbody,.wgbody,.hcdet,#subpanel>.card,#asgpanel>.card,#waoffer,.wpact,#hh_cal,#hh_form";   // (טל 619c) גם פתיחת "השעות שלי" וטופס "הוסף עבודה"
   var tapT = 0, before = {};
   // (טל) מעבר בין ימים ביומן: הפירוט רק מתחלף במקום — בלי לצוף מחדש מאפס (זה נראה כמו הבהוב לבן)
-  function sig(e){ if(e.matches(".hcdet,.wpact")) return e.matches(".hcdet")?"hcdet":"wpact"; var p=e.previousElementSibling; return e.className+"|"+((e.matches(".clubbody,.wgbody") && p) ? (p.id||p.textContent.slice(0,40)) : e.textContent.slice(0,60)); }
+  function sig(e){ if(e.id==="hh_cal"||e.id==="hh_form") return e.id; if(e.matches(".hcdet,.wpact")) return e.matches(".hcdet")?"hcdet":"wpact"; var p=e.previousElementSibling; return e.className+"|"+((e.matches(".clubbody,.wgbody") && p) ? (p.id||p.textContent.slice(0,40)) : e.textContent.slice(0,60)); }
   document.addEventListener("click", function(){ tapT=Date.now(); before={}; try{ document.querySelectorAll(SEL).forEach(function(e){ before[sig(e)]=1; }); }catch(err){} }, true);
   function go(){
     if(!window.MutationObserver || !document.body) return;
