@@ -419,6 +419,10 @@ body.hoursonly #wpov{background:var(--bg)}
 .call .ph{font:600 1.3rem 'IBM Plex Mono';color:#eafff5}
 .addcontact{display:block;width:100%;background:var(--chip);border:1px solid var(--line);border-radius:12px;color:var(--navy);font:700 .9rem 'Assistant';padding:11px;margin-bottom:12px}
 .rmst{display:block;width:100%;background:transparent;border:1px solid var(--stop);border-radius:12px;color:var(--stop);font:700 .9rem 'Assistant';padding:11px;margin-top:14px}
+.rmst.mvst{display:flex;align-items:center;justify-content:center;gap:8px;border-color:var(--line);color:inherit}   /* (טל) העברה לקבוצה אחרת */
+.mvst svg{width:17px;height:17px;flex:0 0 auto}
+#mv_box .dobf{margin-top:12px}
+#mv_sel{width:100%}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .cell{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .cell .k{font-size:.72rem;color:var(--muted)}
@@ -1880,12 +1884,14 @@ function openCard(s, cur){
     '<div id="dob_box"></div>';
   h += '<div class="notes"><div class="h"><span class="k">הערות</span></div><div id="nlist">'+notesHtml(s)+'</div>'+
     '<div class="naddrow"><input id="nin" placeholder="הוסף הערה…"><button id="nadd">הוסף</button></div></div>';
-  if(state.isCoord) h += '<button class="rmst" id="rmst">🗑️ הסר חניך מהקבוצה</button>';   // רכזים בלבד
+  if(state.isCoord) h += '<button class="rmst mvst" id="mvst"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13M13 4l4 4-4 4M20 16H7M11 12l-4 4 4 4"/></svg>העבר לקבוצה אחרת</button><div id="mv_box"></div>'+
+    '<button class="rmst" id="rmst">🗑️ הסר חניך מהקבוצה</button>';   // רכזים בלבד
   $("ovbox").innerHTML = h;
   $("ov").hidden = false;
   $("ovx").onclick = closeCard;
   if($("addcontact")) $("addcontact").onclick = function(){ saveContact(s, cur); };
   if($("rmst")) $("rmst").onclick = function(){ removeStudent(s, cur); };
+  if($("mvst")) $("mvst").onclick = function(){ moveForm(s, cur); };
   if($("add_dob")) $("add_dob").onclick = function(){ addDobForm(s, cur); };
   $("nadd").onclick = function(){ addNote(s, cur); };
 }
@@ -1902,6 +1908,54 @@ function addDobForm(s, cur){
       if(j&&j.ok){ s.dob=dob; try{ localStorage.removeItem("att_cache"); }catch(e){} openCard(s, cur); if($("stlist")) renderStudents(); }
       else { btn.disabled=false; btn.textContent="שמור"; $("dob_err").textContent = /changed/.test((j&&j.error)||"") ? "הגיליון השתנה — רעננו ונסו שוב" : /no dob column/.test((j&&j.error)||"") ? "בגיליון של הקבוצה אין עמודת תאריך לידה" : "לא נשמר: "+((j&&j.error)||"נסו שוב"); }
     }).catch(function(){ btn.disabled=false; btn.textContent="שמור"; $("dob_err").textContent="אין חיבור"; });
+  };
+}
+// (טל 9a8d) העברת חניך לקבוצה אחרת (רכזים). בלי שינוי בשרת: נוסף לקבוצה החדשה עם כל הפרטים שלו,
+// הנוכחות הקודמת נשמרת כהערה (בקבוצה הישנה וגם בחדשה), ורק אחרי שכל זה נשמר — נמחק מהקבוצה הישנה.
+function brName_(b){ return b==="jaffa" ? "יפו" : "תל אביב"; }
+function dayIdx_(d){ for(var k in DAYS) if(DAYS[k]===d) return +k; return 9; }
+function attHist_(s){
+  var a=s.attendance||{}, ks=Object.keys(a).filter(function(k){ return a[k]==="v"||a[k]==="x"; }).sort(function(p,q){ return toDate_(p)-toDate_(q); });
+  var pr=ks.filter(function(k){ return a[k]==="v"; }).length;
+  return ks.length ? "נוכח "+pr+" מתוך "+ks.length+" ("+ks.map(function(k){ return k.split("/").slice(0,2).join("/")+(a[k]==="v"?" ✓":" ✗"); }).join(", ")+")" : "עוד לא סומנה נוכחות";
+}
+function moveForm(s, cur){
+  var b=$("mv_box"); if(!b) return;
+  if(b.innerHTML){ b.innerHTML=""; return; }
+  var gs=(state.all||[]).filter(function(g){ return !(g.branch===cur.branch && g.day===cur.day && norm(g.instructor)===norm(cur.instructor)); });
+  gs.sort(function(p,q){ return (p.branch===cur.branch?0:1)-(q.branch===cur.branch?0:1) || dayIdx_(p.day)-dayIdx_(q.day) || cleanInst(p.instructor).localeCompare(cleanInst(q.instructor),"he"); });
+  b.innerHTML='<div class="dobf"><label>לאיזו קבוצה להעביר את '+esc(norm(s.name).split(" ")[0])+'?</label><select id="mv_sel" class="asin"><option value="">בחרו קבוצה…</option>'+
+    gs.map(function(g,i){ return '<option value="'+i+'">'+esc(cleanInst(g.instructor)+' · '+g.day+' · '+brName_(g.branch))+'</option>'; }).join('')+'</select>'+
+    '<div style="color:var(--muted);font-size:.8rem">הנוכחות הקודמת נשמרת בהערות של החניך</div>'+
+    '<div id="mv_err" style="color:var(--stop);font-size:.8rem;font-weight:700;min-height:1em"></div><button id="mv_go" class="asin pri">העבר</button></div>';
+  $("mv_go").onclick=function(){
+    var v=$("mv_sel").value; if(v===""){ $("mv_err").textContent="בחרו קבוצה"; return; }
+    var to=gs[+v], nm=norm(s.name), toLbl=cleanInst(to.instructor)+" ("+to.day+", "+brName_(to.branch)+")", fromLbl=cleanInst(cur.instructor)+" ("+cur.day+", "+brName_(cur.branch)+")";
+    if(Object.keys(MQ.pend).length || MQ.busy){ $("mv_err").textContent="רגע — עוד שומרים סימוני נוכחות. נסו שוב בעוד כמה שניות"; return; }
+    if(!confirm("להעביר את "+nm+" לקבוצה של "+toLbl+"?")) return;
+    var btn=this; btn.disabled=true; btn.textContent="מעביר…"; $("mv_err").textContent="";
+    var hist=attHist_(s), fail=function(m){ btn.disabled=false; btn.textContent="העבר"; $("mv_err").textContent=m; };
+    var ok=function(j){ if(!j||!j.ok) throw new Error((j&&j.error)||"שגיאה"); return j; }, stage="add";
+    post({action:"addStudent", branch:to.branch, day:to.day, group:to.instructor, name:nm,
+      parent:norm(s.parent), phone:norm(s.phone), shirt:norm(s.shirt), age:norm(s.age), gender:norm(s.gender), dob:norm(s.dob)}).then(ok).then(function(){
+      stage="note";
+      var notes=[post({action:"addNote", branch:cur.branch, day:cur.day, student:nm, note:("עבר לקבוצה של "+toLbl+". נוכחות בקבוצה של "+cleanInst(cur.instructor)+": "+hist).slice(0,300), by:state.who}).then(ok)];
+      if(to.branch!==cur.branch || to.day!==cur.day) notes.push(post({action:"addNote", branch:to.branch, day:to.day, student:nm, note:("הגיע מהקבוצה של "+fromLbl+". נוכחות שם: "+hist).slice(0,300), by:state.who}).then(ok));
+      return Promise.all(notes);
+    }).then(function(){
+      stage="remove";
+      return post({action:"removeStudent", branch:cur.branch, day:cur.day, group:cur.instructor, name:nm}).then(ok);
+    }).then(function(){
+      try{ localStorage.removeItem("att_cache"); }catch(e){} state.touched=false; closeCard(); toast(nm+(norm(s.gender)==="בת"?" עברה":" עבר")+" לקבוצה של "+cleanInst(to.instructor), "ok"); load();
+    }).catch(function(e){
+      var why=(e&&e.message&&!/fetch|network|load failed/i.test(e.message))?" ("+e.message+")":" (אין חיבור)";
+      if(stage==="add") return fail("לא הועבר"+why+". נסו שוב.");
+      try{ localStorage.removeItem("att_cache"); }catch(err){}
+      btn.textContent="נוסף לקבוצה החדשה";   // לא לאפשר לחיצה שנייה — הייתה מוסיפה אותו פעמיים
+      $("mv_err").textContent=(stage==="note" ? "נוסף לקבוצה החדשה, אבל ההיסטוריה לא נשמרה — לכן לא נמחק מהקבוצה הישנה"+why+". אפשר להסיר אותו משם ידנית."
+                         : "נוסף לקבוצה החדשה, אבל לא נמחק מהישנה"+why+". הסירו אותו משם ידנית.");
+      state.touched=false; load();
+    });
   };
 }
 function removeStudent(s, cur){
